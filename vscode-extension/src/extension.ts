@@ -28,7 +28,7 @@ interface PreviewSession {
 
 interface RenderOutput {
   html: string;
-  workspaceFolder: vscode.WorkspaceFolder;
+  workspaceFolder: vscode.WorkspaceFolder | null;
   outputPath: string;
   inputDir: string;
 }
@@ -201,7 +201,7 @@ async function previewDocument(document: vscode.TextDocument, reason: PreviewRea
   try {
     const renderOutput = await runCliRenderer(document);
     const roots = [
-      renderOutput.workspaceFolder.uri,
+      ...(renderOutput.workspaceFolder ? [renderOutput.workspaceFolder.uri] : []),
       vscode.Uri.file(renderOutput.inputDir),
       vscode.Uri.file(path.dirname(renderOutput.outputPath)),
     ];
@@ -295,26 +295,42 @@ function ensureSession(document: vscode.TextDocument, reveal: boolean): PreviewS
 }
 
 async function runCliRenderer(document: vscode.TextDocument): Promise<RenderOutput> {
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-  if (!workspaceFolder) {
-    throw new Error('Preview works only for markdown files inside the current workspace.');
-  }
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri) ?? null;
 
   const config = readConfig();
-  const scriptCandidate = await resolveAvailableCliScriptPath(workspaceFolder, config.cliScriptPath);
-  let scriptPath = scriptCandidate.path;
-  if (!scriptCandidate.exists) {
-    const selectedScriptPath = await promptForCliScriptPath(workspaceFolder, scriptCandidate.path);
-    if (!selectedScriptPath) {
-      throw new Error(
-        `CLI script was not found at "${scriptCandidate.path}". Set "mdStudioPreview.cliScriptPath" to a valid relative or absolute path.`,
-      );
-    }
-    scriptPath = selectedScriptPath;
-  }
-
   const inputPath = document.uri.fsPath;
   const inputDir = path.dirname(inputPath);
+
+  let scriptPath: string;
+  if (workspaceFolder) {
+    const scriptCandidate = await resolveAvailableCliScriptPath(workspaceFolder, config.cliScriptPath);
+    if (!scriptCandidate.exists) {
+      const selectedScriptPath = await promptForCliScriptPath(workspaceFolder, scriptCandidate.path);
+      if (!selectedScriptPath) {
+        throw new Error(
+          `CLI script was not found at "${scriptCandidate.path}". Set "mdStudioPreview.cliScriptPath" to a valid relative or absolute path.`,
+        );
+      }
+      scriptPath = selectedScriptPath;
+    } else {
+      scriptPath = scriptCandidate.path;
+    }
+  } else {
+    // Outside workspace: use bundled script or absolute path from config
+    const rawScript = (config.cliScriptPath || '').trim();
+    if (rawScript && path.isAbsolute(rawScript) && await fileExists(rawScript)) {
+      scriptPath = rawScript;
+    } else {
+      const bundled = resolveBundledCliScriptPath();
+      if (!bundled || !(await fileExists(bundled))) {
+        throw new Error(
+          'No CLI script found. Set "mdStudioPreview.cliScriptPath" to an absolute path to use preview outside a workspace.',
+        );
+      }
+      scriptPath = bundled;
+    }
+  }
+
   const tempDir = path.join(os.tmpdir(), 'markdown-pattern-studio-preview');
   await fs.mkdir(tempDir, { recursive: true });
 
@@ -323,8 +339,9 @@ async function runCliRenderer(document: vscode.TextDocument): Promise<RenderOutp
     .replace(/[^a-zA-Z0-9._-]+/g, '_');
   const outputPath = path.join(tempDir, `${safeBaseName}-${Date.now()}.html`);
 
+  const cwd = workspaceFolder ? workspaceFolder.uri.fsPath : inputDir;
   const args = [scriptPath, inputPath, '--out', outputPath, '--base-dir', inputDir, ...config.extraArgs];
-  await spawnProcess(config.nodePath, args, workspaceFolder.uri.fsPath);
+  await spawnProcess(config.nodePath, args, cwd);
 
   const html = await fs.readFile(outputPath, 'utf8');
   return { html, workspaceFolder, outputPath, inputDir };
@@ -489,9 +506,7 @@ async function resolveCursorSectionIdForSave(document: vscode.TextDocument): Pro
   const cursorLine = resolveBestCursorLine(document);
   if (!cursorLine) return null;
 
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-  if (!workspaceFolder) return null;
-
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri) ?? null;
   const parseMarkdownDocument = await loadParseMarkdownParser(workspaceFolder);
   if (!parseMarkdownDocument) return null;
 
@@ -552,13 +567,15 @@ function resolveBestCursorLine(document: vscode.TextDocument): number | null {
   return getActiveEditorCursorLine(document);
 }
 
-async function loadParseMarkdownParser(workspaceFolder: vscode.WorkspaceFolder): Promise<ParseMarkdownDocumentFn | null> {
-  const workspaceRoot = workspaceFolder.uri.fsPath;
-  const workspaceEnginePath = path.join(workspaceRoot, 'public', 'core', 'engine.js');
+async function loadParseMarkdownParser(workspaceFolder: vscode.WorkspaceFolder | null): Promise<ParseMarkdownDocumentFn | null> {
   let enginePath: string | null = null;
-  if (await fileExists(workspaceEnginePath)) {
-    enginePath = workspaceEnginePath;
-  } else {
+  if (workspaceFolder) {
+    const workspaceEnginePath = path.join(workspaceFolder.uri.fsPath, 'public', 'core', 'engine.js');
+    if (await fileExists(workspaceEnginePath)) {
+      enginePath = workspaceEnginePath;
+    }
+  }
+  if (!enginePath) {
     const bundledEnginePath = resolveBundledParserEnginePath();
     if (bundledEnginePath && (await fileExists(bundledEnginePath))) {
       enginePath = bundledEnginePath;

@@ -135,7 +135,13 @@ function buildEnhancementScript({ mermaid = true } = {}) {
         rootDocument.style.setProperty('--page-scale', '1');
         return;
       }
-      const availableWidth = Math.max(120, window.innerWidth - 360);
+      const outlineEl = document.querySelector('.export-outline');
+      const outlineWidth = (outlineEl && !outlineEl.classList.contains('is-collapsed'))
+        ? outlineEl.getBoundingClientRect().width + 16
+        : 0;
+      const bodyPadding = parseFloat(getComputedStyle(document.body).paddingLeft || '0') * 2;
+      const reservedWidth = outlineWidth + bodyPadding + 8;
+      const availableWidth = Math.max(120, window.innerWidth - reservedWidth);
       const availableHeight = Math.max(120, window.innerHeight - 40);
       const scale = Math.min(1, availableWidth / width, availableHeight / height);
       rootDocument.style.setProperty('--page-scale', String(Number.isFinite(scale) && scale > 0 ? scale : 1));
@@ -644,6 +650,63 @@ export function buildStandaloneHtmlDocument({
     @media (max-width: 980px) {
       .export-outline {
         width: min(280px, 42vw);
+      }
+    }
+    @media (max-width: 680px) {
+      body {
+        padding: 12px;
+      }
+      body.export-slides {
+        padding: 8px;
+      }
+      body.export-stacked {
+        padding: 12px;
+      }
+      .export-outline {
+        top: 8px;
+        right: 8px;
+        width: min(200px, 52vw);
+        max-height: calc(100vh - 80px);
+        padding: 8px;
+        font-size: 12px;
+      }
+      .export-outline .outline-links a {
+        font-size: 12px;
+        padding: 4px 6px;
+      }
+      .export-slide-nav {
+        right: 8px;
+        bottom: 8px;
+        padding: 6px 8px;
+        gap: 6px;
+      }
+      .export-slide-nav button {
+        padding: 5px 8px;
+        font-size: 12px;
+      }
+      .export-fallback-nav {
+        left: 8px;
+        bottom: 8px;
+      }
+    }
+    @media (max-width: 480px) {
+      body {
+        padding: 8px;
+      }
+      body.export-stacked {
+        padding: 8px;
+      }
+      .export-outline {
+        top: 6px;
+        right: 6px;
+        width: min(160px, 60vw);
+      }
+      .export-outline.is-collapsed {
+        max-width: 80px;
+      }
+      .export-slide-nav .count {
+        min-width: 44px;
+        font-size: 12px;
       }
     }
   </style>
