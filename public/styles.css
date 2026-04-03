@@ -197,16 +197,32 @@ textarea,
   padding: 14px 16px;
   border-bottom: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.02);
+  flex-wrap: wrap;
+}
+
+.pane-head > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .pane-head strong {
   display: block;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pane-head span {
   color: var(--muted);
   font-size: 13px;
+}
+
+.pane-head > div:first-child span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pill {
@@ -507,6 +523,7 @@ textarea,
 .segmented {
   display: flex;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .segmented button {
@@ -517,6 +534,7 @@ textarea,
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .slide-controls button {
