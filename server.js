@@ -44,4 +44,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(port, () => {
   console.log(`Markdown Pattern Studio running on http://localhost:${port}`);
+  console.log(`Template Builder: http://localhost:${port}/template-builder.html`);
 });
