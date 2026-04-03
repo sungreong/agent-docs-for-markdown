@@ -15,8 +15,6 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:mdStudioPreview.open",
-    "onCommand:mdStudioPreview.refresh",
     "onLanguage:markdown"
   ],
   "main": "./dist/extension.js",
@@ -29,6 +27,11 @@
       {
         "command": "mdStudioPreview.refresh",
         "title": "Markdown Studio: Refresh Preview"
+      },
+      {
+        "command": "mdStudioPreview.openTemplateBuilder",
+        "title": "Markdown Studio: Open Template Builder",
+        "icon": "$(combine)"
       }
     ],
     "configuration": {
@@ -73,6 +76,11 @@
             "--standalone"
           ],
           "description": "Additional CLI arguments appended after --base-dir."
+        },
+        "mdStudioPreview.skillsDir": {
+          "type": "string",
+          "default": ".gemini/skills",
+          "description": "Path to the skills directory used by Template Builder. Relative paths are resolved from workspace root. Absolute paths are also supported."
         }
       }
     },
@@ -87,6 +95,11 @@
           "command": "mdStudioPreview.refresh",
           "when": "resourceLangId == markdown",
           "group": "navigation@21"
+        },
+        {
+          "command": "mdStudioPreview.openTemplateBuilder",
+          "when": "resourceLangId == markdown",
+          "group": "navigation@22"
         }
       ]
     }
@@ -105,7 +118,8 @@
     "EXTENSION_GUIDE.md",
     "scripts/md-to-html.mjs",
     "public/core/**",
-    "public/document.css"
+    "public/document.css",
+    "public/template-builder.html"
   ],
   "devDependencies": {
     "@types/node": "^20.17.24",

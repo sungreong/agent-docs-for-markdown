@@ -4,6 +4,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { openTemplateBuilderCommand } from './commands/templateBuilder.js';
 
 type PreviewReason = 'open' | 'refresh' | 'save';
 
@@ -105,6 +106,12 @@ export function activate(context: vscode.ExtensionContext) {
       const config = readConfig();
       if (!config.autoOnSave) return;
       void queuePreview(document, 'save');
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mdStudioPreview.openTemplateBuilder', async () => {
+      await openTemplateBuilderCommand(context);
     }),
   );
 }
