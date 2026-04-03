@@ -32,3 +32,5 @@ Thumbs.db
 # Local tooling / agent metadata
 .claude/
 .codex/
+.gemini
+ai_docs
