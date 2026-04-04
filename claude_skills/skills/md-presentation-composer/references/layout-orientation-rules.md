@@ -27,7 +27,7 @@
 가점 규칙:
 1. 표 열 수가 4개 이상: `landscape +2`
 2. 표 열 수가 6개 이상: `landscape +3`
-3. 다단 구조(`.two-column`, `.three-column`, `.cols-N`) 사용: `landscape +2`
+3. 다단 구조(`.two-column`, `.three-column`, `.cols-N`) 사용: `landscape +2` — 2~6열 지원
 4. 코드 블록의 긴 라인이 많음: `landscape +1`
 5. 가로형 이미지 비중이 큼: `landscape +1`
 6. 긴 본문 위주 문서(표/코드 적음): `portrait +2`

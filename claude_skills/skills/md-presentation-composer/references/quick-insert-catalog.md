@@ -9,6 +9,7 @@
 | section_h2 | H2 섹션 | `h2` | 일반 섹션 시작 | `## 섹션 제목` |
 | cover | Cover | `cover` | 문서 첫 표지 | `# 보고서 제목 {#cover .cover eyebrow="Monthly Report"}` |
 | two_column | 2단 섹션 | `two-column` | 좌우 비교/요약 | `## 핵심 요약 {#summary .two-column}` |
+| three_column | 3단 섹션 | `three-column` | 3열 나란히 배치 | `## 섹션 제목 {#cols3 .three-column}` |
 | stats | Stats | `stats` | KPI 카드형 요약 | `### 핵심 KPI {#kpi .stats}` |
 | callout | Callout | `callout` | 강조 문구/경고 | `> [!INFO] 핵심 메시지` |
 | table_attr | 표 + 속성 | `table` | 표 스타일 지정 | `{: .zebra .bordered .compact ...}` |
