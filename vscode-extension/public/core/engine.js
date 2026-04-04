@@ -848,11 +848,19 @@ function renderSection(section, context) {
   // When a section contains page-break markers, continue the same section style on the next page.
   return pageSplit
     .map((segmentBlocks, index) => {
+      const isLast = index === pageSplit.length - 1;
+      const children = isLast ? section.children : [];
+      
+      // If trailing segment has absolutely no content, just return empty string 
+      // so we don't render an empty ghost wrapper that causes huge blank spaces.
+      if (index > 0 && segmentBlocks.length === 0 && (!children || children.length === 0)) {
+        return '';
+      }
+
       const segment = {
         ...section,
         blocks: segmentBlocks,
-        // Children are rendered at the tail section chunk to preserve authoring order.
-        children: index === pageSplit.length - 1 ? section.children : [],
+        children,
       };
       return renderSectionOnce(segment, { ...context, disablePageBreakTokens: true });
     })
@@ -884,7 +892,9 @@ function splitBlocksByPageBreak(blocks = []) {
     }
     pages[pages.length - 1].push(block);
   }
-  return pages.filter((page) => page.length > 0);
+  // 페이지 내 page-break가 마지막에 있을 때 생성되는 빈 배열([])을 필터링하면 안 됩니다.
+  // 필터링할 경우 split 개수가 1로 식별되어 renderSectionOnce 내부에서 토큰이 렌더링되면서 DOM(태그) 한가운데가 쪼개지게 됩니다.
+  return pages;
 }
 
 function sectionClassList(section, extraClasses = '') {

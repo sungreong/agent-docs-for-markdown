@@ -1,0 +1,1343 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Template Builder — Markdown Pattern Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0d1117; --bg2:#161b22; --bg3:#1c2230;
+      --border:rgba(139,180,255,.12); --border-hi:rgba(99,153,255,.35);
+      --accent:#5b8ef0; --accent-glow:rgba(91,142,240,.18);
+      --text:#e2e8f8; --text-dim:#7a8bab; --text-code:#88b0ff;
+      --green:#3ddc84; --red:#ff6b6b; --yellow:#fbbf24;
+      --font:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+      --radius:8px; --shadow:0 4px 24px rgba(0,0,0,.45);
+    }
+    html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;}
+
+    /* Topbar */
+    .topbar{min-height:48px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;flex-wrap:wrap;padding:6px 12px;gap:8px;position:relative;z-index:10;}
+    .topbar-brand{font-weight:700;font-size:14px;letter-spacing:-.3px;}
+    .topbar-brand span{color:var(--accent);}
+    .topbar-spacer{flex:1;}
+    .topbar-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+    .panel-toggle-btn{padding:4px 8px;font-size:11px;}
+    .panel-toggle-btn[aria-pressed="true"]{color:var(--accent);border-color:var(--border-hi);background:var(--accent-glow);}
+    .btn-icon{font-size:12px;line-height:1;}
+    .btn-label{line-height:1;}
+    .pill-count{background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;min-width:18px;text-align:center;}
+
+    /* Layout */
+    .workspace{display:grid;grid-template-columns:230px minmax(420px,1.15fr) minmax(360px,1fr);height:calc(100vh - 60px);overflow:hidden;}
+    body.compact-palette .workspace{grid-template-columns:148px minmax(420px,1.15fr) minmax(360px,1fr);}
+    body.compact-palette.hide-preview .workspace{grid-template-columns:148px minmax(640px,1fr) 0;}
+    body.hide-palette .workspace{grid-template-columns:0 minmax(520px,1.2fr) minmax(360px,1fr);}
+    body.hide-palette .pane-palette{display:none;}
+    body.hide-preview .workspace{grid-template-columns:230px minmax(640px,1fr) 0;}
+    body.hide-preview .pane-preview{display:none;}
+    body.hide-palette.hide-preview .workspace{grid-template-columns:1fr;}
+
+    /* Pane shared */
+    .pane{display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+    .pane-head{padding:11px 14px 10px;border-bottom:1px solid var(--border);font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-dim);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+    .pane-head .pane-title{flex:1;}
+    .pane-head-hint{font-size:10px;color:var(--text-dim);text-transform:none;letter-spacing:0;}
+    .pane-body{flex:1;overflow-y:auto;user-select:none;}
+    .pane-body::-webkit-scrollbar{width:4px;}
+    .pane-body::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:2px;}
+
+    /* Palette */
+    .pane-palette{border-right:1px solid var(--border);background:var(--bg2);}
+    .palette-category{padding:8px 10px 4px;}
+    .palette-category-label{font-size:9px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--text-dim);padding:0 2px 6px;display:block;}
+    .palette-grid{display:flex;flex-direction:column;gap:3px;padding:0 6px 8px;}
+
+    .palette-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--radius);border:1px solid transparent;cursor:grab;user-select:none;transition:background .12s,border-color .12s,transform .1s;background:var(--bg3);}
+    .palette-item:hover{background:var(--accent-glow);border-color:var(--border-hi);}
+    .palette-item:active{transform:scale(.97);cursor:grabbing;}
+    .palette-item.dragging{opacity:.35;}
+    .palette-item-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+    .palette-item-info{min-width:0;flex:1;}
+    .palette-item-label{font-weight:600;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .palette-item-desc{display:none;font-size:10px;color:var(--text-dim);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    body.show-details .palette-item-desc{display:block;}
+    body.compact-palette .palette-item{padding:6px;}
+    body.compact-palette .palette-item-icon{width:22px;height:22px;font-size:12px;}
+    body.compact-palette .palette-item-label{font-size:11px;}
+    body.compact-palette .palette-category{padding:6px 8px 3px;}
+    body.compact-palette .palette-grid{padding:0 4px 6px;}
+    body.compact-palette .palette-category-label{font-size:8px;}
+
+    /* Canvas */
+    .pane-canvas{background:var(--bg);border-right:1px solid var(--border);}
+    .canvas-body{padding:10px;display:flex;flex-direction:column;gap:0;min-height:100%;}
+
+    /* Insertion indicator */
+    .insert-indicator{height:2px;background:var(--accent);border-radius:2px;margin:1px 4px;opacity:0;transition:opacity .12s;pointer-events:none;}
+    .insert-indicator.active{opacity:1;}
+
+    /* Drop zone (empty state) */
+    .drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:32px 16px;text-align:center;color:var(--text-dim);font-size:12px;transition:border-color .15s,background .15s;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
+    .drop-zone.drag-over{border-color:var(--accent);background:var(--accent-glow);color:var(--accent);}
+    .drop-zone-icon{font-size:32px;opacity:.4;}
+
+    /* Canvas items */
+    .canvas-list{display:flex;flex-direction:column;}
+    .canvas-item{display:flex;flex-direction:column;gap:8px;padding:9px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);transition:border-color .12s,box-shadow .12s;margin:2px 0;position:relative;}
+    .canvas-item:hover{border-color:var(--border-hi);box-shadow:0 2px 12px rgba(0,0,0,.3);}
+    .canvas-item.dragging-canvas{opacity:.3;}
+    .canvas-item.drop-target-above{border-top:2px solid var(--accent);}
+    .canvas-item.drop-target-below{border-bottom:2px solid var(--accent);}
+
+    .item-header {display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;align-items:center;column-gap:8px;row-gap:4px;}
+    .item-drag-handle{cursor:grab;color:var(--text-dim);font-size:14px;flex-shrink:0;padding:0 2px;line-height:1;}
+    .item-icon{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+    .item-label{min-width:0;font-weight:600;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .item-desc{display:none;grid-column:3 / 6;font-size:10px;color:var(--text-dim);max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    body.show-details .item-desc{display:block;}
+    .item-action{background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:14px;padding:2px 4px;border-radius:4px;transition:color .12s,background .12s;flex-shrink:0;line-height:1;}
+    .item-action:hover{color:var(--text);background:rgba(255,255,255,.1);}
+    .item-action.remove:hover{color:var(--red);background:rgba(255,107,107,.1);}
+
+    .item-editor {display:none; padding: 4px 6px 0 28px;}
+    .item-editor.open {display:block;}
+    .item-textarea {width:100%; background:var(--bg3); color:var(--text); font-family:var(--mono); font-size:11px; border:1px solid var(--border); border-radius:4px; padding:6px; resize:vertical; min-height:60px;}
+    .item-textarea:focus {outline:none; border-color:var(--accent);}
+
+    .layout-zones {display:flex; flex-wrap:wrap; gap:8px; margin: 4px 6px 0 28px;}
+    .layout-drop-zone {flex:1 1 220px; min-width:0; border:1px dashed var(--border); border-radius:4px; padding:6px; min-height:48px; display:flex; flex-direction:column; gap:6px; background:rgba(0,0,0,.15); transition:all 0.15s;}
+    .layout-drop-zone.drag-over {border-color:var(--accent); background:var(--accent-glow);}
+    .zone-title {font-size:10px; color:var(--text-dim); text-align:center; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:2px; white-space:normal; overflow-wrap:anywhere;}
+    .nested-list {display:flex; flex-direction:column; gap:4px; min-height:24px;}
+    .nested-item {display:flex; align-items:center; gap:6px; background:var(--bg3); border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-size:11px; color:var(--text); min-width:0;}
+    .nested-item-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .nested-item-remove {background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:14px; line-height:1;}
+    .nested-item-remove:hover {color:var(--red);}
+
+    /* Slide Group */
+    .slide-group{display:flex;flex-direction:column;gap:0;padding:0 0 6px;background:rgba(192,132,252,.05);border:1.5px solid rgba(192,132,252,.3);border-radius:var(--radius);margin:2px 0;position:relative;transition:border-color .12s;}
+    .slide-group:hover{border-color:rgba(192,132,252,.6);}
+    .slide-group.dragging-canvas{opacity:.3;}
+    .slide-group.drop-target-above{border-top:2px solid var(--accent);}
+    .slide-group.drop-target-below{border-bottom:2px solid var(--accent);}
+    .slide-group-header{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;align-items:center;column-gap:8px;row-gap:4px;padding:8px 10px;border-bottom:1px dashed rgba(192,132,252,.2);cursor:default;}
+    .slide-group-badge{font-size:9px;font-weight:700;letter-spacing:.8px;padding:2px 7px;border-radius:20px;background:rgba(192,132,252,.18);color:#c084fc;text-transform:uppercase;flex-shrink:0;}
+    .slide-group-label{min-width:0;font-weight:600;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .slide-group-desc{display:none;grid-column:3 / 6;font-size:10px;color:var(--text-dim);max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    body.show-details .slide-group-desc{display:block;}
+    .slide-content-area{padding:6px 10px 4px;display:flex;flex-direction:column;gap:6px;}
+    .slide-content-zone{border:1px dashed rgba(192,132,252,.3);border-radius:4px;padding:6px 8px;min-height:40px;display:flex;flex-direction:column;gap:4px;background:rgba(0,0,0,.12);transition:all 0.15s;}
+    .slide-content-zone.drag-over{border-color:#c084fc;background:rgba(192,132,252,.1);}
+    .slide-content-zone.drag-over-blocked{border-color:var(--red);background:rgba(255,107,107,.08);}
+    .slide-content-zone-label{font-size:10px;color:rgba(192,132,252,.6);margin-bottom:2px;}
+    .slide-layout-zones{display:flex;flex-wrap:wrap;gap:6px;}
+
+    .canvas-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-dim);padding:48px 20px;text-align:center;flex:1;}
+    .canvas-empty-icon{font-size:36px;opacity:.3;}
+    .canvas-empty-title{font-weight:600;font-size:14px;}
+    .canvas-empty-sub{font-size:11px;line-height:1.6;}
+
+    /* Canvas footer */
+    .canvas-footer{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;}
+    .btn{padding:7px 14px;border-radius:var(--radius);border:none;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:600;transition:opacity .15s,transform .1s;}
+    .btn:active{transform:scale(.97);}
+    .btn:disabled{opacity:.4;cursor:not-allowed;}
+    .btn-primary{background:var(--accent);color:#fff;}
+    .btn-primary:hover:not(:disabled){opacity:.85;}
+    .btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+    .btn-secondary:hover:not(:disabled){border-color:var(--border-hi);}
+    .btn-ghost{background:none;color:var(--text-dim);border:1px solid transparent;}
+    .btn-ghost:hover:not(:disabled){color:var(--text);border-color:var(--border-hi);}
+    .btn-danger{background:rgba(255,107,107,.12);color:var(--red);border:1px solid rgba(255,107,107,.2);}
+    .btn-danger:hover:not(:disabled){background:rgba(255,107,107,.22);}
+
+    /* Preview */
+    .pane-preview{background:var(--bg2);}
+    .preview-tabs{display:flex;align-items:center;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--border);padding:4px 8px;flex-shrink:0;}
+    .preview-tab{display:flex;align-items:center;gap:4px;padding:7px 10px;font-size:11px;font-weight:600;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font);white-space:nowrap;}
+    .preview-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+    .preview-tab:hover:not(.active){color:var(--text);}
+    .preview-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;}
+    .preview-options-toggle{padding:4px 8px;font-size:11px;min-height:26px;}
+    .preview-options-toggle[aria-expanded="true"]{color:var(--accent);border-color:var(--border-hi);background:var(--accent-glow);}
+    .preview-advanced{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:0 8px 6px 8px;border-bottom:1px solid var(--border);}
+    .preview-advanced[hidden]{display:none;}
+    .advanced-label{font-size:11px;color:var(--text-dim);}
+    .doc-theme-select{font-size:12px;padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);color:var(--text);max-width:180px;}
+
+    .preview-zoom {display:flex;gap:2px;align-items:center;padding-right:8px;}
+    .zoom-btn {background:none;border:1px solid var(--border);color:var(--text-dim);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:14px;line-height:1;}
+    .zoom-btn:hover {background:var(--bg3);color:var(--text);}
+    .zoom-text {font-size:11px;color:var(--text-dim);min-width:36px;text-align:center;user-select:none;}
+
+    .preview-panel{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+    #previewRendered{flex:1;overflow:auto;min-height:0;}
+    #previewMd{font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--text);white-space:pre;overflow:auto;padding:14px;height:100%;}
+    #previewMd::-webkit-scrollbar{width:4px;}
+    #previewMd::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:2px;}
+    .preview-frame {width:100%; height:100%; border:none; border-top-left-radius: 8px; border-bottom-left-radius: 8px;}
+
+    /* Inject custom style into the preview via JS if needed, but the main app.js engine will render it */
+    .hide-h2 > h2 { display: none !important; }
+    .md-h1{color:#88b0ff;font-weight:bold;}
+    .md-h2{color:#82c4ff;font-weight:bold;}
+    .md-h3{color:#7de2d1;font-weight:bold;}
+    .md-attr{color:#c792ea;}
+    .md-fence{color:#f78c6c;}
+    .md-sep{color:#546e7a;font-style:italic;}
+
+    .preview-empty-msg{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-dim);padding:48px 20px;text-align:center;height:100%;}
+    .preview-empty-msg-icon{font-size:32px;opacity:.3;}
+
+    /* Toast */
+    #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:var(--radius);font-size:12px;box-shadow:var(--shadow);opacity:0;transition:opacity .2s;pointer-events:none;z-index:999;white-space:nowrap;}
+    #toast.show{opacity:1;}
+
+    @media (max-width: 1280px) {
+      .btn-label { display:none; }
+      .topbar-brand { font-size:13px; }
+      .topbar-actions .btn { padding:4px 8px; }
+      .doc-theme-select { max-width:130px; }
+      .advanced-label { display:none; }
+      .workspace { grid-template-columns:210px minmax(380px,1fr) minmax(300px,1fr); }
+      body.compact-palette .workspace{grid-template-columns:132px minmax(380px,1fr) minmax(300px,1fr);}
+      body.hide-preview .workspace{grid-template-columns:210px minmax(500px,1fr) 0;}
+      body.compact-palette.hide-preview .workspace{grid-template-columns:132px minmax(500px,1fr) 0;}
+    }
+
+    @media (max-width: 980px) {
+      .topbar-brand { display:none; }
+      .workspace { grid-template-columns:180px minmax(280px,1fr) minmax(240px,.9fr); }
+      body.hide-palette .workspace{grid-template-columns:0 minmax(280px,1fr) minmax(240px,.9fr);}
+      body.hide-preview .workspace{grid-template-columns:180px minmax(320px,1fr) 0;}
+      .preview-tab-label { display:none; }
+      .item-desc, .slide-group-desc { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">MPS <span>·</span> Template Builder</div>
+  <button class="btn btn-ghost panel-toggle-btn" id="btnTogglePalette" title="블록 라이브러리 접기/펼치기" aria-pressed="false">
+    <span class="btn-icon">🗂️</span>
+    <span class="btn-label">라이브러리</span>
+  </button>
+  <button class="btn btn-ghost panel-toggle-btn" id="btnTogglePreview" title="미리보기 패널 접기/펼치기" aria-pressed="false">
+    <span class="btn-icon">🪟</span>
+    <span class="btn-label">미리보기</span>
+  </button>
+  <button class="btn btn-ghost panel-toggle-btn" id="btnToggleDetails" title="상세 설명 보기/숨기기" aria-pressed="false">
+    <span class="btn-icon">ℹ️</span>
+    <span class="btn-label">상세</span>
+  </button>
+  <div class="topbar-spacer"></div>
+  <span id="countBadge" class="pill-count">0</span>
+  
+  <div class="topbar-actions" style="margin-left:8px;">
+    <button class="btn btn-secondary" id="btnCopy" disabled style="padding:4px 10px; font-size:12px;">
+      <span class="btn-icon">📋</span>
+      <span class="btn-label">복사</span>
+    </button>
+    <button class="btn btn-primary" id="btnDownload" disabled style="padding:4px 10px; font-size:12px;">
+      <span class="btn-icon">⬇️</span>
+      <span class="btn-label">.md 저장</span>
+    </button>
+    <button class="btn btn-primary" id="btnInsertVscode" disabled style="display:none; padding:4px 10px; font-size:12px;">
+      <span class="btn-icon">✨</span>
+      <span class="btn-label">에디터 삽입</span>
+    </button>
+  </div>
+</div>
+
+<div class="workspace">
+
+  <!-- 블록 팔레트 -->
+  <aside class="pane pane-palette">
+    <div class="pane-head"><span class="pane-title">블록 라이브러리</span><span class="pane-head-hint">Ctrl+Alt+L</span></div>
+    <div class="pane-body" id="paletteBody"></div>
+  </aside>
+
+  <!-- 조립 캔버스 -->
+  <section class="pane pane-canvas">
+    <div class="pane-head"><span class="pane-title">조립 순서</span></div>
+    <div class="pane-body canvas-body" id="canvasBody">
+      <div class="canvas-list" id="canvasList"></div>
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-zone-icon">⊕</div>
+        <div>왼쪽 블록을 드래그해 문서를 시작하세요</div>
+        <div style="font-size:11px;margin-top:4px;opacity:.75">1. 블록 추가 → 2. 내용 수정(✏️) → 3. 에디터 삽입</div>
+      </div>
+    </div>
+    <div class="canvas-footer">
+      <span style="flex:1"></span>
+      <button class="btn btn-danger" id="btnClear" disabled>초기화</button>
+    </div>
+  </section>
+
+  <!-- 미리보기 -->
+  <aside class="pane pane-preview">
+    <div class="pane-head" style="padding:0;border-bottom:none;">
+      <div class="preview-tabs" style="width:100%;">
+        <button class="preview-tab active" data-tab="rendered">
+          <span>🖥</span>
+          <span class="preview-tab-label">렌더 미리보기</span>
+        </button>
+        <button class="preview-tab" data-tab="md">
+          <span>📝</span>
+          <span class="preview-tab-label">마크다운</span>
+        </button>
+        <div class="preview-controls">
+          <button class="btn btn-ghost preview-options-toggle" id="btnTogglePreviewOptions" aria-expanded="false">옵션</button>
+        </div>
+      </div>
+      <div class="preview-advanced" id="previewAdvanced" hidden>
+        <span class="advanced-label">뷰어</span>
+        <select id="docThemeSelect" class="doc-theme-select">
+          <option value="report">단일 보고서 뷰어</option>
+          <option value="presentation">슬라이드 페이지형 뷰어</option>
+        </select>
+        <span class="advanced-label">확대</span>
+        <div class="preview-zoom" id="previewZoom">
+          <button class="zoom-btn" id="btnZoomOut">-</button>
+          <span class="zoom-text" id="zoomValue">100%</span>
+          <button class="zoom-btn" id="btnZoomIn">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="preview-panel">
+      <!-- 탭 포커스 및 단축키 바인딩 처리를 위한 tabindex 추가 -->
+      <div id="previewMd" tabindex="0" style="outline:none; user-select:text;" hidden></div>
+      <div id="previewRendered" style="flex:1;overflow:auto;min-height:0;"></div>
+    </div>
+    <div id="slideNavBar" style="display:none;align-items:center;justify-content:center;gap:10px;padding:8px 14px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;">
+      <button class="btn btn-ghost" id="slidePrev" style="font-size:12px;padding:4px 12px;">← 이전</button>
+      <span id="slideCounter" style="font-size:12px;color:var(--text-dim);min-width:60px;text-align:center;">1 / 1</span>
+      <button class="btn btn-ghost" id="slideNext" style="font-size:12px;padding:4px 12px;">다음 →</button>
+    </div>
+  </aside>
+
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { SNIPPETS, SNIPPET_CATEGORIES } from '/core/snippets.js';
+import { parseMarkdownDocument, renderDocument, registerBuiltInTemplates } from '/core/engine.js';
+import { TemplateRegistry } from '/core/registry.js';
+
+const IS_VSCODE = typeof acquireVsCodeApi === 'function';
+const vscode = IS_VSCODE ? acquireVsCodeApi() : null;
+
+const registry = new TemplateRegistry();
+registerBuiltInTemplates(registry);
+
+// 카테고리 메타
+const CAT_META = {
+  basic:   { icon:'📝', color:'#5b8ef0', bg:'rgba(91,142,240,.15)' },
+  layout:  { icon:'⬛', color:'#3ddc84', bg:'rgba(61,220,132,.12)' },
+  content: { icon:'📊', color:'#fbbf24', bg:'rgba(251,191,36,.12)' },
+  slide:   { icon:'🎞️', color:'#c084fc', bg:'rgba(192,132,252,.12)' },
+  utility: { icon:'🔧', color:'#7a8bab', bg:'rgba(122,139,171,.12)' },
+};
+const CAT_ORDER = ['basic','layout','content','slide','utility'];
+
+// ── State ──
+let canvasItems = [];
+let drag = null;   // { type:'palette'|'canvas', name?, id? }
+let idSeq = 0;
+let userChangedTheme = false;
+
+// ── DOM ──
+const paletteBody   = document.getElementById('paletteBody');
+const canvasList    = document.getElementById('canvasList');
+const dropZone      = document.getElementById('dropZone');
+const countBadge    = document.getElementById('countBadge');
+const btnDownload   = document.getElementById('btnDownload');
+const btnCopy       = document.getElementById('btnCopy');
+const btnClear      = document.getElementById('btnClear');
+const btnTogglePalette = document.getElementById('btnTogglePalette');
+const btnTogglePreview = document.getElementById('btnTogglePreview');
+const btnToggleDetails = document.getElementById('btnToggleDetails');
+const btnTogglePreviewOptions = document.getElementById('btnTogglePreviewOptions');
+const previewMd     = document.getElementById('previewMd');
+const previewFrame  = document.getElementById('previewRendered');
+const previewAdvanced = document.getElementById('previewAdvanced');
+const previewZoom   = document.getElementById('previewZoom');
+const btnZoomIn     = document.getElementById('btnZoomIn');
+const btnZoomOut    = document.getElementById('btnZoomOut');
+const zoomValue     = document.getElementById('zoomValue');
+
+// ── Shadow DOM host ──
+let shadowRoot = null;
+function getShadowRoot() {
+  if (!shadowRoot) {
+    shadowRoot = previewFrame.attachShadow({ mode: 'open' });
+  }
+  return shadowRoot;
+}
+
+// ── Zoom logic ──
+let scale = 1.0;
+function updateZoom() {
+  zoomValue.textContent = Math.round(scale * 100) + '%';
+  const inner = shadowRoot && shadowRoot.getElementById('__mps_inner__');
+  if (inner) {
+    inner.style.transform = `scale(${scale})`;
+    inner.style.transformOrigin = '0 0';
+    inner.style.width = `${100 / scale}%`;
+  }
+}
+btnZoomIn.addEventListener('click', () => { scale = Math.min(2.0, scale + 0.1); updateZoom(); });
+btnZoomOut.addEventListener('click', () => { scale = Math.max(0.3, scale - 0.1); updateZoom(); });
+
+// ── Panel visibility (VS Code 전용) ──
+const panelState = {
+  hidePalette: false,
+  compactPalette: false,
+  hidePreview: false,
+  showDetails: false,
+  showPreviewAdvanced: false,
+};
+const PANEL_STATE_KEY = 'mps:template-builder:panel-state';
+
+function syncPanelToggles() {
+  const paletteHidden = document.body.classList.contains('hide-palette');
+  const previewHidden = document.body.classList.contains('hide-preview');
+  if (btnTogglePalette) {
+    btnTogglePalette.setAttribute('aria-pressed', String(paletteHidden));
+    btnTogglePalette.title = paletteHidden ? '블록 라이브러리 펼치기' : '블록 라이브러리 접기';
+  }
+  if (btnTogglePreview) {
+    btnTogglePreview.setAttribute('aria-pressed', String(previewHidden));
+    btnTogglePreview.title = previewHidden ? '미리보기 패널 펼치기' : '미리보기 패널 접기';
+  }
+  if (btnToggleDetails) {
+    btnToggleDetails.setAttribute('aria-pressed', String(panelState.showDetails));
+    btnToggleDetails.title = panelState.showDetails ? '상세 설명 숨기기' : '상세 설명 보기';
+  }
+  if (btnTogglePreviewOptions) {
+    btnTogglePreviewOptions.setAttribute('aria-expanded', String(panelState.showPreviewAdvanced));
+    btnTogglePreviewOptions.textContent = panelState.showPreviewAdvanced ? '옵션 접기' : '옵션';
+  }
+}
+
+function syncPreviewAdvanced() {
+  const show = panelState.showPreviewAdvanced && activeTab === 'rendered';
+  if (previewAdvanced) previewAdvanced.hidden = !show;
+}
+
+function applyPanelState() {
+  if (panelState.hidePalette) {
+    panelState.compactPalette = false;
+  }
+  document.body.classList.toggle('hide-palette', panelState.hidePalette);
+  document.body.classList.toggle('compact-palette', panelState.compactPalette && !panelState.hidePalette);
+  document.body.classList.toggle('hide-preview', panelState.hidePreview);
+  document.body.classList.toggle('show-details', panelState.showDetails);
+  syncPanelToggles();
+  syncPreviewAdvanced();
+}
+
+function savePanelState() {
+  if (!IS_VSCODE) return;
+  try {
+    localStorage.setItem(PANEL_STATE_KEY, JSON.stringify(panelState));
+  } catch {}
+}
+
+function loadPanelState() {
+  if (!IS_VSCODE) return;
+  try {
+    const raw = localStorage.getItem(PANEL_STATE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    panelState.hidePalette = !!parsed.hidePalette;
+    panelState.compactPalette = !!parsed.compactPalette;
+    panelState.hidePreview = !!parsed.hidePreview;
+    panelState.showDetails = !!parsed.showDetails;
+    panelState.showPreviewAdvanced = !!parsed.showPreviewAdvanced;
+    if (panelState.hidePalette && panelState.hidePreview) {
+      panelState.hidePreview = false;
+    }
+  } catch {}
+}
+
+function setPanelVisibility(panelKey) {
+  if (panelKey === 'palette') {
+    const next = !panelState.hidePalette;
+    if (next && panelState.hidePreview) {
+      showToast('최소 한 개 패널은 열려 있어야 합니다.');
+      return;
+    }
+    panelState.hidePalette = next;
+    if (panelState.hidePalette) {
+      panelState.compactPalette = false;
+    }
+  } else if (panelKey === 'preview') {
+    const next = !panelState.hidePreview;
+    if (next && panelState.hidePalette) {
+      showToast('최소 한 개 패널은 열려 있어야 합니다.');
+      return;
+    }
+    panelState.hidePreview = next;
+  }
+  applyPanelState();
+  savePanelState();
+}
+
+function setDetailsVisibility() {
+  panelState.showDetails = !panelState.showDetails;
+  applyPanelState();
+  savePanelState();
+}
+
+function setPreviewAdvancedVisibility() {
+  panelState.showPreviewAdvanced = !panelState.showPreviewAdvanced;
+  applyPanelState();
+  savePanelState();
+}
+
+function toggleCompactPalette() {
+  if (panelState.hidePalette) {
+    panelState.hidePalette = false;
+  }
+  panelState.compactPalette = !panelState.compactPalette;
+  applyPanelState();
+  savePanelState();
+  showToast(panelState.compactPalette ? '블록 라이브러리 폭 축소됨' : '블록 라이브러리 폭 복원됨');
+}
+
+if (btnTogglePalette) btnTogglePalette.addEventListener('click', () => setPanelVisibility('palette'));
+if (btnTogglePreview) btnTogglePreview.addEventListener('click', () => setPanelVisibility('preview'));
+if (btnToggleDetails) btnToggleDetails.addEventListener('click', setDetailsVisibility);
+if (btnTogglePreviewOptions) btnTogglePreviewOptions.addEventListener('click', setPreviewAdvancedVisibility);
+
+window.addEventListener('keydown', (e) => {
+  const target = e.target;
+  if (target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) {
+    return;
+  }
+
+  if ((e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey && e.key.toLowerCase() === 'l') {
+    e.preventDefault();
+    toggleCompactPalette();
+  }
+});
+
+// ── Build Palette ──
+function buildPalette() {
+  const groups = {};
+  SNIPPETS.forEach(s => { (groups[s.category] = groups[s.category] || []).push(s); });
+
+  CAT_ORDER.forEach(cat => {
+    if (!groups[cat]) return;
+    const m = CAT_META[cat] || CAT_META.utility;
+    const sec = document.createElement('div');
+    sec.className = 'palette-category';
+    sec.innerHTML = `<span class="palette-category-label">${SNIPPET_CATEGORIES[cat] || cat}</span>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'palette-grid';
+
+    groups[cat].forEach(s => {
+      const el = document.createElement('div');
+      el.className = 'palette-item';
+      el.draggable = true;
+      el.dataset.name = s.name;
+      el.innerHTML = `
+        <div class="palette-item-icon" style="background:${m.bg};color:${m.color}">${m.icon}</div>
+        <div class="palette-item-info">
+          <div class="palette-item-label" title="${(s.description || '').replace(/"/g,'&quot;')}">${s.label}</div>
+          <div class="palette-item-desc">${s.description}</div>
+        </div>`;
+
+      el.addEventListener('dragstart', e => {
+        drag = { type:'palette', name: s.name };
+        el.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'copy';
+        e.dataTransfer.setData('text/plain', s.name);
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        drag = null;
+        clearHints();
+      });
+
+      grid.appendChild(el);
+    });
+    sec.appendChild(grid);
+    paletteBody.appendChild(sec);
+  });
+}
+
+// ── Drop Zone (empty canvas) ──
+dropZone.addEventListener('dragover', e => {
+  if (!drag) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = drag.type === 'palette' ? 'copy' : 'move';
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  if (!drag) return;
+  if (drag.type === 'palette') addItem(drag.name, null);
+  else if (drag.type === 'canvas') moveItem(drag.id, null);
+});
+
+// ── Canvas DnD (reorder + mid-list insertion + nested drop) ──
+canvasList.addEventListener('dragover', e => {
+  if (!drag) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = drag.type === 'palette' ? 'copy' : 'move';
+  clearHints();
+
+  // nested-item 위 (layout-drop-zone 내부 아이템)
+  const nestedTarget = e.target.closest('.nested-item');
+  if (nestedTarget) {
+    const rect = nestedTarget.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    nestedTarget.classList.add(e.clientY < mid ? 'drop-target-above' : 'drop-target-below');
+    nestedTarget.dataset.dropPos = e.clientY < mid ? 'above' : 'below';
+    return;
+  }
+
+  // layout-drop-zone (슬라이드 컬럼 존)
+  const layoutZone = e.target.closest('.layout-drop-zone');
+  if (layoutZone) { layoutZone.classList.add('drag-over'); return; }
+
+  // slide-content-zone (슬라이드 그룹 콘텐츠 존)
+  const slideZone = e.target.closest('.slide-content-zone');
+  if (slideZone) {
+    const dragCat = drag.type === 'palette'
+      ? SNIPPETS.find(x => x.name === drag.name)?.category
+      : canvasItems.find(i => i.id === drag.id)?.snippet?.category;
+    const isSlide = dragCat === 'slide';
+    slideZone.classList.add(isSlide ? 'drag-over-blocked' : 'drag-over');
+    return;
+  }
+
+  // slide-group 카드 위 (루트 재배치)
+  const slideGroup = e.target.closest('.slide-group');
+  if (slideGroup && !e.target.closest('.slide-content-zone') && !e.target.closest('.layout-drop-zone')) {
+    const rect = slideGroup.getBoundingClientRect();
+    const mid  = rect.top + rect.height / 2;
+    slideGroup.classList.add(e.clientY < mid ? 'drop-target-above' : 'drop-target-below');
+    slideGroup.dataset.dropPos = e.clientY < mid ? 'above' : 'below';
+    return;
+  }
+
+  // 일반 canvas-item 위
+  const target = e.target.closest('.canvas-item');
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  const mid  = rect.top + rect.height / 2;
+  target.classList.add(e.clientY < mid ? 'drop-target-above' : 'drop-target-below');
+  target.dataset.dropPos = e.clientY < mid ? 'above' : 'below';
+});
+canvasList.addEventListener('dragleave', e => {
+  if (!canvasList.contains(e.relatedTarget)) clearHints();
+});
+canvasList.addEventListener('drop', e => {
+  e.preventDefault();
+  clearHints();
+  if (!drag) return;
+
+  // ── 드롭 아이템 생성 (palette) 또는 추출 (canvas 재배치) ──
+  let droppedItem = null;
+  let dragSnippet = null;
+  if (drag.type === 'palette') {
+    const s = SNIPPETS.find(x => x.name === drag.name);
+    if (s) {
+      dragSnippet = s;
+      if (s.category === 'slide') {
+        droppedItem = { id: ++idSeq, snippet: s, text: s.text || '', isSlideGroup: true, items: [] };
+        if (s.layoutCols) {
+          droppedItem.children = {};
+          s.layoutCols.forEach(col => droppedItem.children[col] = []);
+        }
+      } else {
+        droppedItem = { id: ++idSeq, snippet: s, text: s.text || s.snippet || '' };
+        if (s.layoutCols) {
+          droppedItem.children = {};
+          s.layoutCols.forEach(col => droppedItem.children[col] = []);
+        }
+      }
+    }
+  } else if (drag.type === 'canvas') {
+    let found = null;
+    let parentList = null;
+    const searchItem = (list) => {
+      const idx = list.findIndex(i => i.id === drag.id);
+      if (idx !== -1) { found = list[idx]; parentList = list; return; }
+      for (const item of list) {
+        if (item.children) Object.values(item.children).forEach(cl => searchItem(cl));
+        if (item.items) searchItem(item.items);
+      }
+    };
+    searchItem(canvasItems);
+    if (found && parentList) {
+      droppedItem = found;
+      dragSnippet = found.snippet;
+      parentList.splice(parentList.indexOf(found), 1);
+    }
+  }
+
+  if (!droppedItem) return;
+  const isSlide = dragSnippet?.category === 'slide' || droppedItem?.isSlideGroup;
+
+  // 1. Nested Item 위에 드롭 (형제 간 삽입 — layout-drop-zone 내부 nested)
+  const nestedTarget = e.target.closest('.nested-item');
+  if (nestedTarget) {
+    const targetId = Number(nestedTarget.dataset.id);
+    const pos = nestedTarget.dataset.dropPos;
+    let targetList = null, targetIdx = -1;
+    const findInCanvasItem = (item) => {
+      if (item.children) {
+        for (const colList of Object.values(item.children)) {
+          const idx = colList.findIndex(i => i.id === targetId);
+          if (idx !== -1) { targetList = colList; targetIdx = idx; return true; }
+        }
+      }
+      if (item.items) {
+        const idx = item.items.findIndex(i => i.id === targetId);
+        if (idx !== -1) { targetList = item.items; targetIdx = idx; return true; }
+      }
+      return false;
+    };
+    for (const item of canvasItems) { if (findInCanvasItem(item)) break; }
+    if (targetList) {
+      targetList.splice(pos === 'above' ? targetIdx : targetIdx + 1, 0, droppedItem);
+      render(); return;
+    }
+  }
+
+  // 2. layout-drop-zone (슬라이드 그룹의 컬럼 존)
+  const layoutZone = e.target.closest('.layout-drop-zone');
+  if (layoutZone) {
+    const targetId = Number(layoutZone.dataset.id);
+    const colName = layoutZone.dataset.col;
+    if (drag.id === targetId) return;
+    const targetItem = canvasItems.find(i => i.id === targetId);
+    if (targetItem) {
+      if (!targetItem.children) targetItem.children = {};
+      if (!targetItem.children[colName]) targetItem.children[colName] = [];
+      targetItem.children[colName].push(droppedItem);
+    }
+    render(); return;
+  }
+
+  // 3. slide-content-zone (슬라이드 그룹 내 콘텐츠 존)
+  const slideZone = e.target.closest('.slide-content-zone');
+  if (slideZone) {
+    if (isSlide) {
+      // 슬라이드는 슬라이드 그룹 안에 넣을 수 없음
+      showToast('⛔ 슬라이드 안에 슬라이드를 넣을 수 없습니다');
+      // 꺼낸 아이템 되돌리기
+      if (drag.type === 'canvas') canvasItems.push(droppedItem);
+      render(); return;
+    }
+    const targetId = Number(slideZone.dataset.id);
+    const targetItem = canvasItems.find(i => i.id === targetId);
+    if (targetItem) targetItem.items.push(droppedItem);
+    render(); return;
+  }
+
+  // 4. slide-group 위에 드롭 (루트 목록 재배치)
+  const slideGroupTarget = e.target.closest('.slide-group');
+  if (slideGroupTarget && !e.target.closest('.slide-content-zone') && !e.target.closest('.layout-drop-zone')) {
+    const pos = slideGroupTarget.dataset.dropPos;
+    const targetId = Number(slideGroupTarget.dataset.id);
+    const idx = canvasItems.findIndex(i => i.id === targetId);
+    if (idx !== -1) {
+      canvasItems.splice(pos === 'above' ? idx : idx + 1, 0, droppedItem);
+      render(); return;
+    }
+  }
+
+  // 5. canvas-item 위에 드롭 (루트 목록 재배치)
+  const rootTarget = e.target.closest('.canvas-item');
+  if (rootTarget) {
+    const pos = rootTarget.dataset.dropPos;
+    const targetId = Number(rootTarget.dataset.id);
+    const idx = canvasItems.findIndex(i => i.id === targetId);
+    if (idx !== -1) {
+      canvasItems.splice(pos === 'above' ? idx : idx + 1, 0, droppedItem);
+      render(); return;
+    }
+  }
+
+  // 6. 허공 → 맨 뒤 추가
+  canvasItems.push(droppedItem);
+  render();
+});
+
+function clearHints() {
+  document.querySelectorAll('.canvas-item, .nested-item, .slide-group').forEach(el => {
+    el.classList.remove('drop-target-above','drop-target-below');
+    delete el.dataset.dropPos;
+  });
+  document.querySelectorAll('.layout-drop-zone, .slide-content-zone').forEach(el => {
+    el.classList.remove('drag-over', 'drag-over-blocked');
+  });
+  dropZone.classList.remove('drag-over');
+}
+
+// ── Data ops ──
+function addItem(name, beforeId) {
+  const s = SNIPPETS.find(x => x.name === name);
+  if (!s) return;
+
+  let item;
+  if (s.category === 'slide') {
+    // 슬라이드 카테고리 → Slide Group 래퍼로 생성
+    item = { id: ++idSeq, snippet: s, text: s.text || '', isSlideGroup: true, items: [] };
+    if (s.layoutCols) {
+      item.children = {};
+      s.layoutCols.forEach(col => item.children[col] = []);
+    }
+  } else {
+    const text = s.text || s.snippet || '';
+    item = { id: ++idSeq, snippet: s, text };
+    if (s.layoutCols) {
+      item.children = {};
+      s.layoutCols.forEach(col => item.children[col] = []);
+    }
+  }
+
+  if (beforeId === null) {
+    canvasItems.push(item);
+  } else {
+    const idx = canvasItems.findIndex(i => i.id === beforeId);
+    canvasItems.splice(idx < 0 ? canvasItems.length : idx, 0, item);
+  }
+  render();
+}
+
+function moveItem(fromId, beforeId) {
+  const fromIdx = canvasItems.findIndex(i => i.id === fromId);
+  if (fromIdx < 0) return;
+  const [moved] = canvasItems.splice(fromIdx, 1);
+  if (beforeId === null) {
+    canvasItems.push(moved);
+  } else {
+    const toIdx = canvasItems.findIndex(i => i.id === beforeId);
+    canvasItems.splice(toIdx < 0 ? canvasItems.length : toIdx, 0, moved);
+  }
+  render();
+}
+
+function removeItem(id) {
+  const searchAndRemove = (list) => {
+    const idx = list.findIndex(i => i.id === id);
+    if (idx !== -1) { list.splice(idx, 1); return true; }
+    for (const item of list) {
+      if (item.children) {
+        for (const colList of Object.values(item.children)) {
+          if (searchAndRemove(colList)) return true;
+        }
+      }
+      if (item.items && searchAndRemove(item.items)) return true;
+    }
+    return false;
+  };
+  searchAndRemove(canvasItems);
+  render();
+}
+
+// ── Render Canvas ──
+function renderNestedItem(c) {
+  return `<div class="nested-item" data-id="${c.id}" draggable="true">
+    <span style="cursor:grab;opacity:0.5;">⠿</span>
+    <span class="nested-item-label">${c.snippet.label}</span>
+    <button class="nested-item-remove" data-id="${c.id}">×</button>
+  </div>`;
+}
+
+function render() {
+  if (!userChangedTheme) {
+    const hasSlide = canvasItems.some(i => i.isSlideGroup);
+    const themeSelect = document.getElementById('docThemeSelect');
+    if (themeSelect) themeSelect.value = hasSlide ? 'presentation' : 'report';
+  }
+
+  canvasList.innerHTML = '';
+
+  if (canvasItems.length === 0) {
+    dropZone.style.display = '';
+  } else {
+    dropZone.style.display = 'none';
+
+    canvasItems.forEach(item => {
+      const m = CAT_META[item.snippet.category] || CAT_META.utility;
+
+      if (item.isSlideGroup) {
+        // ── Slide Group 카드 ──
+        const el = document.createElement('div');
+        el.className = 'slide-group';
+        el.dataset.id = item.id;
+
+        // 컬럼 존 HTML (Compare 2-up 등)
+        let layoutZonesHtml = '';
+        if (item.snippet.layoutCols && item.children) {
+          layoutZonesHtml = `<div class="slide-layout-zones">${item.snippet.layoutCols.map(col => {
+            const nestedItems = (item.children[col]) || [];
+            return `<div class="layout-drop-zone" data-id="${item.id}" data-col="${col}">
+              <div class="zone-title">📥 ${col}</div>
+              <div class="nested-list">${nestedItems.map(renderNestedItem).join('')}</div>
+            </div>`;
+          }).join('')}</div>`;
+        }
+
+        // 슬라이드 그룹 내부 콘텐츠 아이템 HTML
+        const contentItemsHtml = (item.items || []).map(renderNestedItem).join('');
+
+        el.innerHTML = `
+          <div class="slide-group-header" draggable="true">
+            <span class="item-drag-handle" title="드래그로 순서 변경">⠿</span>
+            <span class="slide-group-badge">슬라이드</span>
+            <span class="slide-group-label" title="${(item.snippet.description || '').replace(/"/g,'&quot;')}">${item.snippet.label}</span>
+            <span class="slide-group-desc">${item.snippet.description}</span>
+            <button class="item-action edit" data-id="${item.id}" title="슬라이드 내용 수정">✏️</button>
+            <button class="item-action remove" data-id="${item.id}" title="제거">×</button>
+          </div>
+          <div class="slide-content-area">
+            ${layoutZonesHtml}
+            <div class="slide-content-zone" data-id="${item.id}">
+              <div class="slide-content-zone-label">📥 콘텐츠 추가 (basic/content/layout)</div>
+              <div class="nested-list" id="slide-items-${item.id}">${contentItemsHtml}</div>
+            </div>
+            <div class="item-editor" id="editor-${item.id}">
+              <textarea class="item-textarea" rows="4" data-id="${item.id}"></textarea>
+            </div>
+          </div>`;
+
+        // Header drag
+        const header = el.querySelector('.slide-group-header');
+        header.addEventListener('dragstart', ev => {
+          drag = { type: 'canvas', id: item.id };
+          el.classList.add('dragging-canvas');
+          ev.dataTransfer.effectAllowed = 'move';
+          ev.dataTransfer.setData('text/plain', String(item.id));
+        });
+        header.addEventListener('dragend', () => {
+          el.classList.remove('dragging-canvas');
+          drag = null;
+          clearHints();
+        });
+
+        // Edit / Remove
+        el.querySelector('.edit').addEventListener('click', () => {
+          const ed = el.querySelector('.item-editor');
+          const ta = ed.querySelector('textarea');
+          if (ed.classList.toggle('open')) { ta.value = item.text; ta.focus(); }
+        });
+        el.querySelector('.item-textarea').addEventListener('input', ev => {
+          item.text = ev.target.value;
+          updatePreview();
+        });
+        el.querySelector('.remove').addEventListener('click', () => removeItem(item.id));
+
+        // Nested items drag (layout-drop-zone)
+        el.querySelectorAll('.nested-item').forEach(nestedEl => {
+          nestedEl.addEventListener('dragstart', ev => {
+            ev.stopPropagation();
+            drag = { type: 'canvas', id: Number(nestedEl.dataset.id) };
+            nestedEl.style.opacity = '0.5';
+            ev.dataTransfer.effectAllowed = 'move';
+          });
+          nestedEl.addEventListener('dragend', ev => {
+            ev.stopPropagation();
+            drag = null;
+            nestedEl.style.opacity = '1';
+            clearHints();
+          });
+        });
+        el.querySelectorAll('.nested-item-remove').forEach(btn => {
+          btn.addEventListener('click', ev => { ev.stopPropagation(); removeItem(Number(btn.dataset.id)); });
+        });
+
+        canvasList.appendChild(el);
+      } else {
+        // ── 일반 캔버스 아이템 ──
+        const el = document.createElement('div');
+        el.className = 'canvas-item';
+        el.dataset.id = item.id;
+        el.innerHTML = `
+          <div class="item-header" draggable="true">
+            <span class="item-drag-handle" title="드래그로 순서 변경">⠿</span>
+            <div class="item-icon" style="background:${m.bg};color:${m.color}">${m.icon}</div>
+            <span class="item-label" title="${(item.snippet.description || '').replace(/"/g,'&quot;')}">${item.snippet.label}</span>
+            <span class="item-desc">${item.snippet.description}</span>
+            <button class="item-action edit" data-id="${item.id}" title="내용 수정">✏️</button>
+            <button class="item-action remove" data-id="${item.id}" title="제거">×</button>
+          </div>
+          ${item.snippet.layoutCols ? `
+          <div class="layout-zones">
+            ${item.snippet.layoutCols.map(col => {
+              const nestedItems = (item.children && item.children[col]) || [];
+              return `<div class="layout-drop-zone" data-id="${item.id}" data-col="${col}">
+                <div class="zone-title">📥 ${col} 안으로 드롭</div>
+                <div class="nested-list">${nestedItems.map(renderNestedItem).join('')}</div>
+              </div>`;
+            }).join('')}
+          </div>` : ''}
+          <div class="item-editor" id="editor-${item.id}">
+            <textarea class="item-textarea" rows="3" data-id="${item.id}"></textarea>
+          </div>`;
+
+        const header = el.querySelector('.item-header');
+        header.addEventListener('dragstart', ev => {
+          drag = { type: 'canvas', id: item.id };
+          el.classList.add('dragging-canvas');
+          ev.dataTransfer.effectAllowed = 'move';
+          ev.dataTransfer.setData('text/plain', String(item.id));
+        });
+        header.addEventListener('dragend', () => {
+          el.classList.remove('dragging-canvas');
+          drag = null;
+          clearHints();
+        });
+
+        el.querySelector('.edit').addEventListener('click', () => {
+          const ed = el.querySelector('.item-editor');
+          const ta = ed.querySelector('textarea');
+          if (ed.classList.toggle('open')) { ta.value = item.text; ta.focus(); }
+        });
+        el.querySelector('.item-textarea').addEventListener('input', ev => {
+          item.text = ev.target.value;
+          updatePreview();
+        });
+        el.querySelector('.remove').addEventListener('click', () => removeItem(item.id));
+
+        el.querySelectorAll('.nested-item').forEach(nestedEl => {
+          nestedEl.addEventListener('dragstart', ev => {
+            ev.stopPropagation();
+            drag = { type: 'canvas', id: Number(nestedEl.dataset.id) };
+            nestedEl.style.opacity = '0.5';
+            ev.dataTransfer.effectAllowed = 'move';
+          });
+          nestedEl.addEventListener('dragend', ev => {
+            ev.stopPropagation();
+            drag = null;
+            nestedEl.style.opacity = '1';
+            clearHints();
+          });
+        });
+        el.querySelectorAll('.nested-item-remove').forEach(btn => {
+          btn.addEventListener('click', ev => { ev.stopPropagation(); removeItem(Number(btn.dataset.id)); });
+        });
+
+        canvasList.appendChild(el);
+      }
+    });
+  }
+
+  const has = canvasItems.length > 0;
+  btnDownload.disabled = btnCopy.disabled = btnClear.disabled = !has;
+  if (btnInsertVscode) btnInsertVscode.disabled = !has;
+  countBadge.textContent = canvasItems.length;
+
+  updatePreview();
+}
+
+// ── Markdown ──
+const PAGE_BREAK_MD = '\n\n---\n{: .page-break}\n';
+
+function buildMdNode(item, depthLevel) {
+  let md = item.text || '';
+
+  // 헤더 레벨 보정 (레이아웃 블록 제외)
+  if (!item.snippet.layoutCols) {
+    if (depthLevel === 'root') {
+      md = md.replace(/^#\s+/gm, '## ').replace(/^###\s+/gm, '## ');
+    } else if (depthLevel === 'nested') {
+      md = md.replace(/^##\s+/gm, '#### ').replace(/^###\s+/gm, '#### ');
+    }
+  }
+
+  // 레이아웃 컬럼 자식 주입
+  if (item.snippet.layoutCols && item.children) {
+    item.snippet.layoutCols.forEach(col => {
+      const colTitleRegex = new RegExp(`(###\\s+${col}\\n)`);
+      const childrenArr = item.children[col] || [];
+      const colMd = childrenArr.map(c => buildMdNode(c, 'nested')).join('\n\n') + (childrenArr.length ? '\n' : '');
+      md = md.replace(colTitleRegex, `$1\n${colMd}\n`);
+    });
+  }
+
+  return md.trim();
+}
+
+function buildSlideGroupMd(item) {
+  // 슬라이드 본문 (page-break 없는 깨끗한 버전)
+  let slideMd = (item.text || '').trim();
+  // 헤더는 항상 ##로 강제 정규화
+  slideMd = slideMd.replace(/^#\s+/gm, '## ').replace(/^###\s+(?!As-Is|To-Be)/gm, '## ');
+
+  // 레이아웃 컬럼 자식 주입 (Compare 2-up 등)
+  if (item.snippet.layoutCols && item.children) {
+    item.snippet.layoutCols.forEach(col => {
+      const colTitleRegex = new RegExp(`(###\\s+${col}\\n?)`);
+      const childrenArr = item.children[col] || [];
+      const colMd = childrenArr.map(c => buildMdNode(c, 'nested')).join('\n\n');
+      slideMd = slideMd.replace(colTitleRegex, `### ${col}\n\n${colMd}\n`);
+    });
+  }
+
+  // 슬라이드 그룹 내 추가 콘텐츠 items[]
+  const extraItems = (item.items || []);
+  const extraMd = extraItems.length
+    ? '\n\n' + extraItems.map(c => buildMdNode(c, 'nested')).join('\n\n')
+    : '';
+
+  return slideMd + extraMd + PAGE_BREAK_MD;
+}
+
+function buildMd() {
+  const theme = document.getElementById('docThemeSelect')?.value || 'report';
+  const frontmatter = theme === 'presentation'
+    ? `---\ntitle: "Presentation Template"\ntheme: "presentation"\n---\n\n`
+    : `---\ntitle: "Document Template"\ntheme: "report"\n---\n\n`;
+
+  const bodyParts = canvasItems.map((item, idx) => {
+    if (item.isSlideGroup) {
+      return buildSlideGroupMd(item);
+    }
+    let output = buildMdNode(item, 'root');
+    if (idx > 0 && canvasItems[idx - 1].snippet?.layoutCols && !/^#+\s/m.test(output)) {
+      output = `## \u200B {: .hide-h2 }\n\n` + output;
+    }
+    return output;
+  });
+
+  return frontmatter + bodyParts.join('\n\n') + '\n';
+}
+
+// ── Preview ──
+let activeTab = 'rendered';
+
+function updatePreview() {
+  const md = canvasItems.length ? buildMd() : '';
+
+  if (!md) {
+    renderToShadow(`<div style="display:flex;align-items:center;justify-content:center;height:200px;color:#aaa;font-size:13px;">블록을 추가하면 여기에 표시됩니다</div>`, '');
+    previewMd.innerHTML = `<div class="preview-empty-msg"><div class="preview-empty-msg-icon">📄</div><div>블록을 추가하면 여기에 표시됩니다</div></div>`;
+    return;
+  }
+
+  // Rendered
+  try {
+    const model   = parseMarkdownDocument(md);
+    const theme   = model.meta.theme || 'report';
+    const html    = renderDocument(model, { theme, mode:'web', enableMermaid:true, enableCodeCopy:false }, registry);
+    if (theme === 'presentation') {
+      renderSlideToShadow(html);
+    } else {
+      renderToShadow(html, `body{margin:0;padding:16px 24px;background:#fff;} .studio-document{max-width:900px;margin:0 auto;} .hide-h2>h2{display:none!important;}`);
+    }
+  } catch (err) {
+    renderToShadow(`<div style="padding:16px;color:#c00">렌더 오류: ${err.message}</div>`, '');
+  }
+
+  // Markdown tab
+  const lines = md.split('\n');
+  const highlighted = lines.map(l => {
+    const e = l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if (/^# /.test(l))  return `<span class="md-h1">${e}</span>`;
+    if (/^## /.test(l)) return `<span class="md-h2">${e}</span>`;
+    if (/^### /.test(l))return `<span class="md-h3">${e}</span>`;
+    if (/^\{:/.test(l)) return `<span class="md-attr">${e}</span>`;
+    if (/^```/.test(l)) return `<span class="md-fence">${e}</span>`;
+    if (/^---/.test(l)) return `<span class="md-sep">${e}</span>`;
+    return e;
+  }).join('\n');
+  previewMd.innerHTML = highlighted;
+}
+
+function renderToShadow(bodyHtml, extraCss) {
+  const sr = getShadowRoot();
+  const docCss = window.__MPS_DOC_CSS__ || '';
+  sr.innerHTML = `
+    <style>${docCss}</style>
+    <style>${extraCss || ''}</style>
+    <div id="__mps_inner__" style="transform-origin:0 0;">${bodyHtml}</div>`;
+  updateZoom();
+}
+
+let slideState = { pages: [], current: 0 };
+
+function renderSlideToShadow(renderedHtml) {
+  const sr = getShadowRoot();
+  const docCss = window.__MPS_DOC_CSS__ || '';
+  const extraCss = `
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    .document-shell { display: contents !important; }
+    .doc-page {
+      display: none;
+      width: min(100%, 820px);
+      max-height: 480px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.1);
+      background: #fff;
+      overflow: hidden;
+    }
+    .doc-page.active { display: flex; flex-direction: column; }
+    .doc-page-inner { flex: 1; overflow-y: auto; padding: 24px 28px; }
+    .doc-page-footer { display: none; }
+    .hide-h2 > h2 { display: none !important; }
+  `;
+  sr.innerHTML = `
+    <style>${docCss}</style>
+    <style>${extraCss}</style>
+    <div id="__mps_inner__" style="background:#0f1117;min-height:100%;display:flex;align-items:center;justify-content:center;padding:16px;transform-origin:0 0;">
+      ${renderedHtml}
+    </div>`;
+  updateZoom();
+
+  // Setup slide navigation via outer DOM buttons
+  const pages = Array.from(sr.querySelectorAll('.doc-page'));
+  slideState = { pages, current: 0 };
+  if (pages.length > 0) showSlide(0);
+  syncSlideNav();
+}
+
+function showSlide(idx) {
+  const { pages } = slideState;
+  pages.forEach((p, i) => p.classList.toggle('active', i === idx));
+  slideState.current = idx;
+  syncSlideNav();
+}
+
+function syncSlideNav() {
+  const { pages, current } = slideState;
+  const counter = document.getElementById('slideCounter');
+  const btnPrev = document.getElementById('slidePrev');
+  const btnNext = document.getElementById('slideNext');
+  const navBar  = document.getElementById('slideNavBar');
+  if (!navBar) return;
+  if (pages.length <= 1) {
+    navBar.style.display = 'none';
+  } else {
+    navBar.style.display = 'flex';
+    if (counter) counter.textContent = `${current + 1} / ${pages.length}`;
+    if (btnPrev) btnPrev.disabled = current === 0;
+    if (btnNext) btnNext.disabled = current === pages.length - 1;
+  }
+}
+
+// ── Tab & Theme switching ──
+document.querySelectorAll('.preview-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeTab = btn.dataset.tab;
+    document.querySelectorAll('.preview-tab').forEach(b => b.classList.toggle('active', b === btn));
+    previewMd.hidden     = activeTab !== 'md';
+    previewFrame.hidden  = activeTab !== 'rendered';
+    syncPreviewAdvanced();
+    
+    // 마크다운 탭으로 이동 시 Ctrl+A 편의성을 위해 포커스 처리
+    if (activeTab === 'md') {
+      previewMd.focus();
+    }
+  });
+});
+
+// 마크다운 컨테이너 내부에서 Ctrl+A / Cmd+A 입력 시 마크다운 내용만 전체 텍스트 블록 지정되도록 트리거
+previewMd.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A')) {
+    e.preventDefault();
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(previewMd.querySelector('code') || previewMd);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+});
+
+document.getElementById('docThemeSelect').addEventListener('change', () => {
+  userChangedTheme = true;
+  render(); // Re-build MD and update preview
+});
+
+// ── Actions ──
+// ── Slide navigation buttons ──
+document.getElementById('slidePrev').addEventListener('click', () => {
+  if (slideState.current > 0) showSlide(slideState.current - 1);
+});
+document.getElementById('slideNext').addEventListener('click', () => {
+  if (slideState.current < slideState.pages.length - 1) showSlide(slideState.current + 1);
+});
+
+const btnInsertVscode = document.getElementById('btnInsertVscode');
+const btnDownloadLabel = btnDownload.querySelector('.btn-label');
+
+if (IS_VSCODE) {
+  if (btnDownloadLabel) btnDownloadLabel.textContent = '템플릿 생성';
+  btnInsertVscode.style.display = 'inline-block';
+}
+
+btnDownload.addEventListener('click', () => {
+  const md = buildMd();
+  if (vscode) {
+    vscode.postMessage({ type: 'generate', markdown: md });
+  } else {
+    const url = URL.createObjectURL(new Blob([md], { type:'text/markdown;charset=utf-8' }));
+    Object.assign(document.createElement('a'), { href:url, download:'template.md' }).click();
+    URL.revokeObjectURL(url);
+    showToast('template.md 다운로드 완료 ✓');
+  }
+});
+
+if (btnInsertVscode) {
+  btnInsertVscode.addEventListener('click', () => {
+    const md = buildMd();
+    if (vscode && md) {
+      vscode.postMessage({ type: 'insert', markdown: md });
+    }
+  });
+}
+
+btnCopy.addEventListener('click', async () => {
+  const md = buildMd();
+  if (vscode) {
+    vscode.postMessage({ type: 'copy', markdown: md });
+  } else {
+    try {
+      await navigator.clipboard.writeText(md);
+      showToast('클립보드에 복사됐습니다 ✓');
+    } catch { showToast('복사 실패 — 브라우저 권한 확인 필요'); }
+  }
+});
+
+btnClear.addEventListener('click', () => {
+  if (!canvasItems.length || !confirm(`${canvasItems.length}개 블록을 모두 제거하시겠습니까?`)) return;
+  canvasItems = [];
+  render();
+  showToast('초기화 완료');
+});
+
+// ── Toast ──
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ── Init ──
+loadPanelState();
+applyPanelState();
+buildPalette();
+render();
+</script>
+</body>
+</html>
