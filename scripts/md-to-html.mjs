@@ -138,13 +138,41 @@ function resolvePageSizing(meta = {}) {
 }
 
 function unwrapDocumentShell(html) {
-  const start = html.search(/<div class="document-shell(?: is-paginated)?">/);
-  if (start === -1) return html;
-  const startTagEnd = html.indexOf('>', start);
-  if (startTagEnd === -1) return html;
-  const end = html.lastIndexOf('</div>\n  </div>');
-  if (end === -1 || end <= startTagEnd) return html.slice(startTagEnd + 1);
-  return html.slice(startTagEnd + 1, end).trim();
+  const source = String(html || '');
+  const start = source.search(/<div class="document-shell(?: is-paginated)?">/);
+  if (start === -1) return source;
+
+  const startTagEnd = source.indexOf('>', start);
+  if (startTagEnd === -1) return source;
+
+  const divTokenRe = /<\/?div\b[^>]*>/gi;
+  divTokenRe.lastIndex = start;
+
+  let depth = 0;
+  let closeStart = -1;
+  for (let match = divTokenRe.exec(source); match; match = divTokenRe.exec(source)) {
+    const token = match[0];
+    const isClosing = token.startsWith('</');
+    if (isClosing) {
+      depth -= 1;
+      if (depth === 0) {
+        closeStart = match.index;
+        break;
+      }
+      continue;
+    }
+
+    depth += 1;
+    if (depth === 1 && match.index !== start) {
+      // Keep searching until we hit the document-shell opening tag.
+      depth = 0;
+    }
+  }
+
+  if (closeStart === -1 || closeStart <= startTagEnd) {
+    return source.slice(startTagEnd + 1).trim();
+  }
+  return source.slice(startTagEnd + 1, closeStart).trim();
 }
 
 function hasMeaningfulText(html) {
