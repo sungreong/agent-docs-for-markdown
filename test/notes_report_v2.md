@@ -1,6 +1,6 @@
 ---
-pageWidth: 100vh
-pageHeight: 100vh
+pageWidth: 1120px
+pageHeight: 720px
 ---
 
 # 2026년 3월 운영 리포트 {#cover .cover eyebrow="Monthly Report"}

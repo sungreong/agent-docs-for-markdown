@@ -89,6 +89,13 @@ function buildEnhancementScript({ mermaid = true } = {}) {
     let toggle = null;
     let count = null;
     let observer = null;
+    let zoomLevel = null;
+    let autoFitScale = 1;
+    const ZOOM_STEPS = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    let zoomLabel = null;
+    let zoomInBtn = null;
+    let zoomOutBtn = null;
+    let fitBtn = null;
     const rootDocument = document.querySelector('.studio-document');
     const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const scrollBehavior = reduceMotion ? 'auto' : 'smooth';
@@ -126,25 +133,116 @@ function buildEnhancementScript({ mermaid = true } = {}) {
       return section ? section.getAttribute('data-section-id') || '' : '';
     };
 
+    const decodeHashValue = (raw) => {
+      let value = String(raw || '').replace(/^#/, '').trim();
+      if (!value) return '';
+      try {
+        value = decodeURIComponent(value);
+      } catch (_) {
+        value = '';
+      }
+      return value;
+    };
+
+    const resolvePageIndexFromId = (id) => {
+      const value = String(id || '').trim();
+      if (!value || !pages.length) return -1;
+      const exact = pages.findIndex((page) => String(page.id || '') === value);
+      if (exact >= 0) return exact;
+      const match = value.match(/^page-(\d+)$/i);
+      if (!match) return -1;
+      const numeric = Number(match[1]) - 1;
+      if (!Number.isFinite(numeric)) return -1;
+      return Math.min(Math.max(0, numeric), pages.length - 1);
+    };
+
+    function goToPage(nextIndex) {
+      if (!pages.length) return;
+      const parsed = Number(nextIndex);
+      const bounded = Math.min(Math.max(0, Number.isFinite(parsed) ? parsed : 0), pages.length - 1);
+      index = bounded;
+      paint();
+    }
+
+    function updateZoomDisplay() {
+      if (!zoomLabel) return;
+      const isStacked = document.body.classList.contains('export-stacked');
+      if (zoomLevel == null) {
+        if (isStacked) {
+          zoomLabel.textContent = '100%';
+        } else {
+          const pct = Math.round(autoFitScale * 100);
+          zoomLabel.textContent = 'Fit (' + pct + '%)';
+        }
+      } else {
+        zoomLabel.textContent = Math.round(zoomLevel * 100) + '%';
+      }
+      if (fitBtn) fitBtn.classList.toggle('is-active', zoomLevel == null);
+    }
+
+    function applyZoom(level) {
+      zoomLevel = level;
+      updateScale();
+    }
+
+    function zoomIn() {
+      const isStacked = document.body.classList.contains('export-stacked');
+      const current = zoomLevel != null ? zoomLevel : (isStacked ? 1 : autoFitScale);
+      const nxt = ZOOM_STEPS.find((s) => s > current + 0.001);
+      if (nxt != null) applyZoom(nxt);
+    }
+
+    function zoomOut() {
+      const isStacked = document.body.classList.contains('export-stacked');
+      if (zoomLevel == null) return;
+      const current = zoomLevel;
+      const steps = ZOOM_STEPS.slice().reverse();
+      const prv = steps.find((s) => s < current - 0.001);
+      if (prv != null) {
+        if (!isStacked && prv <= autoFitScale + 0.001) {
+          applyZoom(null);
+        } else {
+          applyZoom(prv);
+        }
+      } else {
+        applyZoom(null);
+      }
+    }
+
     function updateScale() {
-      if (!rootDocument || document.body.classList.contains('export-stacked')) return;
+      if (!rootDocument) return;
+      const isStacked = document.body.classList.contains('export-stacked');
+
+      if (isStacked) {
+        const scale = zoomLevel != null ? zoomLevel : 1;
+        document.documentElement.style.setProperty('--stacked-zoom', String(scale));
+        document.body.style.paddingRight = '';
+        updateZoomDisplay();
+        return;
+      }
+
       const styles = getComputedStyle(rootDocument);
       const width = parseFloat(styles.getPropertyValue('--page-width')) || 0;
       const height = parseFloat(styles.getPropertyValue('--page-height')) || 0;
       if (!width || !height) {
         rootDocument.style.setProperty('--page-scale', '1');
+        document.body.style.paddingRight = '';
+        autoFitScale = 1;
+        updateZoomDisplay();
         return;
       }
-      const outlineEl = document.querySelector('.export-outline');
-      const outlineWidth = (outlineEl && !outlineEl.classList.contains('is-collapsed'))
-        ? outlineEl.getBoundingClientRect().width + 16
-        : 0;
-      const bodyPadding = parseFloat(getComputedStyle(document.body).paddingLeft || '0') * 2;
-      const reservedWidth = outlineWidth + bodyPadding + 8;
-      const availableWidth = Math.max(120, window.innerWidth - reservedWidth);
-      const availableHeight = Math.max(120, window.innerHeight - 40);
-      const scale = Math.min(1, availableWidth / width, availableHeight / height);
-      rootDocument.style.setProperty('--page-scale', String(Number.isFinite(scale) && scale > 0 ? scale : 1));
+      const basePadding = parseFloat(getComputedStyle(document.body).paddingLeft || '0');
+      const bodyPadding = basePadding * 2;
+      const navHeight = 60;
+      const availableWidth = Math.max(120, window.innerWidth - bodyPadding - 8);
+      const availableHeight = Math.max(120, window.innerHeight - navHeight - 40);
+      const fitScale = Math.min(1, availableWidth / width, availableHeight / height);
+      autoFitScale = Number.isFinite(fitScale) && fitScale > 0 ? fitScale : 1;
+      const finalScale = zoomLevel != null ? zoomLevel : autoFitScale;
+      rootDocument.style.setProperty('--page-scale', String(finalScale));
+      document.body.classList.toggle('export-slides-overflow', zoomLevel != null && zoomLevel > autoFitScale * 1.01);
+      document.body.style.paddingRight = '';
+      updateZoomDisplay();
     }
 
     function bindStackObserver() {
@@ -184,13 +282,12 @@ function buildEnhancementScript({ mermaid = true } = {}) {
       updateScale();
       const currentSectionId = currentSectionFromPage(pages[index]);
       setActiveOutline(currentSectionId);
-      updateHash(currentSectionId);
+      updateHash(currentSectionId || (pages[index] && pages[index].id) || '');
     }
 
     function move(delta) {
       if (document.body.classList.contains('export-stacked')) return;
-      index = Math.min(Math.max(0, index + delta), pages.length - 1);
-      paint();
+      goToPage(index + delta);
     }
 
     function switchMode(stacked) {
@@ -206,24 +303,46 @@ function buildEnhancementScript({ mermaid = true } = {}) {
       }
     }
 
+    nav = document.createElement('div');
+    nav.className = 'export-slide-nav';
+    nav.innerHTML =
+      '<button type="button" data-action="prev">&#8249;</button>' +
+      '<span class="count">1 / 1</span>' +
+      '<button type="button" data-action="next">&#8250;</button>' +
+      '<span class="nav-sep"></span>' +
+      '<button type="button" data-action="zoom-out" title="Zoom Out (Ctrl+-)">&#8722;</button>' +
+      '<span class="zoom-label">Fit</span>' +
+      '<button type="button" data-action="zoom-in" title="Zoom In (Ctrl+=)">+</button>' +
+      '<button type="button" data-action="zoom-fit" title="Fit to Window (Ctrl+0)">Fit</button>' +
+      '<span class="nav-sep"></span>' +
+      '<button type="button" data-action="toggle">Stack</button>';
+    document.body.appendChild(nav);
+    prev = nav.querySelector('[data-action="prev"]');
+    next = nav.querySelector('[data-action="next"]');
+    toggle = nav.querySelector('[data-action="toggle"]');
+    count = nav.querySelector('.count');
+    zoomLabel = nav.querySelector('.zoom-label');
+    zoomInBtn = nav.querySelector('[data-action="zoom-in"]');
+    zoomOutBtn = nav.querySelector('[data-action="zoom-out"]');
+    fitBtn = nav.querySelector('[data-action="zoom-fit"]');
+    prev.addEventListener('click', () => move(-1));
+    next.addEventListener('click', () => move(1));
+    toggle.addEventListener('click', () => {
+      switchMode(!document.body.classList.contains('export-stacked'));
+    });
+    zoomInBtn.addEventListener('click', zoomIn);
+    zoomOutBtn.addEventListener('click', zoomOut);
+    fitBtn.addEventListener('click', () => applyZoom(null));
+
     if (pages.length >= 2) {
       document.body.classList.add('has-js-slides');
       document.body.classList.add('export-slides');
-      nav = document.createElement('div');
-      nav.className = 'export-slide-nav';
-      nav.innerHTML = '<button type="button" data-action="prev">Prev</button><span class="count">1 / 1</span><button type="button" data-action="next">Next</button><button type="button" data-action="toggle">Stack</button>';
-      document.body.appendChild(nav);
-      prev = nav.querySelector('[data-action="prev"]');
-      next = nav.querySelector('[data-action="next"]');
-      toggle = nav.querySelector('[data-action="toggle"]');
-      count = nav.querySelector('.count');
-      prev.addEventListener('click', () => move(-1));
-      next.addEventListener('click', () => move(1));
-      toggle.addEventListener('click', () => {
-        switchMode(!document.body.classList.contains('export-stacked'));
-      });
       paint();
     } else {
+      prev.hidden = true;
+      next.hidden = true;
+      count.hidden = true;
+      toggle.hidden = true;
       switchMode(true);
     }
 
@@ -248,6 +367,25 @@ function buildEnhancementScript({ mermaid = true } = {}) {
         setActiveOutline(id);
         updateHash(id);
       });
+    });
+
+    document.addEventListener('click', (event) => {
+      const link = event.target && event.target.closest ? event.target.closest('a[href^="#page-"]') : null;
+      if (!link) return;
+      const href = String(link.getAttribute('href') || '').trim();
+      const hashId = decodeHashValue(href);
+      const pageIndex = resolvePageIndexFromId(hashId);
+      if (pageIndex < 0) return;
+      event.preventDefault();
+      if (document.body.classList.contains('export-stacked')) {
+        const targetPage = pages[pageIndex];
+        if (targetPage && typeof targetPage.scrollIntoView === 'function') {
+          targetPage.scrollIntoView({ behavior: scrollBehavior, block: 'start' });
+        }
+        updateHash((targetPage && targetPage.id) || hashId);
+        return;
+      }
+      goToPage(pageIndex);
     });
 
     const copyTextWithFallback = async (text) => {
@@ -297,14 +435,32 @@ function buildEnhancementScript({ mermaid = true } = {}) {
     });
 
     window.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowRight' || event.key === 'PageDown') {
+      const ctrl = event.ctrlKey || event.metaKey;
+      if (ctrl && (event.key === '=' || event.key === '+')) {
         event.preventDefault();
-        move(1);
-      } else if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+        zoomIn();
+        return;
+      }
+      if (ctrl && event.key === '-') {
         event.preventDefault();
-        move(-1);
-      } else if (String(event.key || '').toLowerCase() === 's' && toggle) {
-        toggle.click();
+        zoomOut();
+        return;
+      }
+      if (ctrl && event.key === '0') {
+        event.preventDefault();
+        applyZoom(null);
+        return;
+      }
+      if (!ctrl) {
+        if (event.key === 'ArrowRight' || event.key === 'PageDown') {
+          event.preventDefault();
+          move(1);
+        } else if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+          event.preventDefault();
+          move(-1);
+        } else if (String(event.key || '').toLowerCase() === 's' && toggle) {
+          toggle.click();
+        }
       }
     });
     window.addEventListener('resize', () => {
@@ -312,25 +468,40 @@ function buildEnhancementScript({ mermaid = true } = {}) {
     });
 
     setActiveOutline(currentSectionFromPage(pages[index] || null));
-    let initialHash = String(window.location.hash || '').replace(/^#/, '');
-    try {
-      initialHash = decodeURIComponent(initialHash);
-    } catch (_) {
-      initialHash = '';
-    }
+    let initialHash = decodeHashValue(window.location.hash || '');
     if (initialHash) {
-      const resolved = targetCache.get(initialHash) || { target: null, pageIndex: -1 };
-      const target = resolved.target || resolveOutlineTarget(initialHash);
-      if (target) {
-        if (pages.length > 1 && !document.body.classList.contains('export-stacked') && resolved.pageIndex >= 0) {
-          index = resolved.pageIndex;
-          paint();
+      const pageIndex = resolvePageIndexFromId(initialHash);
+      if (pageIndex >= 0) {
+        if (pages.length > 1 && !document.body.classList.contains('export-stacked')) {
+          goToPage(pageIndex);
         } else {
-          target.scrollIntoView({ behavior: 'auto', block: 'start' });
-          setActiveOutline(initialHash);
+          const pageTarget = pages[pageIndex] || document.getElementById(initialHash);
+          if (pageTarget && typeof pageTarget.scrollIntoView === 'function') {
+            pageTarget.scrollIntoView({ behavior: 'auto', block: 'start' });
+          }
+        }
+      } else {
+        const resolved = targetCache.get(initialHash) || { target: null, pageIndex: -1 };
+        const target = resolved.target || resolveOutlineTarget(initialHash);
+        if (target) {
+          if (pages.length > 1 && !document.body.classList.contains('export-stacked') && resolved.pageIndex >= 0) {
+            goToPage(resolved.pageIndex);
+          } else {
+            target.scrollIntoView({ behavior: 'auto', block: 'start' });
+            setActiveOutline(initialHash);
+          }
         }
       }
     }
+
+    window.addEventListener('hashchange', () => {
+      const hashId = decodeHashValue(window.location.hash || '');
+      if (!hashId || document.body.classList.contains('export-stacked')) return;
+      const pageIndex = resolvePageIndexFromId(hashId);
+      if (pageIndex >= 0) {
+        goToPage(pageIndex);
+      }
+    });
 
     const mermaidEnabled = ${mermaid ? 'true' : 'false'};
     if (!mermaidEnabled) return;
@@ -441,7 +612,7 @@ export function buildStandaloneHtmlDocument({
     }
     ${cssText}
     body.export-slides {
-      background: #0f172a;
+      background: #edf2f9;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -482,17 +653,18 @@ export function buildStandaloneHtmlDocument({
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: rgba(15, 23, 42, 0.85);
-      color: #e2e8f0;
-      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(255, 255, 255, 0.92);
+      color: #1e293b;
+      border: 1px solid rgba(191, 203, 222, 0.8);
       border-radius: 999px;
       padding: 8px 10px;
       backdrop-filter: blur(8px);
+      box-shadow: 0 2px 12px rgba(30, 41, 59, 0.1);
     }
     .export-slide-nav button {
-      border: 1px solid rgba(148, 163, 184, 0.45);
-      background: rgba(30, 41, 59, 0.75);
-      color: #e2e8f0;
+      border: 1px solid rgba(191, 203, 222, 0.8);
+      background: #f1f5fb;
+      color: #1e293b;
       border-radius: 999px;
       padding: 6px 10px;
       cursor: pointer;
@@ -506,6 +678,35 @@ export function buildStandaloneHtmlDocument({
       text-align: center;
       font-size: 13px;
     }
+    .export-slide-nav .nav-sep {
+      width: 1px;
+      height: 18px;
+      background: rgba(148, 163, 184, 0.4);
+      margin: 0 2px;
+      flex-shrink: 0;
+    }
+    .export-slide-nav .zoom-label {
+      min-width: 76px;
+      text-align: center;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      color: #5b677c;
+    }
+    .export-slide-nav button[data-action="zoom-fit"].is-active {
+      background: rgba(58, 99, 214, 0.12);
+      border-color: rgba(58, 99, 214, 0.4);
+      color: #3a63d6;
+    }
+    body.export-stacked .studio-document {
+      transform-origin: top center;
+      transform: scale(var(--stacked-zoom, 1));
+      width: calc(100% / var(--stacked-zoom, 1));
+    }
+    body.export-slides.export-slides-overflow {
+      align-items: flex-start;
+      overflow: auto;
+      padding-top: 20px;
+    }
     .export-fallback-nav {
       position: fixed;
       left: 16px;
@@ -516,19 +717,20 @@ export function buildStandaloneHtmlDocument({
       gap: 6px;
       padding: 8px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      background: rgba(15, 23, 42, 0.85);
-      color: #e2e8f0;
+      border: 1px solid rgba(191, 203, 222, 0.8);
+      background: rgba(255, 255, 255, 0.92);
+      color: #1e293b;
       backdrop-filter: blur(8px);
       font-size: 12px;
+      box-shadow: 0 2px 12px rgba(30, 41, 59, 0.1);
     }
     .export-fallback-nav a {
-      color: #e2e8f0;
+      color: #3a63d6;
       text-decoration: none;
-      border: 1px solid rgba(148, 163, 184, 0.35);
+      border: 1px solid rgba(191, 203, 222, 0.8);
       border-radius: 999px;
       padding: 4px 8px;
-      background: rgba(30, 41, 59, 0.75);
+      background: #f1f5fb;
     }
     body.has-js-slides .export-fallback-nav {
       display: none;
@@ -543,10 +745,11 @@ export function buildStandaloneHtmlDocument({
       overflow: auto;
       padding: 10px;
       border-radius: 14px;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      background: rgba(15, 23, 42, 0.86);
-      color: #e2e8f0;
+      border: 1px solid rgba(191, 203, 222, 0.8);
+      background: rgba(255, 255, 255, 0.92);
+      color: #1e293b;
       backdrop-filter: blur(8px);
+      box-shadow: 0 2px 16px rgba(30, 41, 59, 0.1);
     }
     .export-outline .outline-head {
       display: flex;
@@ -556,9 +759,9 @@ export function buildStandaloneHtmlDocument({
       margin-bottom: 8px;
     }
     .export-outline .outline-head button {
-      border: 1px solid rgba(148, 163, 184, 0.45);
-      background: rgba(30, 41, 59, 0.75);
-      color: #e2e8f0;
+      border: 1px solid rgba(191, 203, 222, 0.8);
+      background: #f1f5fb;
+      color: #1e293b;
       border-radius: 999px;
       padding: 4px 8px;
       cursor: pointer;
@@ -566,7 +769,7 @@ export function buildStandaloneHtmlDocument({
     }
     .export-outline .outline-current {
       font-size: 12px;
-      color: #cbd5e1;
+      color: #5b677c;
       margin-bottom: 8px;
     }
     .export-outline .outline-links {
@@ -574,12 +777,12 @@ export function buildStandaloneHtmlDocument({
       gap: 4px;
     }
     .export-outline .outline-links a {
-      color: #e2e8f0;
+      color: #1e293b;
       text-decoration: none;
       padding: 6px 8px;
       border-radius: 8px;
       border: 1px solid transparent;
-      background: rgba(30, 41, 59, 0.22);
+      background: rgba(30, 41, 59, 0.04);
       font-size: 13px;
     }
     .export-outline .outline-links a.outline-depth-3 { padding-left: 14px; }
@@ -587,8 +790,9 @@ export function buildStandaloneHtmlDocument({
     .export-outline .outline-links a.outline-depth-5 { padding-left: 26px; }
     .export-outline .outline-links a.outline-depth-6 { padding-left: 32px; }
     .export-outline .outline-links a.is-active {
-      border-color: rgba(99, 179, 237, 0.5);
-      background: rgba(30, 64, 175, 0.4);
+      border-color: rgba(58, 99, 214, 0.35);
+      background: rgba(58, 99, 214, 0.1);
+      color: #3a63d6;
     }
     .export-outline.is-collapsed {
       width: auto;

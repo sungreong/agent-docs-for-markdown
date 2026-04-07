@@ -15,7 +15,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:markdown"
+    "onLanguage:markdown",
+    "onCommand:mdStudioPreview.transformMarkdownToHtml"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -32,6 +33,11 @@
         "command": "mdStudioPreview.openTemplateBuilder",
         "title": "Template Builder",
         "icon": "$(combine)"
+      },
+      {
+        "command": "mdStudioPreview.transformMarkdownToHtml",
+        "title": "MD Studio: Transform Markdown to Styled HTML",
+        "icon": "$(file-code)"
       }
     ],
     "configuration": {
@@ -64,8 +70,8 @@
             "slides",
             "stack"
           ],
-          "default": "auto",
-          "description": "Preferred presentation mode in preview webview. auto switches to stack on narrow panels."
+          "default": "stack",
+          "description": "Preferred presentation mode in preview webview. stack matches the web editor view by default."
         },
         "mdStudioPreview.extraArgs": {
           "type": "array",
@@ -100,6 +106,18 @@
           "command": "mdStudioPreview.openTemplateBuilder",
           "when": "resourceLangId == markdown",
           "group": "navigation@22"
+        },
+        {
+          "command": "mdStudioPreview.transformMarkdownToHtml",
+          "when": "resourceLangId == markdown",
+          "group": "navigation@23"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "mdStudioPreview.transformMarkdownToHtml",
+          "when": "resourceLangId == markdown",
+          "group": "navigation@10"
         }
       ]
     }

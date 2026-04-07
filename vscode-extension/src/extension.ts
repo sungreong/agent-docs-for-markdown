@@ -34,6 +34,11 @@ interface RenderOutput {
   inputDir: string;
 }
 
+interface RunCliRendererOptions {
+  outputPath?: string;
+  forceStandalone?: boolean;
+}
+
 interface ParsedSection {
   id?: unknown;
   line?: unknown;
@@ -70,6 +75,12 @@ export function activate(context: vscode.ExtensionContext) {
       const document = await resolveTargetDocument();
       if (!document) return;
       await queuePreview(document, 'refresh');
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mdStudioPreview.transformMarkdownToHtml', async (explorerUri?: vscode.Uri) => {
+      await transformMarkdownToHtml(explorerUri);
     }),
   );
 
@@ -137,10 +148,84 @@ function readConfig(): ExtensionConfig {
   const extraArgs = Array.isArray(rawExtraArgs)
     ? rawExtraArgs.filter((item): item is string => typeof item === 'string')
     : ['--standalone'];
-  const rawPreferredViewMode = String(config.get<string>('preferredViewMode', 'auto') || 'auto').trim().toLowerCase();
+  const rawPreferredViewMode = String(config.get<string>('preferredViewMode', 'stack') || 'stack').trim().toLowerCase();
   const preferredViewMode: 'auto' | 'slides' | 'stack' =
     rawPreferredViewMode === 'slides' || rawPreferredViewMode === 'stack' ? rawPreferredViewMode : 'auto';
   return { autoOnSave, cursorSyncOnSave, nodePath, cliScriptPath, preferredViewMode, extraArgs };
+}
+
+async function transformMarkdownToHtml(explorerUri?: vscode.Uri): Promise<void> {
+  let sourceUri: vscode.Uri;
+  let skipSaveDialog = false;
+
+  if (explorerUri && explorerUri.scheme === 'file' && explorerUri.fsPath.toLowerCase().endsWith('.md')) {
+    sourceUri = explorerUri;
+    skipSaveDialog = true;
+  } else {
+    const sourceDocument = vscode.window.activeTextEditor?.document;
+    if (!sourceDocument || !isMarkdownFile(sourceDocument)) {
+      void vscode.window.showErrorMessage('Open the markdown file you want to transform, then run the command again.');
+      return;
+    }
+    sourceUri = sourceDocument.uri;
+    if (sourceUri.scheme !== 'file') {
+      void vscode.window.showErrorMessage('Only local markdown files can be transformed.');
+      return;
+    }
+    if (sourceDocument.isDirty) {
+      const saved = await sourceDocument.save();
+      if (!saved) {
+        void vscode.window.showErrorMessage('Please save the markdown file before transforming.');
+        return;
+      }
+    }
+  }
+
+  let outputUri: vscode.Uri;
+  if (skipSaveDialog) {
+    outputUri = vscode.Uri.file(buildDefaultStyledHtmlPath(sourceUri.fsPath));
+  } else {
+    const picked = await vscode.window.showSaveDialog({
+      title: 'Save Styled HTML',
+      saveLabel: 'Transform',
+      defaultUri: vscode.Uri.file(buildDefaultStyledHtmlPath(sourceUri.fsPath)),
+      filters: {
+        HTML: ['html'],
+      },
+    });
+    if (!picked) return;
+    if (picked.scheme !== 'file') {
+      void vscode.window.showErrorMessage('Output must be a local file path.');
+      return;
+    }
+    outputUri = picked;
+  }
+
+  try {
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'MD Studio: Transforming markdown to styled HTML...',
+      },
+      async () => {
+        await runCliRendererForPath(sourceUri.fsPath, {
+          outputPath: outputUri.fsPath,
+          forceStandalone: true,
+        });
+      },
+    );
+  } catch (error) {
+    void vscode.window.showErrorMessage(`Markdown transform failed: ${errorToMessage(error)}`);
+    return;
+  }
+
+  void vscode.window.showInformationMessage(`Styled HTML generated: ${outputUri.fsPath}`);
+}
+
+function buildDefaultStyledHtmlPath(inputPath: string): string {
+  const inputDir = path.dirname(inputPath);
+  const inputBaseName = path.basename(inputPath, path.extname(inputPath));
+  return path.join(inputDir, `${inputBaseName}.styled.html`);
 }
 
 function isMarkdownFile(document: vscode.TextDocument): boolean {
@@ -302,10 +387,14 @@ function ensureSession(document: vscode.TextDocument, reveal: boolean): PreviewS
 }
 
 async function runCliRenderer(document: vscode.TextDocument): Promise<RenderOutput> {
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri) ?? null;
+  return runCliRendererForPath(document.uri.fsPath);
+}
+
+async function runCliRendererForPath(inputPath: string, options: RunCliRendererOptions = {}): Promise<RenderOutput> {
+  const sourceUri = vscode.Uri.file(inputPath);
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(sourceUri) ?? null;
 
   const config = readConfig();
-  const inputPath = document.uri.fsPath;
   const inputDir = path.dirname(inputPath);
 
   let scriptPath: string;
@@ -325,7 +414,7 @@ async function runCliRenderer(document: vscode.TextDocument): Promise<RenderOutp
   } else {
     // Outside workspace: use bundled script or absolute path from config
     const rawScript = (config.cliScriptPath || '').trim();
-    if (rawScript && path.isAbsolute(rawScript) && await fileExists(rawScript)) {
+    if (rawScript && path.isAbsolute(rawScript) && (await fileExists(rawScript))) {
       scriptPath = rawScript;
     } else {
       const bundled = resolveBundledCliScriptPath();
@@ -338,20 +427,35 @@ async function runCliRenderer(document: vscode.TextDocument): Promise<RenderOutp
     }
   }
 
-  const tempDir = path.join(os.tmpdir(), 'markdown-pattern-studio-preview');
-  await fs.mkdir(tempDir, { recursive: true });
-
-  const safeBaseName = path
-    .basename(inputPath, path.extname(inputPath))
-    .replace(/[^a-zA-Z0-9._-]+/g, '_');
-  const outputPath = path.join(tempDir, `${safeBaseName}-${Date.now()}.html`);
+  let outputPath: string;
+  if (options.outputPath) {
+    outputPath = path.resolve(options.outputPath);
+  } else {
+    const tempDir = path.join(os.tmpdir(), 'markdown-pattern-studio-preview');
+    await fs.mkdir(tempDir, { recursive: true });
+    const safeBaseName = path
+      .basename(inputPath, path.extname(inputPath))
+      .replace(/[^a-zA-Z0-9._-]+/g, '_');
+    outputPath = path.join(tempDir, `${safeBaseName}-${Date.now()}.html`);
+  }
 
   const cwd = workspaceFolder ? workspaceFolder.uri.fsPath : inputDir;
-  const args = [scriptPath, inputPath, '--out', outputPath, '--base-dir', inputDir, ...config.extraArgs];
+  const extraArgs = normalizeRendererExtraArgs(config.extraArgs, Boolean(options.forceStandalone));
+  const args = [scriptPath, inputPath, '--out', outputPath, '--base-dir', inputDir, ...extraArgs];
   await spawnProcess(config.nodePath, args, cwd);
 
   const html = await fs.readFile(outputPath, 'utf8');
   return { html, workspaceFolder, outputPath, inputDir };
+}
+
+function normalizeRendererExtraArgs(extraArgs: string[], forceStandalone: boolean): string[] {
+  if (!forceStandalone) return [...extraArgs];
+
+  const normalized = extraArgs.filter((arg) => arg !== '--no-standalone');
+  if (!normalized.includes('--standalone')) {
+    normalized.push('--standalone');
+  }
+  return normalized;
 }
 
 function resolveCliScriptPath(workspaceFolder: vscode.WorkspaceFolder, rawValue: string): string {
