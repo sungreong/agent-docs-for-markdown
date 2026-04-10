@@ -20,6 +20,24 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "mdStudioFileBrowserContainer",
+          "title": "MD Studio File Browser",
+          "icon": "$(book)"
+        }
+      ]
+    },
+    "views": {
+      "mdStudioFileBrowserContainer": [
+        {
+          "id": "mdStudioFileBrowser",
+          "name": "Markdown Files",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "mdStudioPreview.open",
@@ -38,6 +56,26 @@
         "command": "mdStudioPreview.transformMarkdownToHtml",
         "title": "MD Studio: Transform Markdown to Styled HTML",
         "icon": "$(file-code)"
+      },
+      {
+        "command": "mdStudioPreview.openFileInViewer",
+        "title": "MD Studio: Open in Viewer",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "mdStudioFileBrowser.refresh",
+        "title": "MD Studio: Refresh File Browser",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "mdStudioPreview.openFileInNewPanel",
+        "title": "Open in New Panel",
+        "icon": "$(split-horizontal)"
+      },
+      {
+        "command": "mdStudioFileBrowser.search",
+        "title": "MD Studio: Search Markdown Files",
+        "icon": "$(search)"
       }
     ],
     "configuration": {
@@ -91,6 +129,18 @@
       }
     },
     "menus": {
+      "view/title": [
+        {
+          "command": "mdStudioFileBrowser.search",
+          "when": "view == mdStudioFileBrowser",
+          "group": "navigation@1"
+        },
+        {
+          "command": "mdStudioFileBrowser.refresh",
+          "when": "view == mdStudioFileBrowser",
+          "group": "navigation@2"
+        }
+      ],
       "editor/title": [
         {
           "command": "mdStudioPreview.open",
@@ -111,6 +161,18 @@
           "command": "mdStudioPreview.transformMarkdownToHtml",
           "when": "resourceLangId == markdown",
           "group": "navigation@23"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "mdStudioPreview.openFileInNewPanel",
+          "when": "view == mdStudioFileBrowser && viewItem == mdFile",
+          "group": "inline"
+        },
+        {
+          "command": "mdStudioPreview.openFileInNewPanel",
+          "when": "view == mdStudioFileBrowser && viewItem == mdFile",
+          "group": "navigation@1"
         }
       ],
       "explorer/context": [

@@ -5,6 +5,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { openTemplateBuilderCommand } from './commands/templateBuilder.js';
+import { MarkdownFileBrowserProvider, MarkdownFileItem } from './providers/markdownFileTreeProvider.js';
 
 type PreviewReason = 'open' | 'refresh' | 'save';
 
@@ -54,6 +55,8 @@ const cliPromptDismissedUntil = new Map<string, number>();
 let lastPreviewKey: string | null = null;
 let extensionInstallPath = '';
 let extensionContextRef: vscode.ExtensionContext | null = null;
+let fileBrowserTreeView: vscode.TreeView<MarkdownFileItem> | null = null;
+let lastBrowserKey: string | null = null; // tracks the panel opened via file browser
 const outlineStateKeyPrefix = 'mdStudioPreview:outlineCollapsed:';
 const dynamicImportModule = new Function('modulePath', 'return import(modulePath);') as (
   modulePath: string,
@@ -125,6 +128,94 @@ export function activate(context: vscode.ExtensionContext) {
       await openTemplateBuilderCommand(context);
     }),
   );
+
+  // --- Markdown File Browser sidebar ---
+  const fileBrowserProvider = new MarkdownFileBrowserProvider(context);
+  fileBrowserTreeView = vscode.window.createTreeView('mdStudioFileBrowser', {
+    treeDataProvider: fileBrowserProvider,
+    showCollapseAll: true,
+  });
+  context.subscriptions.push(fileBrowserTreeView);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mdStudioFileBrowser.refresh', () => {
+      void fileBrowserProvider.refresh();
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mdStudioPreview.openFileInViewer', async (uri: vscode.Uri) => {
+      const newKey = uri.toString();
+      // Close the previous browser panel so only one reader panel stays open
+      if (lastBrowserKey && lastBrowserKey !== newKey) {
+        const prev = sessions.get(lastBrowserKey);
+        if (prev) prev.panel.dispose();
+      }
+      lastBrowserKey = newKey;
+      const document = await vscode.workspace.openTextDocument(uri);
+      await queuePreview(document, 'open');
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mdStudioPreview.openFileInNewPanel', async (itemOrUri: MarkdownFileItem | vscode.Uri) => {
+      // Context menu passes the TreeItem; inline button / programmatic call passes a Uri
+      const uri = itemOrUri instanceof vscode.Uri ? itemOrUri : itemOrUri?.resourceUri;
+      if (!uri) return;
+      // Open without closing any existing panel — each call creates an independent session
+      const document = await vscode.workspace.openTextDocument(uri);
+      await queuePreview(document, 'open');
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mdStudioFileBrowser.search', async () => {
+      const exclude = '{**/node_modules/**,**/.git/**,**/dist/**,**/.next/**}';
+      const uris = await vscode.workspace.findFiles('**/*.md', exclude);
+      const folders = vscode.workspace.workspaceFolders;
+
+      const items = uris
+        .map((uri) => {
+          const rel = folders?.length
+            ? vscode.workspace.asRelativePath(uri, (folders?.length ?? 0) > 1)
+            : uri.fsPath;
+          return {
+            label: path.basename(uri.fsPath),
+            description: path.dirname(rel),
+            uri,
+          };
+        })
+        .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+
+      const picked = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Search markdown files...',
+        matchOnDescription: true,
+      });
+      if (!picked) return;
+
+      // Reuse the single browser panel (same as clicking in tree)
+      const newKey = picked.uri.toString();
+      if (lastBrowserKey && lastBrowserKey !== newKey) {
+        const prev = sessions.get(lastBrowserKey);
+        if (prev) prev.panel.dispose();
+      }
+      lastBrowserKey = newKey;
+      const document = await vscode.workspace.openTextDocument(picked.uri);
+      await queuePreview(document, 'open');
+
+      // Reveal selected file in the tree
+      if (fileBrowserTreeView) {
+        try {
+          void fileBrowserTreeView.reveal(new MarkdownFileItem(picked.uri, false), {
+            select: true,
+            focus: false,
+          });
+        } catch {
+          // File may not be in tree — ignore
+        }
+      }
+    }),
+  );
 }
 
 export function deactivate() {
@@ -134,6 +225,8 @@ export function deactivate() {
   }
   sessions.clear();
   extensionContextRef = null;
+  fileBrowserTreeView = null;
+  lastBrowserKey = null;
 }
 
 function readConfig(): ExtensionConfig {
@@ -319,6 +412,18 @@ async function previewDocument(document: vscode.TextDocument, reason: PreviewRea
     }
     session.tempOutputPath = renderOutput.outputPath;
     lastPreviewKey = key;
+
+    // Sync sidebar selection to the currently previewed file
+    if (fileBrowserTreeView) {
+      try {
+        void fileBrowserTreeView.reveal(new MarkdownFileItem(document.uri, false), {
+          select: true,
+          focus: false,
+        });
+      } catch {
+        // File may not be in the tree (outside workspace) — ignore
+      }
+    }
 
     if (reason === 'save') {
       await syncPreviewToSection(session, syncTargetSectionId);
@@ -896,10 +1001,226 @@ function injectPreviewSyncBridge(
 })();
 </script>`;
 
+  const searchScript = `
+<style>
+#mps-search-bar {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 99999;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  background: var(--vscode-editorWidget-background, #252526);
+  border: 1px solid var(--vscode-editorWidget-border, #454545);
+  border-radius: 6px;
+  padding: 5px 8px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.45);
+  font-family: var(--vscode-font-family, system-ui, sans-serif);
+  font-size: 13px;
+  color: var(--vscode-editorWidget-foreground, #ccc);
+}
+#mps-search-input {
+  background: var(--vscode-input-background, #3c3c3c);
+  border: 1px solid var(--vscode-input-border, transparent);
+  color: var(--vscode-input-foreground, #ccc);
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: 13px;
+  width: 190px;
+  outline: none;
+}
+#mps-search-input:focus { border-color: var(--vscode-focusBorder, #007fd4); }
+#mps-search-count { min-width: 56px; text-align: center; font-size: 11px; opacity: 0.7; }
+.mps-search-btn {
+  background: transparent;
+  border: none;
+  color: var(--vscode-editorWidget-foreground, #ccc);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  line-height: 1;
+}
+.mps-search-btn:hover { background: var(--vscode-toolbar-hoverBackground, rgba(255,255,255,0.1)); }
+mark.mps-hit { background: #ffeb3b; color: #000; border-radius: 2px; padding: 0 1px; }
+mark.mps-hit.mps-hit-active { background: #ff9800; outline: 2px solid #ff9800; }
+</style>
+<div id="mps-search-bar">
+  <input id="mps-search-input" type="text" placeholder="Search in document..." autocomplete="off" spellcheck="false">
+  <span id="mps-search-count"></span>
+  <button class="mps-search-btn" id="mps-search-prev" title="Previous (Shift+Enter)">↑</button>
+  <button class="mps-search-btn" id="mps-search-next" title="Next (Enter)">↓</button>
+  <button class="mps-search-btn" id="mps-search-close" title="Close (Escape)">✕</button>
+</div>
+<script>
+(function () {
+  if (window.__mpsSearchInstalled) return;
+  window.__mpsSearchInstalled = true;
+
+  const bar = document.getElementById('mps-search-bar');
+  const input = document.getElementById('mps-search-input');
+  const countEl = document.getElementById('mps-search-count');
+  const prevBtn = document.getElementById('mps-search-prev');
+  const nextBtn = document.getElementById('mps-search-next');
+  const closeBtn = document.getElementById('mps-search-close');
+
+  let marks = [];
+  let currentIndex = -1;
+  let lastQuery = '';
+  let debounceTimer = null;
+
+  function escapeRegex(s) {
+    // Escape regex special chars without using a regex literal (avoids template literal issues)
+    var specials = ['.', '*', '+', '?', '^', '(', ')', '|', '[', ']'];
+    var result = s;
+    for (var i = 0; i < specials.length; i++) {
+      result = result.split(specials[i]).join('\\\\' + specials[i]);
+    }
+    return result;
+  }
+
+  function clearMarks() {
+    marks.forEach(function (m) {
+      if (!m.parentNode) return;
+      m.parentNode.replaceChild(document.createTextNode(m.textContent || ''), m);
+    });
+    // Normalize merged text nodes
+    document.body.normalize();
+    marks = [];
+    currentIndex = -1;
+  }
+
+  function highlightAll(query) {
+    clearMarks();
+    if (!query) { updateCount(); return; }
+
+    var regex = new RegExp(escapeRegex(query), 'gi');
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (node) {
+        var el = node.parentElement;
+        if (!el) return NodeFilter.FILTER_REJECT;
+        var tag = el.tagName.toLowerCase();
+        if (tag === 'script' || tag === 'style' || tag === 'noscript') return NodeFilter.FILTER_REJECT;
+        if (el.closest && el.closest('#mps-search-bar')) return NodeFilter.FILTER_REJECT;
+        return (node.textContent || '').search(regex) !== -1
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_SKIP;
+      }
+    });
+
+    var textNodes = [];
+    var node;
+    while ((node = walker.nextNode())) textNodes.push(node);
+
+    textNodes.forEach(function (textNode) {
+      var text = textNode.textContent || '';
+      regex.lastIndex = 0;
+      var fragment = document.createDocumentFragment();
+      var lastIdx = 0;
+      var match;
+      while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIdx) {
+          fragment.appendChild(document.createTextNode(text.slice(lastIdx, match.index)));
+        }
+        var mark = document.createElement('mark');
+        mark.className = 'mps-hit';
+        mark.textContent = match[0];
+        fragment.appendChild(mark);
+        marks.push(mark);
+        lastIdx = regex.lastIndex;
+      }
+      if (lastIdx < text.length) {
+        fragment.appendChild(document.createTextNode(text.slice(lastIdx)));
+      }
+      if (textNode.parentNode) textNode.parentNode.replaceChild(fragment, textNode);
+    });
+
+    updateCount();
+    if (marks.length) { currentIndex = 0; activateMark(0); }
+  }
+
+  function activateMark(index) {
+    marks.forEach(function (m, i) {
+      m.classList.toggle('mps-hit-active', i === index);
+    });
+    if (marks[index]) {
+      marks[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    updateCount();
+  }
+
+  function updateCount() {
+    if (!lastQuery) { countEl.textContent = ''; return; }
+    if (!marks.length) { countEl.textContent = 'No results'; return; }
+    countEl.textContent = (currentIndex + 1) + ' / ' + marks.length;
+  }
+
+  function goNext() {
+    if (!marks.length) return;
+    currentIndex = (currentIndex + 1) % marks.length;
+    activateMark(currentIndex);
+  }
+
+  function goPrev() {
+    if (!marks.length) return;
+    currentIndex = (currentIndex - 1 + marks.length) % marks.length;
+    activateMark(currentIndex);
+  }
+
+  function openSearch() {
+    bar.style.display = 'flex';
+    input.focus();
+    input.select();
+  }
+
+  function closeSearch() {
+    bar.style.display = 'none';
+    clearMarks();
+    input.value = '';
+    lastQuery = '';
+    countEl.textContent = '';
+  }
+
+  input.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function () {
+      var q = input.value;
+      if (q === lastQuery) return;
+      lastQuery = q;
+      highlightAll(q);
+    }, 180);
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.shiftKey ? goPrev() : goNext();
+    } else if (e.key === 'Escape') {
+      closeSearch();
+    }
+  });
+
+  prevBtn.addEventListener('click', goPrev);
+  nextBtn.addEventListener('click', goNext);
+  closeBtn.addEventListener('click', closeSearch);
+
+  window.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault();
+      e.stopPropagation();
+      openSearch();
+    } else if (e.key === 'Escape' && bar.style.display !== 'none') {
+      closeSearch();
+    }
+  }, true);
+})();
+</script>`;
+
   const lower = html.toLowerCase();
   const bodyIndex = lower.lastIndexOf('</body>');
-  if (bodyIndex === -1) return `${html}\n${bridgeScript}`;
-  return `${html.slice(0, bodyIndex)}\n${bridgeScript}\n${html.slice(bodyIndex)}`;
+  if (bodyIndex === -1) return `${html}\n${bridgeScript}\n${searchScript}`;
+  return `${html.slice(0, bodyIndex)}\n${bridgeScript}\n${searchScript}\n${html.slice(bodyIndex)}`;
 }
 
 function delay(ms: number): Promise<void> {
