@@ -171,7 +171,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('mdStudioFileBrowser.search', async () => {
       const exclude = '{**/node_modules/**,**/.git/**,**/dist/**,**/.next/**}';
-      const uris = await vscode.workspace.findFiles('**/*.md', exclude);
+      const uris = await vscode.workspace.findFiles('**/*.{md,mdx,markdown,mdown,mkd,mkdn}', exclude);
       const folders = vscode.workspace.workspaceFolders;
 
       const items = uris
@@ -321,8 +321,14 @@ function buildDefaultStyledHtmlPath(inputPath: string): string {
   return path.join(inputDir, `${inputBaseName}.styled.html`);
 }
 
+const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx', '.markdown', '.mdown', '.mkd', '.mkdn']);
+const MARKDOWN_LANGUAGE_IDS = new Set(['markdown', 'mdx']);
+
 function isMarkdownFile(document: vscode.TextDocument): boolean {
-  return document.languageId === 'markdown' && !document.isUntitled;
+  if (document.isUntitled) return false;
+  if (MARKDOWN_LANGUAGE_IDS.has(document.languageId)) return true;
+  const ext = document.uri.fsPath.toLowerCase().slice(document.uri.fsPath.lastIndexOf('.'));
+  return MARKDOWN_EXTENSIONS.has(ext);
 }
 
 async function resolveTargetDocument(): Promise<vscode.TextDocument | null> {

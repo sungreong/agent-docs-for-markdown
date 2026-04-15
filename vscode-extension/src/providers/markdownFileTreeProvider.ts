@@ -39,7 +39,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   private refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(private readonly context: vscode.ExtensionContext) {
-    this.watcher = vscode.workspace.createFileSystemWatcher('**/*.md');
+    this.watcher = vscode.workspace.createFileSystemWatcher('**/*.{md,mdx,markdown,mdown,mkd,mkdn}');
     this.watcher.onDidCreate(() => this.scheduleRefresh());
     this.watcher.onDidDelete(() => this.scheduleRefresh());
     context.subscriptions.push(this.watcher);
@@ -80,7 +80,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     }
 
     const exclude = '{**/node_modules/**,**/.git/**,**/dist/**,**/.next/**}';
-    const uris = await vscode.workspace.findFiles('**/*.md', exclude);
+    const uris = await vscode.workspace.findFiles('**/*.{md,mdx,markdown,mdown,mkd,mkdn}', exclude);
 
     // Build file items keyed by their parent folder
     const folderFileMap = new Map<string, MarkdownFileItem[]>();
