@@ -41,37 +41,39 @@
             <span class="pill" id="editorModePill">로딩</span>
           </div>
 
-          <section class="sidebar-section">
-            <h2>지원하는 방식</h2>
-            <ul class="guide-bullets">
-              <li>기본 마크다운 문법 그대로 작성</li>
-              <li>heading 뒤 속성 블록으로 섹션 템플릿 지정</li>
-              <li>표/이미지 아래 <code>{: ... }</code> 한 줄로 스타일 지정</li>
-              <li>옵시디안 스타일 callout 지원</li>
-            </ul>
-          </section>
+          <div class="sidebar-scroll">
+            <section class="sidebar-section">
+              <h2>지원하는 방식</h2>
+              <ul class="guide-bullets">
+                <li>기본 마크다운 문법 그대로 작성</li>
+                <li>heading 뒤 속성 블록으로 섹션 템플릿 지정</li>
+                <li>표/이미지 아래 <code>{: ... }</code> 한 줄로 스타일 지정</li>
+                <li>옵시디안 스타일 callout 지원</li>
+              </ul>
+            </section>
 
-          <section class="sidebar-section">
-            <div class="section-row">
-              <h2>빠른 삽입</h2>
-            </div>
-            <div id="snippetGrid" class="snippet-grid"></div>
-          </section>
+            <section class="sidebar-section">
+              <div class="section-row">
+                <h2>빠른 삽입</h2>
+              </div>
+              <div id="snippetGrid" class="snippet-grid"></div>
+            </section>
 
-          <section class="sidebar-section">
-            <div class="section-row">
-              <h2>패턴 예시</h2>
-            </div>
-            <div id="patternGuide" class="pattern-guide"></div>
-          </section>
+            <section class="sidebar-section">
+              <div class="section-row">
+                <h2>패턴 예시</h2>
+              </div>
+              <div id="patternGuide" class="pattern-guide"></div>
+            </section>
 
-          <section class="sidebar-section outline-section">
-            <div class="section-row">
-              <h2>문서 아웃라인</h2>
-              <button id="refreshOutlineBtn" class="ghost-button" type="button">새로고침</button>
-            </div>
-            <div id="outlineList" class="outline-list"></div>
-          </section>
+            <section class="sidebar-section outline-section">
+              <div class="section-row">
+                <h2>문서 아웃라인</h2>
+                <button id="refreshOutlineBtn" class="ghost-button" type="button">새로고침</button>
+              </div>
+              <div id="outlineList" class="outline-list"></div>
+            </section>
+          </div>
         </aside>
 
         <section class="pane pane-editor">
@@ -117,6 +119,7 @@
           </div>
           <div id="previewRoot" class="preview-root"></div>
           <pre id="previewSource" class="preview-source" hidden></pre>
+          <aside id="qualityPanel" class="quality-panel" aria-label="Document quality checks"></aside>
         </section>
       </main>
     </div>

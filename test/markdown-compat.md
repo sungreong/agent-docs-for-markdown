@@ -37,7 +37,7 @@ console.log(hello);
 [chart]: https://dummyimage.com/1200x520/e5eefc/1f3b7a.png&text=Chart
 
 ## 5) Quote Mixed Blocks
-> [!INFO] 혼합 블록
+> [!INFO] 혼합 블록![1775490626205](image/markdown-compat/1775490626205.png)![1775490628770](image/markdown-compat/1775490628770.png)
 > 첫 문단
 >
 > - 항목 A

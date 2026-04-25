@@ -77,8 +77,13 @@ select {
 }
 
 select option {
-  color: #0f172a;
-  background: #ffffff;
+  color: var(--text);
+  background: #101828;
+}
+
+select option:checked {
+  color: #ffffff;
+  background: var(--accent-2);
 }
 
 code,
@@ -180,13 +185,37 @@ textarea,
 }
 
 .pane-sidebar {
-  grid-template-rows: auto 1fr;
-  overflow: auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.sidebar-scroll {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .pane-preview {
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 0;
+}
+
+.pane-preview > .pane-head {
+  display: grid;
+  grid-template-columns: minmax(64px, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  flex-wrap: nowrap;
+}
+
+.pane-preview > .pane-head > div:first-child span {
+  display: none;
+}
+
+.pane-preview > .pane-head strong {
+  font-size: 15px;
 }
 
 .pane-head {
@@ -242,10 +271,11 @@ textarea,
 }
 
 .sidebar-section {
-  padding: 16px;
+  min-width: 0;
+  padding: 15px 16px;
   border-bottom: 1px solid var(--line-soft);
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .sidebar-section:last-child {
@@ -274,23 +304,37 @@ textarea,
   line-height: 1.55;
 }
 
+.guide-bullets li {
+  overflow-wrap: anywhere;
+}
+
 .snippet-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .snippet-grid button {
+  max-width: 100%;
+  min-width: 0;
+  flex: 0 1 auto;
   font-size: 12px;
   padding: 8px 10px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
 }
 
 .pattern-guide {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .pattern-card {
+  min-width: 0;
   padding: 12px;
   border: 1px solid rgba(111, 149, 255, 0.12);
   border-radius: 14px;
@@ -335,9 +379,11 @@ textarea,
 }
 
 .pattern-card pre {
+  min-width: 0;
+  max-width: 100%;
   margin: 0;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
   background: rgba(7, 11, 18, 0.78);
   border: 1px solid rgba(111, 149, 255, 0.08);
   border-radius: 12px;
@@ -348,12 +394,12 @@ textarea,
 }
 
 .outline-section {
-  min-height: 220px;
+  min-height: 180px;
 }
 
 .outline-list {
   display: grid;
-  gap: 6px;
+  gap: 3px;
 }
 
 .outline-item {
@@ -361,13 +407,15 @@ textarea,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  border-radius: 12px;
+  gap: 8px;
+  border-radius: 9px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted-2);
   text-align: left;
-  padding: 9px 10px;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.25;
 }
 
 .outline-item.is-active {
@@ -384,21 +432,22 @@ textarea,
 
 .outline-line {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
+  opacity: 0.75;
 }
 
 .outline-depth-2 {
-  padding-left: 18px;
+  padding-left: 16px;
 }
 
 .outline-depth-3 {
-  padding-left: 28px;
+  padding-left: 24px;
 }
 
 .outline-depth-4,
 .outline-depth-5,
 .outline-depth-6 {
-  padding-left: 38px;
+  padding-left: 32px;
 }
 
 .editor-helper {
@@ -477,18 +526,19 @@ textarea,
 }
 
 .preview-root.is-slide-mode .document-shell.is-paginated {
-  height: 100%;
+  width: var(--scaled-page-width, var(--page-width, 1120px));
+  height: var(--scaled-page-height, var(--page-height, 720px));
   margin: 0;
   max-width: none;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  display: block;
 }
 
 .preview-root.is-slide-mode .doc-page {
   display: none;
   width: var(--page-width, 1120px);
+  max-width: none;
   height: var(--page-height, 720px);
+  min-height: var(--page-height, 720px);
   margin: 0 auto;
 }
 
@@ -499,7 +549,7 @@ textarea,
 .preview-root.is-slide-mode .doc-page.is-slide-active {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
-  transform-origin: top center;
+  transform-origin: top left;
   transform: scale(var(--page-scale, 1));
 }
 
@@ -534,24 +584,47 @@ textarea,
   min-width: 88px;
 }
 
+.pane-preview .segmented {
+  gap: 5px;
+}
+
+.pane-preview .segmented button {
+  min-width: 62px;
+  padding: 7px 10px;
+}
+
 .slide-controls {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
+.slide-controls[hidden] {
+  display: none !important;
+}
+
 .slide-controls button {
-  min-width: 64px;
-  padding: 7px 10px;
+  min-width: 42px;
+  padding: 6px 8px;
   font-size: 12px;
 }
 
 .slide-controls span {
-  min-width: 52px;
+  min-width: 38px;
   text-align: center;
   color: var(--muted);
   font-size: 12px;
+}
+
+@media (max-width: 1280px) {
+  .pane-preview > .pane-head > div:first-child {
+    display: none;
+  }
+
+  .pane-preview > .pane-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
 }
 
 .ghost-button {
@@ -564,6 +637,67 @@ textarea,
   border-radius: 14px;
   background: rgba(110, 22, 36, 0.92);
   color: #fff;
+}
+
+.quality-panel {
+  display: grid;
+  gap: 8px;
+  max-height: 210px;
+  overflow: auto;
+  padding: 10px;
+  border-top: 1px solid var(--line-soft);
+  background: rgba(7, 11, 18, 0.62);
+}
+
+.quality-summary {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.quality-summary.quality-error {
+  color: #ffd0d0;
+}
+
+.quality-item {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: 8px 9px;
+  text-align: left;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.quality-item:hover {
+  border-color: rgba(111, 149, 255, 0.38);
+}
+
+.quality-item span {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.quality-item small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.quality-item.level-error {
+  border-color: rgba(255, 107, 107, 0.38);
+}
+
+.quality-item.level-warn {
+  border-color: rgba(251, 191, 36, 0.32);
+}
+
+.quality-empty {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .empty-note {
@@ -592,6 +726,10 @@ textarea,
 
   .pane-sidebar {
     max-height: 48vh;
+  }
+
+  .sidebar-scroll {
+    overflow-y: auto;
   }
 
   .pane-editor,

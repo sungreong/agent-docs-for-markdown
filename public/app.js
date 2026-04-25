@@ -2,6 +2,7 @@ import { parseMarkdownDocument, renderDocument, registerBuiltInTemplates, escape
 import { TemplateRegistry } from '/core/registry.js';
 import { buildStandaloneHtmlDocument } from '/core/export-standalone.js';
 import { SNIPPETS } from '/core/snippets.js';
+import { analyzeMarkdownQuality } from '/core/quality.js';
 
 const STORAGE_KEY_MD = 'markdown-pattern-studio:markdown';
 const STORAGE_KEY_THEME = 'markdown-pattern-studio:theme';
@@ -28,6 +29,7 @@ const dom = {
   editorMeta: document.getElementById('editorMeta'),
   cursorMeta: document.getElementById('cursorMeta'),
   documentMeta: document.getElementById('documentMeta'),
+  qualityPanel: document.getElementById('qualityPanel'),
   currentSectionBadge: document.getElementById('currentSectionBadge'),
   previewRoot: document.getElementById('previewRoot'),
   previewSource: document.getElementById('previewSource'),
@@ -203,6 +205,13 @@ function bindEvents() {
   });
 
   dom.refreshOutlineBtn.addEventListener('click', () => renderOutline());
+
+  dom.qualityPanel?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-quality-line]');
+    if (!button) return;
+    const line = Number(button.dataset.qualityLine || 0);
+    if (line > 0) moveEditorToLine(line);
+  });
 
   dom.outlineList.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-section-id]');
@@ -721,6 +730,7 @@ function render() {
     dom.statusText.textContent = '실시간 렌더 완료';
     updatePreviewMode();
     updateDocumentMeta();
+    renderQualityPanel();
     updateOutlineAndSelection();
     persist();
   } catch (error) {
@@ -729,6 +739,7 @@ function render() {
     dom.previewRoot.innerHTML = `<div class="render-error"><pre>${escapeHtml(error.stack || error.message)}</pre></div>`;
     dom.previewSource.textContent = error.stack || error.message;
     updatePreviewMode();
+    renderQualityPanel(error);
   }
 }
 
@@ -842,8 +853,13 @@ function applySlideContainScale() {
   }
   const availableWidth = Math.max(120, dom.previewRoot.clientWidth - 28);
   const availableHeight = Math.max(120, dom.previewRoot.clientHeight - 28);
-  const scale = Math.min(1, availableWidth / width, availableHeight / height);
-  doc.style.setProperty('--page-scale', String(Number.isFinite(scale) && scale > 0 ? scale : 1));
+  const containScale = Math.min(1, availableWidth / width, availableHeight / height);
+  const readableScale = Math.min(0.78, availableHeight / height);
+  const scale = Math.max(containScale, readableScale);
+  const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  doc.style.setProperty('--page-scale', String(safeScale));
+  doc.style.setProperty('--scaled-page-width', `${width * safeScale}px`);
+  doc.style.setProperty('--scaled-page-height', `${height * safeScale}px`);
 }
 
 function syncSlides() {
@@ -858,7 +874,10 @@ function syncSlides() {
 
   if (!slideMode) {
     allPages.forEach((page) => page.classList.remove('is-slide-active'));
-    if (dom.slideControls) dom.slideControls.hidden = true;
+    if (dom.slideControls) {
+      dom.slideControls.hidden = true;
+      dom.slideControls.style.display = 'none';
+    }
     const doc = dom.previewRoot.querySelector('.studio-document');
     if (doc) doc.style.setProperty('--page-scale', '1');
     return;
@@ -866,7 +885,10 @@ function syncSlides() {
 
   if (!pages.length) {
     dom.previewRoot.classList.remove('is-slide-mode');
-    if (dom.slideControls) dom.slideControls.hidden = true;
+    if (dom.slideControls) {
+      dom.slideControls.hidden = true;
+      dom.slideControls.style.display = 'none';
+    }
     return;
   }
 
@@ -876,7 +898,10 @@ function syncSlides() {
     if (dom.slideMeta) dom.slideMeta.textContent = '1 / 1';
     if (dom.prevSlideBtn) dom.prevSlideBtn.disabled = true;
     if (dom.nextSlideBtn) dom.nextSlideBtn.disabled = true;
-    if (dom.slideControls) dom.slideControls.hidden = true;
+    if (dom.slideControls) {
+      dom.slideControls.hidden = true;
+      dom.slideControls.style.display = 'none';
+    }
     applySlideContainScale();
     return;
   }
@@ -890,7 +915,10 @@ function syncSlides() {
   if (dom.slideMeta) dom.slideMeta.textContent = `${state.slideIndex + 1} / ${pages.length}`;
   if (dom.prevSlideBtn) dom.prevSlideBtn.disabled = state.slideIndex === 0;
   if (dom.nextSlideBtn) dom.nextSlideBtn.disabled = state.slideIndex === pages.length - 1;
-  if (dom.slideControls) dom.slideControls.hidden = false;
+  if (dom.slideControls) {
+    dom.slideControls.hidden = false;
+    dom.slideControls.style.display = 'inline-flex';
+  }
   applySlideContainScale();
 }
 
@@ -902,6 +930,44 @@ function updateDocumentMeta() {
   const imageCount = state.model.blocks.filter((item) => item.type === 'image').length;
   dom.editorMeta.textContent = `${state.model.sections.length}개 섹션 · ${tableCount}개 표 · ${imageCount}개 이미지`;
   dom.documentMeta.textContent = `Words ${words} · Chars ${chars}`;
+}
+
+function renderQualityPanel(renderError = null) {
+  if (!dom.qualityPanel) return;
+  if (renderError) {
+    dom.qualityPanel.innerHTML = `
+      <div class="quality-summary quality-error">Render check failed</div>
+      <div class="quality-item level-error">${escapeHtml(renderError.message || String(renderError))}</div>
+    `;
+    return;
+  }
+  const report = analyzeMarkdownQuality(state.source, state.model);
+  const issues = report.issues || [];
+  const counts = issues.reduce((acc, item) => {
+    acc[item.level] = (acc[item.level] || 0) + 1;
+    return acc;
+  }, {});
+  const summary = issues.length
+    ? `Score ${report.score} · ${counts.error || 0} errors · ${counts.warn || 0} warnings · ${counts.info || 0} hints`
+    : `Score ${report.score} · no document risks found`;
+  dom.qualityPanel.innerHTML = `
+    <div class="quality-summary">${escapeHtml(summary)}</div>
+    ${
+      issues.length
+        ? issues
+            .slice(0, 8)
+            .map(
+              (issue) => `
+                <button type="button" class="quality-item level-${escapeHtml(issue.level)}" data-quality-line="${Number(issue.line) || 0}">
+                  <span>${escapeHtml(issue.title)}</span>
+                  <small>${issue.line ? `L${issue.line} · ` : ''}${escapeHtml(issue.detail)}</small>
+                </button>
+              `,
+            )
+            .join('')
+        : '<div class="quality-empty">문서 구조, 코드, 표, 이미지 기본 체크를 통과했습니다.</div>'
+    }
+  `;
 }
 
 function updateCursorMeta() {
@@ -1034,6 +1100,19 @@ function downloadFile(filename, content, type) {
   anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+function moveEditorToLine(lineNumber) {
+  const safeLine = Math.max(1, Number(lineNumber) || 1);
+  if (state.view) {
+    const lineInfo = state.view.state.doc.line(Math.min(safeLine, state.view.state.doc.lines));
+    state.view.dispatch({ selection: { anchor: lineInfo.from }, scrollIntoView: true });
+    state.view.focus();
+    return;
+  }
+  const pos = positionForLine(dom.editorFallback.value, safeLine);
+  dom.editorFallback.focus();
+  dom.editorFallback.setSelectionRange(pos, pos);
 }
 
 async function copyTextWithFallback(text) {
