@@ -18,7 +18,7 @@ function buildOutlineHtml(items = []) {
   const outline = normalizeOutlineItems(items);
   if (!outline.length) return '';
   const links = outline
-    .map((item) => `<a href="#${escapeHtml(item.id)}" class="outline-depth-${Math.min(6, Math.max(1, item.depth))}" data-outline-id="${escapeHtml(item.id)}">${escapeHtml(item.title)}</a>`)
+    .map((item) => `<a href="#${escapeHtml(item.id)}" class="outline-depth-${Math.min(6, Math.max(1, item.depth))}" data-outline-id="${escapeHtml(item.id)}" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</a>`)
     .join('');
   return `
 <aside class="export-outline" aria-label="Document outline">
@@ -74,12 +74,22 @@ function buildEnhancementScript({ mermaid = true } = {}) {
     const setActiveOutline = (sectionId) => {
       if (!outline) return;
       let activeText = 'Top';
+      let activeLink = null;
       outlineLinks.forEach((link) => {
         const active = sectionId && link.dataset.outlineId === sectionId;
         link.classList.toggle('is-active', Boolean(active));
-        if (active) activeText = link.textContent || activeText;
+        if (active) {
+          activeText = link.textContent || activeText;
+          activeLink = link;
+        }
       });
-      if (outlineCurrent) outlineCurrent.textContent = activeText;
+      if (outlineCurrent) {
+        outlineCurrent.textContent = activeText;
+        outlineCurrent.setAttribute('title', activeText);
+      }
+      if (activeLink && typeof activeLink.scrollIntoView === 'function') {
+        activeLink.scrollIntoView({ block: 'nearest' });
+      }
     };
 
     let index = 0;
@@ -96,6 +106,8 @@ function buildEnhancementScript({ mermaid = true } = {}) {
     let zoomInBtn = null;
     let zoomOutBtn = null;
     let fitBtn = null;
+    let pageSep = null;
+    let zoomSep = null;
     const rootDocument = document.querySelector('.studio-document');
     const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const scrollBehavior = reduceMotion ? 'auto' : 'smooth';
@@ -178,6 +190,24 @@ function buildEnhancementScript({ mermaid = true } = {}) {
         zoomLabel.textContent = Math.round(zoomLevel * 100) + '%';
       }
       if (fitBtn) fitBtn.classList.toggle('is-active', zoomLevel == null);
+    }
+
+    function updateControlState() {
+      if (!nav) return;
+      const isStacked = document.body.classList.contains('export-stacked');
+      const hasSlides = pages.length > 1;
+      nav.classList.toggle('is-stack-mode', isStacked);
+      nav.classList.toggle('is-slides-mode', !isStacked && hasSlides);
+      if (prev) prev.hidden = isStacked || !hasSlides;
+      if (next) next.hidden = isStacked || !hasSlides;
+      if (count) count.hidden = isStacked || !hasSlides;
+      if (pageSep) pageSep.hidden = isStacked || !hasSlides;
+      if (toggle) {
+        toggle.hidden = !hasSlides;
+        toggle.textContent = isStacked ? 'Slides' : 'Stack';
+      }
+      if (fitBtn) fitBtn.hidden = false;
+      if (zoomSep) zoomSep.hidden = false;
     }
 
     function applyZoom(level) {
@@ -280,6 +310,7 @@ function buildEnhancementScript({ mermaid = true } = {}) {
       if (prev) prev.disabled = index === 0;
       if (next) next.disabled = index === pages.length - 1;
       updateScale();
+      updateControlState();
       const currentSectionId = currentSectionFromPage(pages[index]);
       setActiveOutline(currentSectionId);
       updateHash(currentSectionId || (pages[index] && pages[index].id) || '');
@@ -293,10 +324,11 @@ function buildEnhancementScript({ mermaid = true } = {}) {
     function switchMode(stacked) {
       document.body.classList.toggle('export-stacked', stacked);
       document.body.classList.toggle('export-slides', !stacked && pages.length > 1);
-      if (toggle) toggle.textContent = stacked ? 'Slides' : 'Stack';
+      updateControlState();
       if (stacked) {
         unbindStackObserver();
         bindStackObserver();
+        updateScale();
       } else {
         unbindStackObserver();
         paint();
@@ -309,12 +341,12 @@ function buildEnhancementScript({ mermaid = true } = {}) {
       '<button type="button" data-action="prev">&#8249;</button>' +
       '<span class="count">1 / 1</span>' +
       '<button type="button" data-action="next">&#8250;</button>' +
-      '<span class="nav-sep"></span>' +
+      '<span class="nav-sep nav-sep-pages"></span>' +
       '<button type="button" data-action="zoom-out" title="Zoom Out (Ctrl+-)">&#8722;</button>' +
       '<span class="zoom-label">Fit</span>' +
       '<button type="button" data-action="zoom-in" title="Zoom In (Ctrl+=)">+</button>' +
       '<button type="button" data-action="zoom-fit" title="Fit to Window (Ctrl+0)">Fit</button>' +
-      '<span class="nav-sep"></span>' +
+      '<span class="nav-sep nav-sep-zoom"></span>' +
       '<button type="button" data-action="toggle">Stack</button>';
     document.body.appendChild(nav);
     prev = nav.querySelector('[data-action="prev"]');
@@ -325,6 +357,8 @@ function buildEnhancementScript({ mermaid = true } = {}) {
     zoomInBtn = nav.querySelector('[data-action="zoom-in"]');
     zoomOutBtn = nav.querySelector('[data-action="zoom-out"]');
     fitBtn = nav.querySelector('[data-action="zoom-fit"]');
+    pageSep = nav.querySelector('.nav-sep-pages');
+    zoomSep = nav.querySelector('.nav-sep-zoom');
     prev.addEventListener('click', () => move(-1));
     next.addEventListener('click', () => move(1));
     toggle.addEventListener('click', () => {
@@ -336,13 +370,8 @@ function buildEnhancementScript({ mermaid = true } = {}) {
 
     if (pages.length >= 2) {
       document.body.classList.add('has-js-slides');
-      document.body.classList.add('export-slides');
-      paint();
+      switchMode(false);
     } else {
-      prev.hidden = true;
-      next.hidden = true;
-      count.hidden = true;
-      toggle.hidden = true;
       switchMode(true);
     }
 
@@ -661,6 +690,10 @@ export function buildStandaloneHtmlDocument({
       backdrop-filter: blur(8px);
       box-shadow: 0 2px 12px rgba(30, 41, 59, 0.1);
     }
+    .export-slide-nav.is-stack-mode {
+      gap: 6px;
+      padding: 7px 9px;
+    }
     .export-slide-nav button {
       border: 1px solid rgba(191, 203, 222, 0.8);
       background: #f1f5fb;
@@ -737,26 +770,29 @@ export function buildStandaloneHtmlDocument({
     }
     .export-outline {
       position: fixed;
-      top: 16px;
-      right: 16px;
+      top: 14px;
+      right: 14px;
       z-index: 28;
-      width: min(320px, 32vw);
-      max-height: calc(100vh - 120px);
+      width: min(260px, 28vw);
+      max-height: calc(100vh - 112px);
       overflow: auto;
-      padding: 10px;
-      border-radius: 14px;
+      padding: 8px;
+      border-radius: 12px;
       border: 1px solid rgba(191, 203, 222, 0.8);
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.88);
       color: #1e293b;
       backdrop-filter: blur(8px);
-      box-shadow: 0 2px 16px rgba(30, 41, 59, 0.1);
+      box-shadow: 0 2px 12px rgba(30, 41, 59, 0.08);
     }
     .export-outline .outline-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+    }
+    .export-outline .outline-head strong {
+      font-size: 13px;
     }
     .export-outline .outline-head button {
       border: 1px solid rgba(191, 203, 222, 0.8);
@@ -765,12 +801,15 @@ export function buildStandaloneHtmlDocument({
       border-radius: 999px;
       padding: 4px 8px;
       cursor: pointer;
-      font-size: 12px;
+      font-size: 11px;
     }
     .export-outline .outline-current {
-      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 11px;
       color: #5b677c;
-      margin-bottom: 8px;
+      margin-bottom: 7px;
     }
     .export-outline .outline-links {
       display: grid;
@@ -779,20 +818,25 @@ export function buildStandaloneHtmlDocument({
     .export-outline .outline-links a {
       color: #1e293b;
       text-decoration: none;
-      padding: 6px 8px;
-      border-radius: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 5px 7px;
+      border-radius: 7px;
       border: 1px solid transparent;
       background: rgba(30, 41, 59, 0.04);
-      font-size: 13px;
+      font-size: 12px;
+      line-height: 1.25;
     }
-    .export-outline .outline-links a.outline-depth-3 { padding-left: 14px; }
-    .export-outline .outline-links a.outline-depth-4 { padding-left: 20px; }
-    .export-outline .outline-links a.outline-depth-5 { padding-left: 26px; }
-    .export-outline .outline-links a.outline-depth-6 { padding-left: 32px; }
+    .export-outline .outline-links a.outline-depth-3 { padding-left: 16px; }
+    .export-outline .outline-links a.outline-depth-4 { padding-left: 25px; }
+    .export-outline .outline-links a.outline-depth-5 { padding-left: 34px; }
+    .export-outline .outline-links a.outline-depth-6 { padding-left: 43px; }
     .export-outline .outline-links a.is-active {
-      border-color: rgba(58, 99, 214, 0.35);
-      background: rgba(58, 99, 214, 0.1);
-      color: #3a63d6;
+      border-color: rgba(58, 99, 214, 0.5);
+      background: rgba(58, 99, 214, 0.14);
+      color: #284fcb;
+      font-weight: 700;
     }
     .export-outline.is-collapsed {
       width: auto;
@@ -831,7 +875,7 @@ export function buildStandaloneHtmlDocument({
     body.export-stacked {
       background: #edf2f9;
       display: block;
-      padding: 24px;
+      padding: 24px 24px 84px;
     }
     body.export-stacked .studio-document {
       width: auto;
@@ -839,11 +883,30 @@ export function buildStandaloneHtmlDocument({
     }
     body.export-stacked .document-shell.is-paginated {
       display: grid;
+      max-width: 980px;
+      gap: 20px;
       height: auto;
+      justify-items: stretch;
     }
     body.export-stacked .doc-page {
       display: grid;
+      width: 100%;
       height: auto;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      grid-template-rows: auto;
+    }
+    body.export-stacked .doc-page-inner {
+      height: auto;
+      min-height: 0;
+      overflow: visible;
+    }
+    body.export-stacked .doc-page-footer {
+      display: none;
     }
     .mermaid-block .mermaid-render {
       min-height: 24px;
@@ -853,7 +916,7 @@ export function buildStandaloneHtmlDocument({
     }
     @media (max-width: 980px) {
       .export-outline {
-        width: min(280px, 42vw);
+        width: min(230px, 38vw);
       }
     }
     @media (max-width: 680px) {
@@ -869,7 +932,7 @@ export function buildStandaloneHtmlDocument({
       .export-outline {
         top: 8px;
         right: 8px;
-        width: min(200px, 52vw);
+        width: min(180px, 48vw);
         max-height: calc(100vh - 80px);
         padding: 8px;
         font-size: 12px;
@@ -883,6 +946,8 @@ export function buildStandaloneHtmlDocument({
         bottom: 8px;
         padding: 6px 8px;
         gap: 6px;
+        max-width: calc(100vw - 16px);
+        overflow-x: auto;
       }
       .export-slide-nav button {
         padding: 5px 8px;
@@ -903,7 +968,7 @@ export function buildStandaloneHtmlDocument({
       .export-outline {
         top: 6px;
         right: 6px;
-        width: min(160px, 60vw);
+        width: min(148px, 54vw);
       }
       .export-outline.is-collapsed {
         max-width: 80px;
