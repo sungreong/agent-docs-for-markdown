@@ -7,6 +7,8 @@ export interface TemplateBuilderPanelOptions {
   onGenerate: (markdown: string) => Promise<void>;
   onInsert: (markdown: string) => Promise<void>;
   onCopy: (markdown: string) => Promise<void>;
+  onPreview?: (markdown: string) => Promise<void>;
+  initialData?: unknown;
 }
 
 /**
@@ -47,12 +49,21 @@ export async function createTemplateBuilderPanel(
   html = html.replace('</head>', `${docCssScript}\n</head>`);
 
   panel.webview.html = html;
+  const sendHydration = () => {
+    if (options.initialData) {
+      void panel.webview.postMessage({ type: 'hydrate', payload: options.initialData });
+    }
+  };
+  sendHydration();
 
   panel.webview.onDidReceiveMessage(
     async (message: unknown) => {
       if (!message || typeof message !== 'object') return;
       const msg = message as { type?: string; markdown?: string };
 
+      if (msg.type === 'ready') {
+        sendHydration();
+      }
       if (msg.type === 'generate' && typeof msg.markdown === 'string') {
         await options.onGenerate(msg.markdown);
       }
@@ -61,6 +72,9 @@ export async function createTemplateBuilderPanel(
       }
       if (msg.type === 'copy' && typeof msg.markdown === 'string') {
         await options.onCopy(msg.markdown);
+      }
+      if (msg.type === 'preview' && typeof msg.markdown === 'string' && options.onPreview) {
+        await options.onPreview(msg.markdown);
       }
     },
     undefined,

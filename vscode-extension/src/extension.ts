@@ -57,6 +57,7 @@ let extensionInstallPath = '';
 let extensionContextRef: vscode.ExtensionContext | null = null;
 let fileBrowserTreeView: vscode.TreeView<MarkdownFileItem> | null = null;
 let lastBrowserKey: string | null = null; // tracks the panel opened via file browser
+let outputChannel: vscode.OutputChannel | null = null;
 const outlineStateKeyPrefix = 'mdStudioPreview:outlineCollapsed:';
 const dynamicImportModule = new Function('modulePath', 'return import(modulePath);') as (
   modulePath: string,
@@ -65,6 +66,8 @@ const dynamicImportModule = new Function('modulePath', 'return import(modulePath
 export function activate(context: vscode.ExtensionContext) {
   extensionInstallPath = context.extensionPath;
   extensionContextRef = context;
+  outputChannel = vscode.window.createOutputChannel('Markdown Pattern Studio');
+  context.subscriptions.push(outputChannel);
   context.subscriptions.push(
     vscode.commands.registerCommand('mdStudioPreview.open', async () => {
       const document = await resolveTargetDocument();
@@ -126,6 +129,12 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('mdStudioPreview.openTemplateBuilder', async () => {
       await openTemplateBuilderCommand(context);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mdStudioPreview.diagnoseEnvironment', async () => {
+      await diagnoseEnvironment();
     }),
   );
 
@@ -229,6 +238,7 @@ export function deactivate() {
   extensionContextRef = null;
   fileBrowserTreeView = null;
   lastBrowserKey = null;
+  outputChannel = null;
 }
 
 function readConfig(): ExtensionConfig {
@@ -364,6 +374,7 @@ async function resolveMarkdownUriFromCommandArg(commandArg: unknown): Promise<vs
   const document = await resolveTargetDocument();
   return document?.uri ?? null;
 }
+
 async function resolveTargetDocument(): Promise<vscode.TextDocument | null> {
   const active = vscode.window.activeTextEditor?.document;
   if (active && isMarkdownFile(active)) {
@@ -626,6 +637,118 @@ function resolveBundledParserEnginePath(): string | null {
   return path.join(extensionInstallPath, 'public', 'core', 'engine.js');
 }
 
+function resolveSkillsDirPath(workspaceFolder: vscode.WorkspaceFolder | null): string {
+  const raw = String(vscode.workspace.getConfiguration('mdStudioPreview').get<string>('skillsDir', 'claude_skills/skills') || '').trim();
+  const value = raw || 'claude_skills/skills';
+  const workspaceRoot = workspaceFolder?.uri.fsPath || process.cwd();
+  const withWorkspaceVar = value.replace(/\$\{workspaceFolder\}/g, workspaceRoot);
+  return path.isAbsolute(withWorkspaceVar) ? path.normalize(withWorkspaceVar) : path.join(workspaceRoot, withWorkspaceVar);
+}
+
+async function diagnoseEnvironment(): Promise<void> {
+  const activeDocument = vscode.window.activeTextEditor?.document ?? null;
+  const activeUri = activeDocument?.uri.scheme === 'file' ? activeDocument.uri : null;
+  const workspaceFolder =
+    activeUri ? vscode.workspace.getWorkspaceFolder(activeUri) ?? null : vscode.workspace.workspaceFolders?.[0] ?? null;
+  const config = readConfig();
+  const lines: string[] = [];
+  const pushCheck = (label: string, ok: boolean, detail = '') => {
+    lines.push(`${ok ? '[ok]' : '[warn]'} ${label}${detail ? `: ${detail}` : ''}`);
+  };
+
+  lines.push(`Markdown Pattern Studio diagnostics`);
+  lines.push(`Time: ${new Date().toISOString()}`);
+  lines.push(`Extension: ${extensionInstallPath || '(unknown)'}`);
+  lines.push(`Workspace: ${workspaceFolder?.uri.fsPath || '(none)'}`);
+  lines.push(`Active document: ${activeDocument?.uri.fsPath || '(none)'}`);
+  lines.push('');
+
+  pushCheck('Active file is markdown', Boolean(activeDocument && isMarkdownFile(activeDocument)), activeDocument?.languageId || '');
+
+  const bundledCli = resolveBundledCliScriptPath();
+  const bundledEngine = resolveBundledParserEnginePath();
+  const bundledBuilder = extensionInstallPath ? path.join(extensionInstallPath, 'public', 'template-builder-vscode.html') : '';
+  pushCheck('Bundled CLI', Boolean(bundledCli && (await fileExists(bundledCli))), bundledCli || '(missing path)');
+  pushCheck('Bundled engine', Boolean(bundledEngine && (await fileExists(bundledEngine))), bundledEngine || '(missing path)');
+  pushCheck('Bundled Template Builder', Boolean(bundledBuilder && (await fileExists(bundledBuilder))), bundledBuilder || '(missing path)');
+
+  if (workspaceFolder) {
+    const cli = await resolveAvailableCliScriptPath(workspaceFolder, config.cliScriptPath);
+    const skillsDir = resolveSkillsDirPath(workspaceFolder);
+    pushCheck('Configured CLI script', cli.exists, cli.path);
+    pushCheck('Configured skillsDir', await fileExists(skillsDir), skillsDir);
+    if (cli.exists) {
+      const cliSmoke = await runCliSmokeCheck(config.nodePath, cli.path, workspaceFolder.uri.fsPath);
+      pushCheck('CLI smoke test', cliSmoke.ok, cliSmoke.detail || 'node script --help');
+    }
+  } else {
+    pushCheck('Workspace folder', false, 'Open a folder for workspace-relative CLI and skills paths.');
+  }
+
+  const nodeCheck = await runVersionCheck(config.nodePath);
+  pushCheck('Node executable', nodeCheck.ok, `${config.nodePath}${nodeCheck.detail ? ` (${nodeCheck.detail})` : ''}`);
+
+  outputChannel?.clear();
+  outputChannel?.appendLine(lines.join('\n'));
+  outputChannel?.show(true);
+  const warningCount = lines.filter((line) => line.startsWith('[warn]')).length;
+  void vscode.window.showInformationMessage(
+    warningCount ? `MD Studio diagnostics completed with ${warningCount} warning(s).` : 'MD Studio diagnostics passed.',
+    'Show Output',
+  ).then((choice) => {
+    if (choice === 'Show Output') outputChannel?.show(true);
+  });
+}
+
+function runVersionCheck(command: string): Promise<{ ok: boolean; detail: string }> {
+  return new Promise((resolve) => {
+    const child = cp.spawn(command, ['--version'], {
+      shell: false,
+      windowsHide: true,
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk) => {
+      stdout += String(chunk);
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += String(chunk);
+    });
+    child.on('error', (error) => {
+      resolve({ ok: false, detail: error.message });
+    });
+    child.on('close', (code) => {
+      const detail = (stdout || stderr).trim();
+      resolve({ ok: code === 0, detail });
+    });
+  });
+}
+
+function runCliSmokeCheck(nodePath: string, cliPath: string, cwd: string): Promise<{ ok: boolean; detail: string }> {
+  return new Promise((resolve) => {
+    const child = cp.spawn(nodePath, [cliPath, '--help'], {
+      cwd,
+      shell: false,
+      windowsHide: true,
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk) => {
+      stdout += String(chunk);
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += String(chunk);
+    });
+    child.on('error', (error) => {
+      resolve({ ok: false, detail: error.message });
+    });
+    child.on('close', (code) => {
+      const detail = (stdout || stderr).trim().split('\n')[0] || `exit ${code}`;
+      resolve({ ok: code === 0, detail });
+    });
+  });
+}
+
 async function resolveAvailableCliScriptPath(
   workspaceFolder: vscode.WorkspaceFolder,
   rawValue: string,
@@ -696,6 +819,8 @@ async function promptForCliScriptPath(
 
 function spawnProcess(command: string, args: string[], cwd: string): Promise<void> {
   return new Promise((resolve, reject) => {
+    outputChannel?.appendLine(`[cli] cwd=${cwd}`);
+    outputChannel?.appendLine(`[cli] ${command} ${args.map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg)).join(' ')}`);
     const child = cp.spawn(command, args, {
       cwd,
       shell: false,
@@ -712,14 +837,17 @@ function spawnProcess(command: string, args: string[], cwd: string): Promise<voi
       stderr += String(chunk);
     });
     child.on('error', (error) => {
+      outputChannel?.appendLine(`[cli:error] ${error.message}`);
       reject(error);
     });
     child.on('close', (code) => {
       if (code === 0) {
+        if (stdout.trim()) outputChannel?.appendLine(stdout.trim());
         resolve();
         return;
       }
       const message = [stderr.trim(), stdout.trim()].filter(Boolean).join('\n');
+      outputChannel?.appendLine(`[cli:exit ${code}] ${message}`);
       reject(new Error(message || `CLI exited with code ${code}`));
     });
   });

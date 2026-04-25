@@ -23,6 +23,7 @@
     "onCommand:mdStudioPreview.openFileInViewer",
     "onCommand:mdStudioPreview.openFileInNewPanel",
     "onCommand:mdStudioPreview.transformMarkdownToHtml",
+    "onCommand:mdStudioPreview.diagnoseEnvironment",
     "onCommand:mdStudioFileBrowser.refresh",
     "onCommand:mdStudioFileBrowser.search"
   ],
@@ -59,6 +60,11 @@
         "command": "mdStudioPreview.openTemplateBuilder",
         "title": "Template Builder",
         "icon": "$(combine)"
+      },
+      {
+        "command": "mdStudioPreview.diagnoseEnvironment",
+        "title": "MD Studio: Diagnose Environment",
+        "icon": "$(pulse)"
       },
       {
         "command": "mdStudioPreview.transformMarkdownToHtml",
@@ -131,8 +137,13 @@
         },
         "mdStudioPreview.skillsDir": {
           "type": "string",
-          "default": ".gemini/skills",
+          "default": "claude_skills/skills",
           "description": "Path to the skills directory used by Template Builder. Relative paths are resolved from workspace root. Absolute paths are also supported."
+        },
+        "mdStudioPreview.defaultSkill": {
+          "type": "string",
+          "default": "md-presentation-composer",
+          "description": "Preferred skill shown first in Template Builder when matching skills are available."
         }
       }
     },

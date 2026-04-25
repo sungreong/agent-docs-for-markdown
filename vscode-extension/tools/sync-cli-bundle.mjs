@@ -13,6 +13,7 @@ const filePairs = [
   ['public/core/engine.js', 'public/core/engine.js'],
   ['public/core/export-standalone.js', 'public/core/export-standalone.js'],
   ['public/core/pagination.js', 'public/core/pagination.js'],
+  ['public/core/quality.js', 'public/core/quality.js'],
   ['public/core/registry.js', 'public/core/registry.js'],
   ['public/core/snippets.js', 'public/core/snippets.js'],
   ['public/document.css', 'public/document.css'],

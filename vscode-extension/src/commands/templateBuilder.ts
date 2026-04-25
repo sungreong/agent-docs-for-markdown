@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { createTemplateBuilderPanel } from '../webview/templateBuilderPanel.js';
+import { scanSkills, SkillMeta } from '../utils/skillScanner.js';
 
 /**
  * Command handler for `mdStudioPreview.openTemplateBuilder`.
@@ -16,6 +17,9 @@ export async function openTemplateBuilderCommand(
   const insertState: InsertState = {
     lastEditorUri: toInsertableUri(vscode.window.activeTextEditor),
   };
+  const activeDocument = resolveActiveMarkdownDocument();
+  const skillsDir = resolveSkillsDir(workspaceFolder);
+  const skills = await scanSkills(skillsDir);
 
   const htmlFilePath = await resolveBuilderHtmlPath(context, workspaceFolder);
   if (!htmlFilePath) {
@@ -35,7 +39,22 @@ export async function openTemplateBuilderCommand(
     },
     onCopy: async (markdown: string) => {
       await vscode.env.clipboard.writeText(markdown);
-      void vscode.window.showInformationMessage('Template Builder: Markdown copied to clipboard 📋');
+      void vscode.window.showInformationMessage('Template Builder: Markdown copied to clipboard.');
+    },
+    onPreview: async (markdown: string) => {
+      await handlePreview(markdown, workspaceFolder);
+    },
+    initialData: {
+      skills,
+      skillsDir,
+      defaultSkill: resolveDefaultSkill(skills),
+      activeDocument: activeDocument
+        ? {
+            fileName: path.basename(activeDocument.uri.fsPath),
+            preview: activeDocument.getText().slice(0, 5000),
+            headings: extractHeadings(activeDocument.getText()),
+          }
+        : null,
     },
   });
 
@@ -61,7 +80,50 @@ function resolveWorkspaceFolder(): vscode.WorkspaceFolder | null {
   return folders[0];
 }
 
-// skillsDir resolver removed
+function resolveSkillsDir(workspaceFolder: vscode.WorkspaceFolder | null): string {
+  const raw = String(vscode.workspace.getConfiguration('mdStudioPreview').get<string>('skillsDir', 'claude_skills/skills') || '').trim();
+  const value = raw || 'claude_skills/skills';
+  const workspaceRoot = workspaceFolder?.uri.fsPath || process.cwd();
+  const withWorkspaceVar = value.replace(/\$\{workspaceFolder\}/g, workspaceRoot);
+  return path.isAbsolute(withWorkspaceVar) ? path.normalize(withWorkspaceVar) : path.join(workspaceRoot, withWorkspaceVar);
+}
+
+function resolveDefaultSkill(skills: SkillMeta[]): SkillMeta | null {
+  const preferred = String(vscode.workspace.getConfiguration('mdStudioPreview').get<string>('defaultSkill', 'md-presentation-composer') || '').trim();
+  return (
+    skills.find((skill) => skill.id === preferred || skill.name === preferred) ??
+    skills.find((skill) => skill.id === 'md-presentation-composer' || skill.name === 'md-presentation-composer') ??
+    skills[0] ??
+    null
+  );
+}
+
+function resolveActiveMarkdownDocument(): vscode.TextDocument | null {
+  const document = vscode.window.activeTextEditor?.document;
+  if (!document) return null;
+  if (document.uri.scheme !== 'file') return null;
+  const ext = path.extname(document.uri.fsPath).toLowerCase();
+  if (!['.md', '.mdx', '.markdown', '.mdown', '.mkd', '.mkdn'].includes(ext) && document.languageId !== 'markdown') return null;
+  return document;
+}
+
+function extractHeadings(source: string): Array<{ depth: number; title: string; line: number }> {
+  return String(source || '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line, index) => ({ line, index }))
+    .map(({ line, index }) => {
+      const match = line.match(/^(#{1,6})\s+(.+)$/);
+      if (!match) return null;
+      return {
+        depth: match[1].length,
+        title: match[2].replace(/\{[^{}]*\}\s*$/, '').trim(),
+        line: index + 1,
+      };
+    })
+    .filter((item): item is { depth: number; title: string; line: number } => Boolean(item))
+    .slice(0, 80);
+}
 
 /**
  * Resolves the path to public/template-builder-vscode.html.
@@ -127,6 +189,23 @@ async function handleInsert(markdown: string, state: InsertState): Promise<void>
     const msg = error instanceof Error ? error.message : String(error);
     void vscode.window.showErrorMessage(`Template Builder: Unable to open insert target — ${msg}`);
   }
+}
+
+async function handlePreview(
+  markdown: string,
+  workspaceFolder: vscode.WorkspaceFolder | null,
+): Promise<void> {
+  const document = await vscode.workspace.openTextDocument({ language: 'markdown', content: markdown });
+  await vscode.window.showTextDocument(document, {
+    preview: false,
+    preserveFocus: false,
+    viewColumn: vscode.ViewColumn.Beside,
+  });
+  void vscode.window.showInformationMessage(
+    workspaceFolder
+      ? 'Template Builder: Preview draft opened. Save it to use the full MD Studio preview.'
+      : 'Template Builder: Preview draft opened.',
+  );
 }
 
 interface InsertState {

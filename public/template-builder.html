@@ -174,12 +174,14 @@
 
 <div class="topbar">
   <div class="topbar-brand">MPS <span>·</span> Template Builder</div>
+  <div id="skillChip" class="topbar-link" style="display:none;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Skill: none</div>
   <div class="topbar-spacer"></div>
   <span id="countBadge" class="pill-count">0</span>
   
   <div class="topbar-actions" style="display:flex; gap:8px; margin-left:16px;">
     <button class="btn btn-secondary" id="btnCopy" disabled style="padding:4px 10px; font-size:12px;">📋 복사</button>
     <button class="btn btn-primary" id="btnDownload" disabled style="padding:4px 10px; font-size:12px;">↓ .md 저장</button>
+    <button class="btn btn-secondary" id="btnPreviewVscode" disabled style="display:none; padding:4px 10px; font-size:12px;">미리보기 초안</button>
     <button class="btn btn-primary" id="btnInsertVscode" disabled style="display:none; padding:4px 10px; font-size:12px;">✨ 에디터에 삽입</button>
   </div>
   
@@ -264,6 +266,7 @@ let canvasItems = [];
 let drag = null;   // { type:'palette'|'canvas', name?, id? }
 let idSeq = 0;
 let userChangedTheme = false;
+let vscodeHydration = null;
 
 // ── DOM ──
 const paletteBody   = document.getElementById('paletteBody');
@@ -280,6 +283,8 @@ const previewZoom   = document.getElementById('previewZoom');
 const btnZoomIn     = document.getElementById('btnZoomIn');
 const btnZoomOut    = document.getElementById('btnZoomOut');
 const zoomValue     = document.getElementById('zoomValue');
+const skillChip     = document.getElementById('skillChip');
+const btnPreviewVscode = document.getElementById('btnPreviewVscode');
 
 // ── Zoom logic ──
 let scale = 1.0;
@@ -807,6 +812,7 @@ function render() {
   const has = canvasItems.length > 0;
   btnDownload.disabled = btnCopy.disabled = btnOpenStudio.disabled = btnClear.disabled = !has;
   if (btnInsertVscode) btnInsertVscode.disabled = !has;
+  if (btnPreviewVscode) btnPreviewVscode.disabled = !has;
   countBadge.textContent = canvasItems.length;
 
   updatePreview();
@@ -1144,7 +1150,31 @@ const btnInsertVscode = document.getElementById('btnInsertVscode');
 if (IS_VSCODE) {
   btnDownload.textContent = 'VS Code 템플릿 생성';
   btnInsertVscode.style.display = 'inline-block';
+  btnPreviewVscode.style.display = 'inline-block';
   btnOpenStudio.style.display = 'none'; // VS Code 내에서는 Studio 열기 숨김
+  skillChip.style.display = 'block';
+  skillChip.textContent = 'Skill: loading...';
+  vscode.postMessage({ type: 'ready' });
+}
+
+window.addEventListener('message', (event) => {
+  const data = event.data || {};
+  if (data.type !== 'hydrate') return;
+  vscodeHydration = data.payload || {};
+  renderHydrationStatus();
+});
+
+function renderHydrationStatus() {
+  if (!skillChip) return;
+  const skill = vscodeHydration?.defaultSkill;
+  const active = vscodeHydration?.activeDocument;
+  const skillName = skill?.name || skill?.id || 'none';
+  const fileName = active?.fileName ? ` · ${active.fileName}` : '';
+  skillChip.textContent = `Skill: ${skillName}${fileName}`;
+  skillChip.title = [
+    skill?.description || '',
+    vscodeHydration?.skillsDir ? `skillsDir: ${vscodeHydration.skillsDir}` : '',
+  ].filter(Boolean).join('\n');
 }
 
 btnDownload.addEventListener('click', () => {
@@ -1164,6 +1194,22 @@ if (btnInsertVscode) {
     const md = buildMd();
     if (vscode && md) {
       vscode.postMessage({ type: 'insert', markdown: md });
+    }
+  });
+}
+
+if (btnPreviewVscode) {
+  btnPreviewVscode.addEventListener('click', () => {
+    const md = buildMd();
+    if (vscode && md) {
+      const original = btnPreviewVscode.textContent;
+      btnPreviewVscode.textContent = '초안 여는 중...';
+      btnPreviewVscode.disabled = true;
+      window.setTimeout(() => {
+        btnPreviewVscode.textContent = original;
+        btnPreviewVscode.disabled = false;
+      }, 1800);
+      vscode.postMessage({ type: 'preview', markdown: md });
     }
   });
 }

@@ -24,6 +24,7 @@
     .topbar{min-height:48px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;flex-wrap:wrap;padding:6px 12px;gap:8px;position:relative;z-index:10;}
     .topbar-brand{font-weight:700;font-size:14px;letter-spacing:-.3px;}
     .topbar-brand span{color:var(--accent);}
+    .topbar-link{font-size:12px;color:var(--text-dim);text-decoration:none;padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius);}
     .topbar-spacer{flex:1;}
     .topbar-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
     .panel-toggle-btn{padding:4px 8px;font-size:11px;}
@@ -265,6 +266,7 @@
 
 <div class="topbar">
   <div class="topbar-brand">MPS <span>·</span> Template Builder</div>
+  <div id="skillChip" class="topbar-link" style="display:none;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Skill: none</div>
   <button class="btn btn-ghost panel-toggle-btn" id="btnTogglePalette" title="블록 라이브러리 접기/펼치기" aria-label="블록 라이브러리 접기 또는 펼치기" aria-pressed="false">
     <span class="btn-icon">🗂️</span>
     <span class="btn-label">라이브러리</span>
@@ -288,6 +290,9 @@
     <button class="btn btn-primary" id="btnDownload" disabled style="padding:4px 10px; font-size:12px;" title="템플릿 파일 생성" aria-label="템플릿 파일 생성">
       <span class="btn-icon">⬇️</span>
       <span class="btn-label">.md 저장</span>
+    </button>
+    <button class="btn btn-secondary" id="btnPreviewVscode" disabled style="display:none; padding:4px 10px; font-size:12px;" title="초안 문서를 새 에디터로 열기" aria-label="초안 문서를 새 에디터로 열기">
+      <span class="btn-label">초안 미리보기</span>
     </button>
     <button class="btn btn-primary" id="btnInsertVscode" disabled style="display:none; padding:4px 10px; font-size:12px;" title="현재 에디터에 템플릿 삽입" aria-label="현재 에디터에 템플릿 삽입">
       <span class="btn-icon">✨</span>
@@ -395,6 +400,7 @@ let drag = null;   // { type:'palette'|'canvas', name?, id? }
 let idSeq = 0;
 let userChangedTheme = false;
 let selectedCanvasId = null;
+let vscodeHydration = null;
 
 // ── DOM ──
 const paletteBody   = document.getElementById('paletteBody');
@@ -416,6 +422,8 @@ const btnZoomIn     = document.getElementById('btnZoomIn');
 const btnZoomOut    = document.getElementById('btnZoomOut');
 const zoomValue     = document.getElementById('zoomValue');
 const a11yLive      = document.getElementById('a11yLive');
+const skillChip     = document.getElementById('skillChip');
+const btnPreviewVscode = document.getElementById('btnPreviewVscode');
 
 // ── Shadow DOM host ──
 let shadowRoot = null;
@@ -1188,6 +1196,7 @@ function render() {
   const has = canvasItems.length > 0;
   btnDownload.disabled = btnCopy.disabled = btnClear.disabled = !has;
   if (btnInsertVscode) btnInsertVscode.disabled = !has;
+  if (btnPreviewVscode) btnPreviewVscode.disabled = !has;
   countBadge.textContent = canvasItems.length;
   syncCanvasSelectionDom();
 
@@ -1427,6 +1436,30 @@ const btnDownloadLabel = btnDownload.querySelector('.btn-label');
 if (IS_VSCODE) {
   if (btnDownloadLabel) btnDownloadLabel.textContent = '템플릿 생성';
   btnInsertVscode.style.display = 'inline-block';
+  btnPreviewVscode.style.display = 'inline-block';
+  skillChip.style.display = 'block';
+  skillChip.textContent = 'Skill: loading...';
+  vscode.postMessage({ type: 'ready' });
+}
+
+window.addEventListener('message', (event) => {
+  const data = event.data || {};
+  if (data.type !== 'hydrate') return;
+  vscodeHydration = data.payload || {};
+  renderHydrationStatus();
+});
+
+function renderHydrationStatus() {
+  if (!skillChip) return;
+  const skill = vscodeHydration?.defaultSkill;
+  const active = vscodeHydration?.activeDocument;
+  const skillName = skill?.name || skill?.id || 'none';
+  const fileName = active?.fileName ? ` · ${active.fileName}` : '';
+  skillChip.textContent = `Skill: ${skillName}${fileName}`;
+  skillChip.title = [
+    skill?.description || '',
+    vscodeHydration?.skillsDir ? `skillsDir: ${vscodeHydration.skillsDir}` : '',
+  ].filter(Boolean).join('\n');
 }
 
 btnDownload.addEventListener('click', () => {
@@ -1446,6 +1479,22 @@ if (btnInsertVscode) {
     const md = buildMd();
     if (vscode && md) {
       vscode.postMessage({ type: 'insert', markdown: md });
+    }
+  });
+}
+
+if (btnPreviewVscode) {
+  btnPreviewVscode.addEventListener('click', () => {
+    const md = buildMd();
+    if (vscode && md) {
+      const original = btnPreviewVscode.textContent;
+      btnPreviewVscode.textContent = '초안 여는 중...';
+      btnPreviewVscode.disabled = true;
+      window.setTimeout(() => {
+        btnPreviewVscode.textContent = original;
+        btnPreviewVscode.disabled = false;
+      }, 1800);
+      vscode.postMessage({ type: 'preview', markdown: md });
     }
   });
 }
