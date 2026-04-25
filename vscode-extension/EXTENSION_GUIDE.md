@@ -16,7 +16,7 @@ npm run package:vsix
 ### Install
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.4.vsix --force
+code --install-extension .\markdown-pattern-studio-preview-0.1.7.vsix --force
 ```
 
 ### Basic Usage
@@ -26,6 +26,7 @@ code --install-extension .\markdown-pattern-studio-preview-0.1.4.vsix --force
 3. Save the file (`Ctrl+S`) to auto-refresh preview.
 4. Use `Markdown Studio: Refresh Preview` for manual force refresh.
 5. Use `MD Studio: Transform Markdown to Styled HTML` to export the currently open markdown file as styled HTML.
+6. Use `MD Studio: Open in Viewer` from the Markdown Files sidebar or Command Palette. From the palette it falls back to the active markdown document and shows a clear message if no markdown target is available.
 
 ## 2) Cursor Sync on Save (Ctrl+S)
 
@@ -93,6 +94,7 @@ Outline state:
 ### Preview does not open
 
 - Confirm the file is a markdown file in the current workspace.
+- If `MD Studio: Open in Viewer` is run from Command Palette, keep a markdown editor active or select a markdown file from the sidebar first.
 - Confirm `mdStudioPreview.cliScriptPath` points to an existing script path.
 - Confirm `mdStudioPreview.nodePath` points to a valid Node executable.
 - If script is missing and `cliScriptPath` is default, extension tries bundled CLI automatically.
@@ -109,15 +111,21 @@ Example (absolute path):
 
 ### Outline keeps reopening
 
-- Update to the latest extension (`0.1.4` or newer).
+- Update to the latest extension (`0.1.7` or newer).
 - Hide once; subsequent refresh/save should preserve collapsed state for that document.
+
+### `Open in Viewer` command shows an error
+
+- Update to `0.1.7` or newer.
+- The command now validates command arguments before opening a file.
+- If no file is passed by VS Code, it uses the active markdown document instead of failing on an undefined URI.
 
 ## 6) Development Notes
 
 - Source: `vscode-extension/src/extension.ts`
 - Build: `npm run build`
 - Package: `npm run package:vsix`
-- Install test: `code --install-extension .\markdown-pattern-studio-preview-0.1.4.vsix --force`
+- Install test: `code --install-extension .\markdown-pattern-studio-preview-0.1.7.vsix --force`
 
 ## 7) Uninstall / Cleanup Guide
 
@@ -140,7 +148,7 @@ Find `local.markdown-pattern-studio-preview@...` in the list.
 If you no longer need the package file, delete:
 
 ```text
-vscode-extension/markdown-pattern-studio-preview-0.1.4.vsix
+vscode-extension/markdown-pattern-studio-preview-0.1.7.vsix
 ```
 
 ### Optional: remove local extension folder manually
@@ -148,5 +156,5 @@ vscode-extension/markdown-pattern-studio-preview-0.1.4.vsix
 If needed, remove this folder:
 
 ```text
-%USERPROFILE%\.vscode\extensions\local.markdown-pattern-studio-preview-0.1.4
+%USERPROFILE%\.vscode\extensions\local.markdown-pattern-studio-preview-0.1.7
 ```

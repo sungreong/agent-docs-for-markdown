@@ -202,7 +202,7 @@
   },
   "files": [
     "dist/**",
-    "readme.md",
+    "README.md",
     "LICENSE.md",
     "EXTENSION_GUIDE.md",
     "scripts/md-to-html.mjs",

@@ -6,6 +6,7 @@ This extension runs the repository CLI (`scripts/md-to-html.mjs`) and opens the 
 
 - `Markdown Studio: Open Preview` command
 - `Markdown Studio: Refresh Preview` command
+- `MD Studio: Open in Viewer` command safely opens the selected tree item or the active markdown document
 - `MD Studio: Transform Markdown to Styled HTML` command (export the currently open `.md` to styled `.html`)
 - Auto refresh on markdown save (`mdStudioPreview.autoOnSave`)
 - Outline collapsed/expanded state is remembered per document
@@ -20,6 +21,7 @@ A dedicated sidebar for navigating markdown files as a reader:
 - **Book icon** in the Activity Bar lists all `*.md` files in the workspace as a folder tree
 - **Click** a file → opens it in the preview panel (single reader panel, previous panel closes)
 - **Right-click → Open in New Panel** → opens in a new panel while keeping existing ones open
+- **Command Palette → MD Studio: Open in Viewer** → opens the active markdown file, or shows a clear message when no markdown target is available
 - **Search icon** (🔍) in the sidebar title bar → QuickPick search by filename and path
 - **Collapse All** button to reset the folder tree
 - Tree auto-refreshes when `.md` files are added or deleted (300 ms debounce)
@@ -79,5 +81,5 @@ npm run package:vsix
 Then install:
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.6.vsix
+code --install-extension .\markdown-pattern-studio-preview-0.1.7.vsix
 ```
