@@ -82,8 +82,8 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.transformMarkdownToHtml', async (explorerUri?: vscode.Uri) => {
-      await transformMarkdownToHtml(explorerUri);
+    vscode.commands.registerCommand('mdStudioPreview.transformMarkdownToHtml', async (commandArg?: unknown) => {
+      await transformMarkdownToHtml(commandArg);
     }),
   );
 
@@ -144,7 +144,9 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.openFileInViewer', async (uri: vscode.Uri) => {
+    vscode.commands.registerCommand('mdStudioPreview.openFileInViewer', async (commandArg?: unknown) => {
+      const uri = await resolveMarkdownUriFromCommandArg(commandArg);
+      if (!uri) return;
       const newKey = uri.toString();
       // Close the previous browser panel so only one reader panel stays open
       if (lastBrowserKey && lastBrowserKey !== newKey) {
@@ -158,9 +160,9 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.openFileInNewPanel', async (itemOrUri: MarkdownFileItem | vscode.Uri) => {
-      // Context menu passes the TreeItem; inline button / programmatic call passes a Uri
-      const uri = itemOrUri instanceof vscode.Uri ? itemOrUri : itemOrUri?.resourceUri;
+    vscode.commands.registerCommand('mdStudioPreview.openFileInNewPanel', async (commandArg?: unknown) => {
+      // Context menu passes the TreeItem; inline button / programmatic call passes a Uri.
+      const uri = await resolveMarkdownUriFromCommandArg(commandArg);
       if (!uri) return;
       // Open without closing any existing panel — each call creates an independent session
       const document = await vscode.workspace.openTextDocument(uri);
@@ -247,11 +249,12 @@ function readConfig(): ExtensionConfig {
   return { autoOnSave, cursorSyncOnSave, nodePath, cliScriptPath, preferredViewMode, extraArgs };
 }
 
-async function transformMarkdownToHtml(explorerUri?: vscode.Uri): Promise<void> {
+async function transformMarkdownToHtml(commandArg?: unknown): Promise<void> {
   let sourceUri: vscode.Uri;
   let skipSaveDialog = false;
+  const explorerUri = getUriFromCommandArg(commandArg);
 
-  if (explorerUri && explorerUri.scheme === 'file' && explorerUri.fsPath.toLowerCase().endsWith('.md')) {
+  if (explorerUri && isMarkdownFileUri(explorerUri)) {
     sourceUri = explorerUri;
     skipSaveDialog = true;
   } else {
@@ -331,6 +334,36 @@ function isMarkdownFile(document: vscode.TextDocument): boolean {
   return MARKDOWN_EXTENSIONS.has(ext);
 }
 
+function isMarkdownFileUri(uri: vscode.Uri): boolean {
+  if (uri.scheme !== 'file') return false;
+  const ext = path.extname(uri.fsPath).toLowerCase();
+  return MARKDOWN_EXTENSIONS.has(ext);
+}
+
+function getUriFromCommandArg(commandArg: unknown): vscode.Uri | null {
+  if (commandArg instanceof vscode.Uri) return commandArg;
+  if (!commandArg || typeof commandArg !== 'object') return null;
+
+  const resourceUri = (commandArg as { resourceUri?: unknown }).resourceUri;
+  if (resourceUri instanceof vscode.Uri) return resourceUri;
+
+  const uri = (commandArg as { uri?: unknown }).uri;
+  if (uri instanceof vscode.Uri) return uri;
+
+  return null;
+}
+
+async function resolveMarkdownUriFromCommandArg(commandArg: unknown): Promise<vscode.Uri | null> {
+  const commandUri = getUriFromCommandArg(commandArg);
+  if (commandUri) {
+    if (isMarkdownFileUri(commandUri)) return commandUri;
+    void vscode.window.showErrorMessage('Select a local markdown file and try again.');
+    return null;
+  }
+
+  const document = await resolveTargetDocument();
+  return document?.uri ?? null;
+}
 async function resolveTargetDocument(): Promise<vscode.TextDocument | null> {
   const active = vscode.window.activeTextEditor?.document;
   if (active && isMarkdownFile(active)) {
