@@ -16,7 +16,15 @@
   ],
   "activationEvents": [
     "onLanguage:markdown",
-    "onCommand:mdStudioPreview.transformMarkdownToHtml"
+    "onView:mdStudioFileBrowser",
+    "onCommand:mdStudioPreview.open",
+    "onCommand:mdStudioPreview.refresh",
+    "onCommand:mdStudioPreview.openTemplateBuilder",
+    "onCommand:mdStudioPreview.openFileInViewer",
+    "onCommand:mdStudioPreview.openFileInNewPanel",
+    "onCommand:mdStudioPreview.transformMarkdownToHtml",
+    "onCommand:mdStudioFileBrowser.refresh",
+    "onCommand:mdStudioFileBrowser.search"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -195,6 +203,7 @@
   "files": [
     "dist/**",
     "readme.md",
+    "LICENSE.md",
     "EXTENSION_GUIDE.md",
     "scripts/md-to-html.mjs",
     "public/core/**",
