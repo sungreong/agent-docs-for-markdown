@@ -1098,6 +1098,7 @@ function renderBlock(block, context) {
     const tableClasses = ['md-table', ...classList];
     const shellClasses = ['md-table-shell'];
     const caption = block.attrs?.caption || '';
+    const captionId = caption && block.id ? `${block.id}__caption` : '';
     const alignOverrides = parseColumnMeta(block.attrs?.align || '');
     const widthOverrides = parseColumnMeta(block.attrs?.width || '');
     const emphasis = String(block.attrs?.emphasis || '');
@@ -1118,8 +1119,8 @@ function renderBlock(block, context) {
 
     return `
       <div class="${shellClasses.join(' ')}" ${blockIdAttr(block)}>
-        <table class="${tableClasses.join(' ')}">
-          ${caption ? `<caption>${renderInline(caption, context)}</caption>` : ''}
+        ${caption ? `<div class="md-table-caption" id="${escapeHtml(captionId)}">${renderInline(caption, context)}</div>` : ''}
+        <table class="${tableClasses.join(' ')}"${captionId ? ` aria-describedby="${escapeHtml(captionId)}"` : ''}>
           ${colgroup}
           <thead>
             <tr>${block.headers.map((cell, index) => renderCell('th', cell, index)).join('')}</tr>

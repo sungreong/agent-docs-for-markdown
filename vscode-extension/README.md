@@ -81,5 +81,5 @@ npm run package:vsix
 Then install:
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.7.vsix
+code --install-extension .\markdown-pattern-studio-preview-0.1.8.vsix
 ```

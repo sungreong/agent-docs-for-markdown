@@ -82,6 +82,8 @@ tocDepth: 3
 {: .zebra .bordered .compact caption="월별 성과 비교" emphasis="last-col"}
 ```
 
+표의 `caption`은 표 안의 병합 헤더가 아니라 표 위의 짧은 맥락 설명으로 렌더링됩니다. 컬럼 헤더에는 실제 비교 축만 두고, 긴 설명은 섹션 제목이나 본문 lead로 분리하는 것을 권장합니다.
+
 ```markdown
 ![차트](https://dummyimage.com/1200x520/e5eefc/1f3b7a.png&text=Chart)
 {: width="88%" align="center" caption="이미지 캡션"}
@@ -205,7 +207,7 @@ npm run package:vsix
 설치:
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.7.vsix
+code --install-extension .\markdown-pattern-studio-preview-0.1.8.vsix
 ```
 
 ### 커서 동기화 동작 (Ctrl+S)
@@ -282,6 +284,7 @@ md-presentation-composer를 사용해서 public/examples/sample.md를 보고서 
 
 - `.claude/`는 로컬 에이전트 설정 폴더이므로 기본적으로 커밋 제외 대상입니다.
 - 공유/배포용 스킬은 `claude_skills/` 아래에 두고 버전 관리하면 됩니다.
+- 표를 재구성할 때는 caption을 병합된 첫 행처럼 쓰지 않고, 짧은 표 맥락만 담도록 가이드가 보강되어 있습니다.
 
 ## 관련 파일
 

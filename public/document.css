@@ -621,12 +621,24 @@
   background: var(--doc-bg);
 }
 
+.md-table-caption {
+  padding: 13px 16px 12px;
+  border-bottom: 1px solid var(--doc-line-soft);
+  background: var(--doc-bg);
+  color: var(--doc-muted);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .md-table caption {
   caption-side: top;
   text-align: left;
-  padding: 14px 16px 0;
+  padding: 13px 16px 12px;
+  border-bottom: 1px solid var(--doc-line-soft);
   color: var(--doc-muted);
   font-size: 14px;
+  font-weight: 600;
 }
 
 .md-table th,
