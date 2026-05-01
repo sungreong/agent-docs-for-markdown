@@ -42,6 +42,7 @@ function parseArgs(argv) {
     out: '',
     theme: '',
     mode: '',
+    intent: '',
     standalone: true,
     baseDir: '',
     mermaid: null,
@@ -67,6 +68,10 @@ function parseArgs(argv) {
     }
     if (token === '--mode') {
       result.mode = args.shift() || '';
+      continue;
+    }
+    if (token === '--intent') {
+      result.intent = args.shift() || '';
       continue;
     }
     if (token === '--standalone') {
@@ -439,6 +444,7 @@ function buildRenderedHtml(source, options, registry) {
   const model = parseMarkdownDocument(source);
   const effectiveTheme = options.theme || model.meta.theme || 'report';
   const effectiveMode = options.mode || model.meta.mode || 'web';
+  const effectiveIntent = options.intent || model.meta.intent || '';
   const sourceBaseDir = String(options.sourceBaseDir || model.meta.sourceBaseDir || '').trim();
   const resolveAssetUrl = createNodeAssetResolver(sourceBaseDir);
   const enableMermaid = options.enableMermaid !== false;
@@ -455,6 +461,7 @@ function buildRenderedHtml(source, options, registry) {
           toc: Boolean(model.meta.toc),
           tocDepth: Number(model.meta.tocDepth || 3),
           mode: effectiveMode,
+          intent: effectiveIntent,
           sourceBaseDir,
           resolveAssetUrl,
           enableMermaid,
@@ -475,6 +482,7 @@ function buildRenderedHtml(source, options, registry) {
         toc: false,
         tocDepth: Number(model.meta.tocDepth || 3),
         mode: effectiveMode,
+        intent: effectiveIntent,
         sourceBaseDir,
         resolveAssetUrl,
         enableMermaid,
@@ -496,6 +504,7 @@ function buildRenderedHtml(source, options, registry) {
           toc: Boolean(model.meta.toc),
           tocDepth: Number(model.meta.tocDepth || 3),
           mode: effectiveMode,
+          intent: effectiveIntent,
           sourceBaseDir,
           resolveAssetUrl,
           enableMermaid,
@@ -525,10 +534,11 @@ function buildRenderedHtml(source, options, registry) {
     )
     .join('');
 
+  const intentClass = effectiveIntent ? ` intent-${effectiveIntent}` : '';
   return {
     model,
     html: `
-      <div class="studio-document theme-${effectiveTheme} mode-${effectiveMode}" style="--page-width:${width};--page-height:${height};">
+      <div class="studio-document theme-${effectiveTheme} mode-${effectiveMode}${intentClass}" style="--page-width:${width};--page-height:${height};">
         <div class="document-shell is-paginated">
           ${content}
         </div>
@@ -576,6 +586,7 @@ async function main() {
     {
       theme: args.theme,
       mode: args.mode,
+      intent: args.intent,
       sourceBaseDir,
       enableMermaid,
       enableCodeCopy,

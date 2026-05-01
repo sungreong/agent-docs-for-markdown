@@ -780,12 +780,16 @@ function getSectionTemplateName(section) {
   if (classSet.has('compare')) return 'compare';
   if (classSet.has('quote-slide')) return 'quote-slide';
   if (classSet.has('message')) return 'message';
+  if (classSet.has('dark')) return 'dark-slide';
+  if (classSet.has('half-bleed')) return 'half-bleed';
+  if (classSet.has('icon-list')) return 'icon-list';
   return 'default';
 }
 
 export function renderDocument(model, options = {}, registry) {
   const theme = options.theme || model.meta.theme || 'report';
   const mode = options.mode || model.meta.mode || 'web';
+  const intent = options.intent || model.meta.intent || '';
   const showToc = options.toc ?? Boolean(model.meta.toc);
   const tocDepth = Number(options.tocDepth || model.meta.tocDepth || 3);
 
@@ -822,8 +826,9 @@ export function renderDocument(model, options = {}, registry) {
           .join('')
       : composed;
 
+  const intentClass = intent ? ` intent-${escapeHtml(intent)}` : '';
   return `
-    <div class="studio-document theme-${escapeHtml(theme)} mode-${escapeHtml(mode)}">
+    <div class="studio-document theme-${escapeHtml(theme)} mode-${escapeHtml(mode)}${intentClass}">
       <div class="${shellClass}">
         ${content}
       </div>
@@ -1366,6 +1371,82 @@ export function registerBuiltInTemplates(registry) {
         : '';
       const inner = `${renderSectionHeading(section, context)}${statsHtml}${body}${children}`;
       return renderSectionChrome(section, inner, context, 'template-stats-list', { hideHeading: true, template: 'stats-list' });
+    },
+  });
+
+  registry.registerSectionTemplate({
+    name: 'dark-slide',
+    render(section, context) {
+      const body = context.renderBody(section);
+      const children = context.renderChildren(section);
+      const inner = `${renderSectionHeading(section, context)}${body}${children}`;
+      return renderSectionChrome(section, inner, context, 'template-dark-slide', { hideHeading: true, template: 'dark-slide' });
+    },
+  });
+
+  registry.registerSectionTemplate({
+    name: 'half-bleed',
+    render(section, context) {
+      const blocks = section.blocks || [];
+      const imageIdx = blocks.findIndex((b) => b.type === 'image');
+      const side = section.attrs?.side || 'left';
+      let imageHtml = '';
+      let contentBlocks = blocks;
+      if (imageIdx !== -1) {
+        imageHtml = renderBlock(blocks[imageIdx], context);
+        contentBlocks = blocks.filter((_, i) => i !== imageIdx);
+      }
+      const contentHtml = context.renderBlocks(contentBlocks);
+      const children = context.renderChildren(section);
+      const inner = `
+        ${renderSectionHeading(section, context)}
+        <div class="half-bleed-grid">
+          <div class="half-bleed-image">${imageHtml}</div>
+          <div class="half-bleed-content">${contentHtml}${children}</div>
+        </div>
+      `;
+      return renderSectionChrome(section, inner, context, `template-half-bleed side-${escapeHtml(side)}`, {
+        hideHeading: true,
+        template: 'half-bleed',
+      });
+    },
+  });
+
+  registry.registerSectionTemplate({
+    name: 'icon-list',
+    render(section, context) {
+      const blocks = section.blocks || [];
+      const listBlock = blocks.find((b) => b.type === 'list');
+      const otherBlocks = blocks.filter((b) => b !== listBlock);
+      const children = context.renderChildren(section);
+      let iconListHtml = '';
+      if (listBlock) {
+        const items = listBlock.items || [];
+        iconListHtml = `<div class="icon-list-grid">${items
+          .map((item) => {
+            const text = item?.text ?? '';
+            const parts = text.split(' | ');
+            if (parts.length >= 3) {
+              const icon = parts[0].trim();
+              const header = parts[1].trim();
+              const desc = parts.slice(2).join(' | ').trim();
+              return `<div class="icon-list-item">
+                <div class="icon-circle">${escapeHtml(icon)}</div>
+                <div class="icon-list-item-content">
+                  <strong>${escapeHtml(header)}</strong>
+                  <p>${escapeHtml(desc)}</p>
+                </div>
+              </div>`;
+            }
+            return `<div class="icon-list-item">
+              <div class="icon-list-item-content">${renderInline(text, context)}</div>
+            </div>`;
+          })
+          .join('')}</div>`;
+      }
+      const body = otherBlocks.length ? context.renderBlocks(otherBlocks) : '';
+      const inner = `${renderSectionHeading(section, context)}${iconListHtml}${body}${children}`;
+      return renderSectionChrome(section, inner, context, 'template-icon-list', { hideHeading: true, template: 'icon-list' });
     },
   });
 }

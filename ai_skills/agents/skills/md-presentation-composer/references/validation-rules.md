@@ -53,6 +53,44 @@
 - Stack/Slides 전환 시 콘텐츠 누락이 없는가
 - 저장 HTML을 외부로 옮겨도 fallback 이동이 가능한가
 
+## Visual QA Checklist (PPTX-skill grade)
+
+Run this checklist on every slide deck before declaring done. Assume there are problems — find them.
+
+**Layout & Variety**
+- [ ] No same template used more than 2 slides in a row
+- [ ] Every slide has at least one non-text visual element (image, stat card, icon circle, or shape)
+- [ ] Dark slides applied to cover and/or conclusion (sandwich structure)
+- [ ] Layout varies across the deck: cover / content / stats / visual / dark close
+
+**Typography & Hierarchy**
+- [ ] Title headings are visually 2× larger than body text inside slides
+- [ ] No decorative border/underline under section headings
+- [ ] Body paragraphs and list items are left-aligned (never centered)
+- [ ] Font pairing set via `theme:` — not left as system default when theme is specified
+
+**Color & Contrast**
+- [ ] One palette color dominates at 60–70% visual weight
+- [ ] `theme:` and `intent:` are both set in frontmatter
+- [ ] No text-on-background with insufficient contrast (especially in `.dark` slides)
+- [ ] Accent color (`--doc-accent`) is not overused — used only for emphasis
+
+**Spacing & Breathing Room**
+- [ ] Slide inner padding is at least `2rem` on all sides
+- [ ] Content blocks have consistent vertical gap (`1.25rem`)
+- [ ] No overcrowded slides — if content doesn't fit, split the page
+
+**New Templates (if used)**
+- [ ] `.dark` slides: white text readable on accent background
+- [ ] `.half-bleed` slides: image fills its cell without distortion (object-fit: cover)
+- [ ] `.icon-list` slides: pipe-format `icon | header | description` on every item
+- [ ] `.icon-list` icon circles visible and contrast against background
+
+**Content Quality**
+- [ ] First slide communicates the core message within 3 seconds
+- [ ] No placeholder text remaining in the output
+- [ ] No slide is purely text — at minimum a `.stats` or `.icon-list` breaks it up
+
 ## 기본 Markdown 호환 체크 (추가)
 
 - 체크리스트/중첩 리스트/아이템 후속 문단 렌더 확인

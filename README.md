@@ -21,10 +21,12 @@ http://localhost:3188
 ## 핵심 기능
 
 - Markdown 편집 + 실시간 HTML 미리보기
-- 섹션 템플릿 클래스(`.cover`, `.card`, `.two-column`, `.three-column`, `.stats` 등)
+- 섹션 템플릿 클래스 14종 (`.cover`, `.dark`, `.half-bleed`, `.icon-list`, `.card`, `.two-column`, `.three-column`, `.stats`, `.compare`, `.timeline`, `.agenda`, `.message`, `.spotlight`, `.quote-slide`)
 - 블록 속성 문법 `{: ...}` 지원
 - 페이지 분리(`{: .page-break}`) 기반 Slides 모드
 - CLI 변환(`npm run md2html -- ...`)
+- **16종 네임드 팔레트** — 각 테마에 컬러 + 폰트 페어링 내장
+- **`intent:` 프론트매터** — `pitch / report / reference / narrative` 문서 목적 선언
 - Mermaid 렌더링 지원
 - standalone HTML의 로컬 이미지 자동 Base64 내장 및 누락 이미지 fallback
 - standalone HTML 아웃라인/코드 복사 버튼 지원
@@ -58,12 +60,24 @@ http://localhost:3188
 ```yaml
 ---
 title: 2026년 3월 운영 보고서
-theme: report
+theme: midnight        # 16종 팔레트 중 선택
+intent: pitch          # report | pitch | reference | narrative
 mode: web
 toc: true
 tocDepth: 3
+pageWidth: 1120px
+pageHeight: 720px
 ---
 ```
+
+`intent:` 값별 동작:
+
+| 값 | 용도 |
+|----|------|
+| `report` | 보고서 — 밀도 높은 레이아웃, 전체 목차 |
+| `pitch` | 제안서/발표 — 큰 제목, 굵은 callout, 비주얼 템플릿 |
+| `reference` | 문서/위키 — 탐색 우선, 정보 밀도 최적화 |
+| `narrative` | 튜토리얼/에세이 — 여백 확보, 읽기 흐름 중심 |
 
 ### 2) 섹션 속성 (heading 뒤 `{...}`)
 
@@ -73,6 +87,46 @@ tocDepth: 3
 ### KPI {#kpi .stats}
 ## 부록 {#appendix .card}
 ```
+
+#### 신규 템플릿 3종
+
+**`.dark` — 다크 슬라이드** (샌드위치 구조: 다크 커버 → 라이트 본문 → 다크 클로즈)
+
+```markdown
+# 제목 {#cover .cover .dark eyebrow="발표자료"}
+
+## 마무리 {: .dark}
+문의: hello@company.com
+```
+
+**`.half-bleed` — 하프 블리드 이미지** (이미지가 슬라이드 절반을 꽉 채움)
+
+```markdown
+## 제품 소개 {: .half-bleed side="right"}
+
+![스크린샷](./screenshot.png)
+
+이미지가 오른쪽 절반을 채우고, 이 텍스트는 왼쪽에 위치합니다.
+```
+
+**`.icon-list` — 아이콘 리스트** (`아이콘 | 제목 | 설명` 파이프 형식)
+
+```markdown
+## 주요 기능 {: .icon-list}
+
+- 🚀 | 빠른 배포 | 수일 내 기능 출시
+- 🔒 | 기본 보안 | Zero-trust 아키텍처 내장
+- 📊 | 데이터 기반 | 실시간 분석 지원
+```
+
+#### 템플릿 선택 기준 (항목 수 기준)
+
+| 항목 수 | 추천 | 사용 금지 |
+|--------|------|---------|
+| 2개 | `.compare` / `.two-column` | — |
+| **3개** | **`.three-column`** 또는 `.timeline`(순서 있는 경우) | **`.compare`** — 카드 하나 고립 |
+| 4개+ | `.icon-list`, `.stats`, `.agenda` | `.compare`, `.three-column` |
+| 순서·단계 의미 있음 | `.timeline` (개수 무관) | `.compare` |
 
 ### 3) 블록 속성 (`{: ...}`)
 
@@ -135,12 +189,36 @@ npm run md2html -- test/notes.md --out test/notes.cli.html --theme report --stan
 옵션:
 
 - `--out`, `-o`: 출력 HTML 경로
-- `--theme`: `report | default | slate`
+- `--theme`: 팔레트 지정 (아래 16종 참고)
+- `--intent`: `report | pitch | reference | narrative`
 - `--mode`: 렌더 모드 (`web` 등)
 - `--standalone` / `--no-standalone`: standalone HTML 셸 포함 여부
 - `--base-dir <path>`: 상대 경로 자산 해석 기준 디렉터리
 - `--embed-local-images` / `--no-embed-local-images`: 로컬 이미지를 HTML에 Base64로 내장할지 여부. standalone 출력은 기본적으로 내장합니다.
 - `--mermaid` / `--no-mermaid`: Mermaid 강제 on/off
+
+### 팔레트(테마) 16종
+
+| 테마 | 성격 | 주 색상 | 폰트 페어링 |
+|------|------|---------|-----------|
+| `default` | 블루 기본 | `#5e6ad2` | 시스템 UI |
+| `report` | 전문 블루 | `#3a63d6` | 시스템 UI |
+| `slate` | 다크 프리미엄 | `#8cb4ff` | 시스템 UI |
+| `paper` | 따뜻한 문서 | `#b26a2f` | 시스템 UI |
+| `forest` | 자연 그린 | `#2d8a57` | 시스템 UI |
+| `sunset` | 핑크/웜 | `#c04878` | 시스템 UI |
+| `ocean` | 오션 블루 | `#2f74c8` | 시스템 UI |
+| `mono` | 중성 미니멀 | `#424242` | 시스템 UI |
+| `midnight` | 네이비 임원용 | `#1e2761` | Georgia / Calibri |
+| `coral` | 코랄 볼드 | `#f96167` | Arial Black / Arial |
+| `terracotta` | 따뜻한 흙 | `#b85042` | Cambria / Calibri |
+| `charcoal` | 다크 미니멀 | `#36454f` | Trebuchet MS / Calibri |
+| `teal-trust` | 차분한 틸 | `#028090` | Trebuchet MS / Calibri |
+| `berry` | 리치 베리 | `#6d2e46` | Palatino / Garamond |
+| `cherry` | 볼드 체리 | `#990011` | Impact / Arial |
+| `sage` | 차분한 세이지 | `#84b59f` | Calibri |
+
+> **팔레트 선택 원칙 (PPTX Skill 기준):** 하나의 색이 시각적 비중의 60–70%를 차지해야 합니다. 주제와 무관한 무난한 파란색 대신, 콘텐츠 성격에 맞는 팔레트를 선택하세요.
 
 참고: 브라우저 보안 정책 때문에 `MD 열기`에서 파일의 실제 절대 경로를 제공하지 않는 환경이 있습니다. 이 경우 앱 미리보기는 원본 상대경로를 유지하고, CLI(`--base-dir`)를 사용하면 경로 해석을 강제할 수 있습니다. standalone CLI 출력은 로컬 이미지를 기본적으로 Base64로 내장하므로 HTML 파일만 옮겨도 이미지가 유지됩니다. 단, 큰 이미지는 HTML 파일 크기를 크게 만들 수 있고, 원격 이미지는 URL을 그대로 유지합니다. 로컬 이미지를 찾지 못하면 변환 품질 안내와 이미지 fallback 영역을 표시합니다.
 
@@ -267,19 +345,42 @@ code --install-extension .\markdown-pattern-studio-preview-0.1.8.vsix
 - 샘플 문서: `public/examples/sample.md`
 - 경로 예시: `![로컬 KPI 샘플](./assets/local-kpi-card.svg)`
 
-## claude_skills 사용법
+## AI Skills 사용법
 
-이 저장소에는 Claude/Codex용 스킬 번들이 `claude_skills/`에 포함되어 있습니다.
+이 저장소에는 Claude / Codex / Agents용 스킬 번들이 `ai_skills/`에 포함되어 있습니다.
 
-- 스킬 루트: `claude_skills/skills`
-- 예시 스킬: `claude_skills/skills/md-presentation-composer/SKILL.md`
-- 참조 문서: `claude_skills/skills/md-presentation-composer/references/*`
+```
+ai_skills/
+├── claude/    ← 편집 원본 (여기서 수정 후 sync.sh 실행)
+├── agents/    ← 자동 동기화
+└── codex/     ← 자동 동기화
+```
 
-사용 순서:
+스킬 동기화:
 
-1. 사용자 프롬프트에서 스킬 이름을 명시합니다. (예: `md-presentation-composer`)
-2. 에이전트가 해당 `SKILL.md`를 먼저 읽고, 필요한 `references/` 문서를 선택해 적용합니다.
-3. 문서 변환 작업 시에는 먼저 변경안 제시 -> 승인 후 반영 순서로 진행합니다.
+```bash
+cd ai_skills && bash sync.sh
+```
+
+### md-presentation-composer 스킬
+
+- 스킬 정의: `ai_skills/claude/skills/md-presentation-composer/SKILL.md`
+- 참조 문서: `ai_skills/claude/skills/md-presentation-composer/references/`
+
+| 참조 문서 | 역할 |
+|----------|------|
+| `quick-insert-catalog.md` | 템플릿·팔레트·스니펫 카탈로그 |
+| `document-design-rules.md` | 표·카드·목록 선택 기준 |
+| `ppt-like-markdown-rules.md` | 슬라이드형 Markdown 덱 규칙 |
+| `layout-orientation-rules.md` | 화면비 판단 규칙 |
+| `validation-rules.md` | 검증 및 시각적 QA 체크리스트 |
+
+스킬 동작 프레임워크 (Audit → Map → Commit → Verify):
+
+1. **Audit** — 콘텐츠 유형 분류 (텍스트 중심 / 데이터 중심 / 비주얼 중심)
+2. **Map** — 콘텐츠를 레이아웃 아키타입에 할당 (커버/스탯/타임라인/아이콘리스트 등)
+3. **Commit** — 콘텐츠 작성 전 팔레트 + `intent:` 먼저 확정
+4. **Verify** — 시각적 QA 체크리스트 실행 후 완료 선언
 
 사용 예시:
 
@@ -291,12 +392,62 @@ md-presentation-composer를 사용해서 public/examples/sample.md를 보고서 
 참고:
 
 - `.claude/`는 로컬 에이전트 설정 폴더이므로 기본적으로 커밋 제외 대상입니다.
-- 공유/배포용 스킬은 `claude_skills/` 아래에 두고 버전 관리하면 됩니다.
-- 표를 재구성할 때는 caption을 병합된 첫 행처럼 쓰지 않고, 짧은 표 맥락만 담도록 가이드가 보강되어 있습니다.
+- 공유/배포용 스킬은 `ai_skills/claude/` 아래에서 편집하고 `sync.sh`로 배포합니다.
+
+## 디자인 쇼케이스
+
+신규 팔레트·템플릿·샌드위치 구조를 한 번에 확인할 수 있는 데모 문서:
+
+```bash
+npm run md2html -- public/examples/design-showcase.md --theme midnight --intent pitch --standalone
+```
+
+`design-showcase.md`는 다음을 포함합니다:
+
+- 다크 커버 + 라이트 본문 + 다크 클로즈 (샌드위치 구조)
+- `.icon-list`, `.half-bleed`, `.stats`, `.compare`, `.agenda` 슬라이드
+- `theme: midnight` + `intent: pitch` 적용 예시
 
 ## 관련 파일
 
 - 서버: `server.js`
 - CLI: `scripts/md-to-html.mjs`
+- 코어 엔진: `public/core/engine.js`
+- 테마/스타일: `public/document.css`
 - 샘플 문서: `public/examples/sample.md`
+- 디자인 쇼케이스: `public/examples/design-showcase.md`
 - 샘플 자산: `public/examples/assets/local-kpi-card.svg`
+- AI 스킬: `ai_skills/claude/skills/md-presentation-composer/`
+
+## 변경 이력
+
+### v0.3.1 — 2026-05-01 (PPTX-skill Design System)
+
+**참조:** [Anthropic PPTX Skill](https://github.com/anthropics/skills/tree/main/skills/pptx), [Theme Factory Skill](https://github.com/anthropics/skills/blob/main/skills/theme-factory/SKILL.md), [Frontend Design Skill](https://github.com/anthropics/skills/blob/main/skills/frontend-design/SKILL.md), [Canvas Design Skill](https://github.com/anthropics/skills/blob/main/skills/canvas-design/SKILL.md)
+
+**신규 기능**
+
+- **팔레트 8종 추가** — `midnight`, `coral`, `terracotta`, `charcoal`, `teal-trust`, `berry`, `cherry`, `sage`. 각 테마에 컬러 변수 + 폰트 페어링(`--font-heading`, `--font-body`) 내장
+- **타이포그래피 스케일** — `--font-size-title: 2.6rem` / `--font-size-section: 1.45rem` / `--font-size-body: 1rem` / `--font-size-caption: 0.78rem` (PPTX pt 크기 기준)
+- **`.dark` 템플릿** — 액센트 컬러를 배경으로 쓰는 다크 슬라이드. 샌드위치 구조(다크 커버 → 라이트 본문 → 다크 클로즈)에 사용
+- **`.half-bleed` 템플릿** — 첫 번째 이미지가 슬라이드 절반을 `object-fit: cover`로 꽉 채움. `side="right"` 속성으로 방향 전환
+- **`.icon-list` 템플릿** — `🚀 | 제목 | 설명` 파이프 형식으로 아이콘 원형 + 헤더 + 설명 렌더링
+- **`intent:` 프론트매터** — `report / pitch / reference / narrative`. CLI `--intent` 플래그로도 지정 가능
+
+**디자인 안티패턴 수정 (슬라이드 모드)**
+
+- 섹션 제목 하단 장식선(`border-bottom`) 제거
+- 본문 텍스트/목록 좌측 정렬 강제
+- 슬라이드 내부 최소 패딩 `2rem` 보장
+- 콘텐츠 블록 간격 `1.25rem`으로 표준화
+
+**AI 스킬 강화**
+
+- `SKILL.md` 전면 재작성 — Audit → Map → Commit → Verify 프레임워크 도입
+- `quick-insert-catalog.md` — 항목 수 기반 템플릿 선택 테이블 추가, `.compare` 3개 이상 사용 금지 명시
+- `validation-rules.md` — 20개 항목 시각적 QA 체크리스트 추가
+- `ai_skills/sync.sh` — claude → agents / codex 동기화
+
+**VSIX**
+
+- `vscode-extension/markdown-pattern-studio-preview-0.1.8.vsix` 빌드 완료 (98.68 KB)

@@ -1,50 +1,242 @@
-﻿# Quick Insert Catalog
+# Quick Insert Catalog
 
-`md-presentation-composer`가 제안/변환 단계에서 참조하는 삽입 카탈로그입니다.
+Reference catalog for `md-presentation-composer`. Used during proposal and transformation phases.
 
-## 현재 빠른 삽입(앱 UI)
+---
 
-| pattern_id | trigger | snippet_id | when_to_use | snippet_text |
-| --- | --- | --- | --- | --- |
-| section_h2 | H2 섹션 | `h2` | 일반 섹션 시작 | `## 섹션 제목` |
-| cover | Cover | `cover` | 문서 첫 표지 | `# 보고서 제목 {#cover .cover eyebrow="Monthly Report"}` |
-| two_column | 2단 섹션 | `two-column` | 좌우 비교/요약 | `## 핵심 요약 {#summary .two-column}` |
-| three_column | 3단 섹션 | `three-column` | 3열 나란히 배치 | `## 섹션 제목 {#cols3 .three-column}` |
-| stats | Stats | `stats` | KPI 카드형 요약 | `### 핵심 KPI {#kpi .stats}` |
-| callout | Callout | `callout` | 강조 문구/경고 | `> [!INFO] 핵심 메시지` |
-| table_attr | 표 + 속성 | `table` | 표 스타일 지정 | `{: .zebra .bordered .compact ...}` |
-| image_attr | 이미지 + 속성 | `image` | 이미지 캡션/정렬 | `{: width="88%" align="center" caption="..."}` |
-| code_block | 코드 블록 | `code` | 예시 코드 삽입 | ````` ```js ... ``` ````` |
-| title_slide | Title Slide | `title-slide` | 발표 시작 슬라이드 | 제목 + 부제 + `page-break` |
-| agenda_slide | Agenda | `agenda-slide` | 목차 슬라이드 | `## Agenda {#agenda .agenda}` |
-| message_slide | Key Message | `message-slide` | 핵심 메시지 전달 | `## 핵심 메시지 {#message .message}` |
-| compare_slide | Compare 2-up | `compare-slide` | 2열 비교 | `## 비교 {#compare .compare}` |
-| timeline_slide | Timeline | `timeline-slide` | 일정/로드맵 | `## 일정 {#timeline .timeline}` |
-| data_slide | Data Slide | `data-slide` | 데이터 중심 슬라이드 | `## 데이터 {#data .card}` |
-| quote_slide | Quote Slide | `quote-slide` | 인용/코멘트 | `## 인용 {#quote .quote-slide}` |
-| qa_slide | Q&A | `qa-slide` | 마무리 질의응답 | `## Q&A {#qa .message}` |
-| page_break | Page Break | `page-break` | 페이지 분리 | `---` + `{: .page-break}` |
+## Design-First Rule
 
-## 범용 문서 도구(승인형 자동삽입 대상)
+**Always commit to palette + intent BEFORE writing slide content.**
 
-| tool_id | trigger | when_to_use | snippet_text |
-| --- | --- | --- | --- |
-| toc-basic | 목차 | 문서 길이가 긴 경우 | `## 목차\n- 1. ...\n- 2. ...` |
-| checklist | 체크리스트 | 작업 점검 항목 | `- [ ] 항목 A\n- [ ] 항목 B` |
-| action-items | 액션아이템 | 담당/기한 관리 | `| 항목 | 담당 | 기한 | 상태 |` |
-| decision-log | 의사결정 로그 | 결정 근거 기록 | `## 의사결정 로그\n- 결정:\n- 근거:\n- 영향:` |
-| reference-links | 참고 링크 | 근거/출처 정리 | `## 참고 링크\n- [문서명](URL) - 설명` |
+```yaml
+---
+theme: midnight       # Pick from palette table below
+intent: pitch         # report | pitch | reference | narrative
+---
+```
 
-## 자동 삽입 제안 방식
-- 스킬은 문서를 분석해 필요한 후보를 먼저 "제안"합니다.
-- 사용자의 문서 전체 승인 전에는 원문을 수정하지 않습니다.
-- 승인 후에만 최종 Markdown에 삽입/재배치합니다.
+Choosing the palette after filling content leads to mismatch. Pick for the topic first.
 
-## 기본 MD 보장 항목
+---
 
-아래 항목은 스니펫 없이 일반 Markdown만으로도 렌더가 보장됩니다.
+## Frontmatter Snippets
 
-- task list (`- [ ]`, `- [x]`)
-- 중첩 리스트(들여쓰기)
-- reference link/image (`[text][id]`, `![alt][id]` + `[id]: ...`)
-- code fence (` ``` `, `~~~`)
+| Use | Frontmatter |
+|-----|-------------|
+| Executive pitch deck | `theme: midnight` + `intent: pitch` |
+| Business report | `theme: report` + `intent: report` |
+| Technical guide | `theme: charcoal` + `intent: reference` |
+| Tutorial / onboarding | `theme: ocean` + `intent: narrative` |
+| Wellness / education | `theme: sage` + `intent: narrative` |
+| Startup launch | `theme: coral` + `intent: pitch` |
+
+---
+
+## Palette Reference (16 Themes)
+
+| Theme | Character | Primary Color | Font Pairing |
+|-------|-----------|--------------|--------------|
+| `default` | Blue standard | `#5e6ad2` | System UI |
+| `report` | Professional blue | `#3a63d6` | System UI |
+| `slate` | Dark premium | `#8cb4ff` | System UI |
+| `paper` | Warm document | `#b26a2f` | System UI |
+| `forest` | Nature green | `#2d8a57` | System UI |
+| `sunset` | Pink/warm | `#c04878` | System UI |
+| `ocean` | Ocean blue | `#2f74c8` | System UI |
+| `mono` | Neutral minimal | `#424242` | System UI |
+| `midnight` | Navy executive | `#1e2761` | Georgia / Calibri |
+| `coral` | Bold coral | `#f96167` | Arial Black / Arial |
+| `terracotta` | Warm earth | `#b85042` | Cambria / Calibri |
+| `charcoal` | Dark minimal | `#36454f` | Trebuchet MS / Calibri |
+| `teal-trust` | Calm teal | `#028090` | Trebuchet MS / Calibri |
+| `berry` | Rich berry | `#6d2e46` | Palatino / Garamond |
+| `cherry` | Bold cherry | `#990011` | Impact / Arial |
+| `sage` | Calm sage | `#84b59f` | Calibri / Calibri |
+
+---
+
+## Slide Templates — Quick Insert
+
+### Template Selection by Item Count
+
+Before picking a layout, count the child items first:
+
+| Items | Best template | Avoid |
+|-------|--------------|-------|
+| 1 | `.message` or `.spotlight` | — |
+| 2 | `.compare` or `.two-column` | — |
+| **3** | **`.three-column`** (symmetric) or `.timeline` (if sequential) or `.icon-list` (if visual) | **`.compare`** — leaves one card orphaned |
+| 4+ | `.icon-list`, `.stats`, or `.agenda` | `.compare`, `.three-column` |
+| Sequential (Level 1→2→3, Step A→B) | `.timeline` regardless of count | `.compare` |
+| With icons/emoji | `.icon-list` | — |
+
+### Existing Templates
+
+| pattern_id | Trigger | Class | When to Use | Snippet |
+|-----------|---------|-------|-------------|---------|
+| `cover` | Cover slide | `.cover` | First slide, title page | `# Title {#cover .cover eyebrow="Label"}` |
+| `dark-cover` | Dark cover | `.cover .dark` | Sandwich: dark opening | `# Title {#cover .cover .dark eyebrow="Label"}` |
+| `two-column` | 2-column | `.two-column` | Exactly 2 items side-by-side | `## Section {#id .two-column}` |
+| `three-column` | 3-column | `.three-column` | **Exactly 3 items** — use this instead of `.compare` when items = 3 | `## Section {#id .three-column}` |
+| `stats` | KPI cards | `.stats` | Metrics with label/value/delta | `## KPIs {#id .stats}` |
+| `card` | Card box | `.card` | Highlighted section | `## Note {#id .card}` |
+| `spotlight` | Spotlight | `.spotlight` | Lead visual + body | `## Feature {#id .spotlight}` |
+| `agenda` | Agenda | `.agenda` | Ordered agenda | `## Agenda {#id .agenda}` |
+| `timeline` | Timeline | `.timeline` | **Ordered stages/levels/progression** — use when items have a natural sequence (Level 1→2→3, Step A→B→C) | `## Timeline {#id .timeline}` |
+| `compare` | Compare | `.compare` | **Strictly 2 items only.** ⚠️ Fixed 2-column grid — 3+ items will create an orphaned card. Never use for 3-level or multi-step content. | `## Comparison {#id .compare}` |
+| `quote-slide` | Quote | `.quote-slide` | Large pull-quote | `## Quote {#id .quote-slide}` |
+| `message` | Key message | `.message` | Single bold statement | `## Message {#id .message}` |
+
+### New Templates
+
+| pattern_id | Trigger | Class | When to Use | Snippet |
+|-----------|---------|-------|-------------|---------|
+| `dark-slide` | Dark slide | `.dark` | Conclusion, section break, sandwich close | `## Conclusion {: .dark}` |
+| `half-bleed` | Half-bleed image | `.half-bleed` | Image fills one half, text fills other | `## Title {: .half-bleed side="right"}` |
+| `icon-list` | Icon list | `.icon-list` | Feature list with icon + header + desc | `## Features {: .icon-list}` |
+
+---
+
+## New Template Snippets (Full)
+
+### Dark Slide — Sandwich Close
+
+```markdown
+## Thank You {: .dark}
+
+Contact us at hello@company.com
+
+We look forward to hearing from you.
+```
+
+### Dark Cover — Sandwich Open
+
+```markdown
+# Product Launch 2026 {#cover .cover .dark eyebrow="Q2 Announcement"}
+
+Transforming how teams work together.
+```
+
+### Half-Bleed (Image Left)
+
+```markdown
+## How It Works {: .half-bleed}
+
+![architecture diagram](./diagram.png)
+
+Our platform processes 10M events per second using a distributed pipeline that scales automatically with demand.
+```
+
+### Half-Bleed (Image Right)
+
+```markdown
+## The Result {: .half-bleed side="right"}
+
+![result screenshot](./result.png)
+
+Teams report 40% faster onboarding and 3× more feature velocity after switching to our platform.
+```
+
+### Icon List
+
+```markdown
+## Why Choose Us {: .icon-list}
+
+- 🚀 | Fast Delivery | Ship features in days, not weeks
+- 🔒 | Secure by Default | Zero-trust architecture built in
+- 📊 | Data-Driven | Real-time analytics on every decision
+- 🌍 | Global Scale | 99.99% uptime across 30 regions
+```
+
+### Sandwich Deck Structure
+
+```markdown
+---
+title: Product Overview
+theme: midnight
+intent: pitch
+---
+
+# Product Name {#cover .cover .dark eyebrow="Company · 2026"}
+
+One-line value proposition.
+
+---
+{: .page-break}
+
+## The Problem {: .message}
+
+Current tools cost teams 6 hours per week in manual work.
+
+---
+{: .page-break}
+
+## Key Features {: .icon-list}
+
+- ⚡ | Instant Setup | Live in 5 minutes, no engineering needed
+- 🔗 | Deep Integrations | Connects to 100+ tools out of the box
+- 📈 | Measurable ROI | Average 3× productivity in 30 days
+
+---
+{: .page-break}
+
+## Performance at a Glance {#kpi .stats}
+
+- Response Time | 12ms | -40%
+- Uptime | 99.99% | +0.02%
+- Daily Active Users | 84K | +28%
+
+---
+{: .page-break}
+
+## How It Works {: .half-bleed side="right"}
+
+![diagram](./diagram.png)
+
+Three-step process: connect your data sources, define your workflow, and let the engine handle the rest.
+
+---
+{: .page-break}
+
+## Get Started Today {: .dark}
+
+Sign up free at product.com
+
+No credit card required.
+```
+
+---
+
+## General Document Tools (Approval-type Auto-insert)
+
+| tool_id | Trigger | When to Use | Snippet |
+|---------|---------|-------------|---------|
+| `toc-basic` | Table of contents | Long documents | `## Contents\n- 1. ...\n- 2. ...` |
+| `checklist` | Checklist | Action items | `- [ ] Item A\n- [ ] Item B` |
+| `action-items` | Action table | Owner/deadline tracking | `\| Item \| Owner \| Due \| Status \|` |
+| `decision-log` | Decision log | Record decisions and rationale | `## Decision Log\n- Decision:\n- Rationale:\n- Impact:` |
+| `reference-links` | References | Sources, links | `## References\n- [Doc](URL) — description` |
+| `page-break` | Page break | Split pages | `---\n{: .page-break}` |
+
+---
+
+## Auto-Insert Proposal Rules
+
+- Analyze the document first, then propose candidates.
+- Never modify the original before user approval.
+- Present proposals as a list: pattern, reason, location.
+- Apply only after full approval → emit `[FINAL OUTPUT]`.
+
+---
+
+## Guaranteed Markdown Render Items
+
+These render without any snippet or class:
+
+- Task lists (`- [ ]`, `- [x]`)
+- Nested lists with indentation
+- Reference links/images (`[text][id]`, `![alt][id]` + `[id]: ...`)
+- Code fences (` ``` `, `~~~`) with language tags
+- Inline emphasis (`**bold**`, `*italic*`, `~~strike~~`)
+- Auto-links (`https://...`)
+- Callouts (`> [!INFO] Title`)

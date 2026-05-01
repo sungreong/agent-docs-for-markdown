@@ -1,92 +1,234 @@
-﻿---
+---
 name: md-presentation-composer
-description: 기존 Markdown을 읽고 보고서, 제안서, 기술문서, 튜토리얼, 발표형 문서로 재구성합니다. 문서 목적에 맞는 정보 위계, page-break, 표/카드/목록/이미지/코드 배치를 먼저 제안하고 승인 후 반영합니다.
+description: Reads existing Markdown and restructures it into a well-designed report, pitch, technical doc, tutorial, or presentation. Applies PPTX-skill-grade design thinking: audit → map → commit → verify. Proposes structure, palette, typography, and layout before making any changes.
 ---
 
 # MD Presentation Composer
 
-## 목적
-- 기존 Markdown의 의미를 유지하면서 목적이 분명한 문서로 재구성합니다.
-- 장식보다 정보 구조를 우선하고, 독자가 빠르게 판단/학습/실행할 수 있게 배치합니다.
-- `page-break` 기반 페이지 분리, 표/이미지/코드 배치, 섹션 구조 정리를 일관되게 적용합니다.
+## Purpose
 
-## 실행 원칙
-1. 먼저 문서 목적을 분류합니다: `report`, `proposal`, `technical`, `tutorial`, `presentation`.
-2. 전체 변환안을 먼저 제시합니다. 원문은 이 단계에서 수정하지 않습니다.
-3. 제안안에는 변경 요약, 자동 삽입 후보, 레이아웃 선택 이유, 추천 화면비를 포함합니다.
-4. 사용자 승인 후 최종 Markdown을 생성합니다.
-5. 애매하면 덜 꾸미고 더 명확하게 만듭니다. 모든 내용을 카드화하지 않습니다.
+Transform Markdown into purpose-driven, visually structured documents that rival professionally designed presentations. Apply the same design discipline used in the Anthropic PPTX skill — named palettes, layout variety, typography scale, visual QA — without leaving Markdown.
 
-## 입력 규칙
-1. `$ARGUMENTS[0]`가 파일 경로면 파일을 읽어 처리합니다.
-2. `$ARGUMENTS[0]`가 본문 문자열이면 해당 내용을 직접 처리합니다.
-3. `$ARGUMENTS[1]`가 없으면 기본 톤은 `report`로 둡니다.
+## Design Framework (Audit → Map → Commit → Verify)
 
-## 페이지 크기/화면 정책
-- frontmatter `pageWidth`, `pageHeight`는 CSS 길이 값을 사용합니다.
-- 단위 없는 숫자는 `px`로 자동 보정합니다. 예: `1900` -> `1900px`
-- 화면(앱/웹 미리보기)은 `contain` 반응형 스케일을 사용합니다.
-- 저장 HTML/인쇄는 고정 페이지 크기를 유지합니다.
+Before writing a single line of output, work through four phases:
 
-## 출력 순서
-1. `[DOCUMENT PLAN]` 원문 진단, 문서 목적, 독자, 첫 페이지 역할
-2. `[SECTION BREAKDOWN]` 섹션 재배치와 page-break 계획
-3. `[DESIGN DECISIONS]` 자동 삽입 후보, 표/카드/목록/이미지/코드 선택 이유
-4. `[RISK CHECK]` 원문 의미 보존 리스크, 화면비 추천(`landscape`/`portrait`)과 근거
-5. 사용자 승인 확인
-6. 승인 후 `[FINAL OUTPUT]`으로 최종 Markdown 출력
+**Phase 1 — Audit**: Classify the content type.
+- What is the primary content? text-heavy / data-heavy / visual-heavy / mixed
+- Who is the reader? executive / technical / general / student
+- What action should they take after reading?
 
-## 참조 문서
-- 문서 디자인 판단 규칙: `references/document-design-rules.md`
-- PPT형 Markdown 덱 규칙: `references/ppt-like-markdown-rules.md`
-- 빠른 삽입/일반 도구 카탈로그: `references/quick-insert-catalog.md`
-- 화면비 판단 규칙: `references/layout-orientation-rules.md`
-- 검증/복구 규칙: `references/validation-rules.md`
+**Phase 2 — Map**: Assign content to layout archetypes.
+- Cover → `.cover` or `.cover .dark`
+- Key stats/KPIs → `.stats`
+- Argument/message → `.message`
+- Side-by-side → `.compare` or `.two-column`
+- Feature list with icons → `.icon-list`
+- Image-dominant → `.half-bleed`
+- Conclusion/CTA → `.dark`
 
-## 디자인 판단 핵심
-- 보고서: 첫 페이지에 핵심 메시지, 결정 포인트, 근거 요약을 둡니다.
-- 제안서: 문제, 해결 방향, 차별점, 기대 효과, 일정/리스크 순서로 설득 흐름을 만듭니다.
-- 기술문서: 재현 가능성, 정확한 코드, 단계 분리, 실패/주의 조건을 우선합니다.
-- 튜토리얼: 학습 목표, 준비물, 절차, 예제, 체크리스트 순서로 독자의 다음 행동을 분명히 합니다.
-- 발표형 문서: 한 페이지에 하나의 메시지를 두고, 긴 설명은 발표자 노트가 아니라 구조화된 근거로 줄입니다.
+**Phase 3 — Commit**: Choose a cohesive visual identity BEFORE filling content.
+- Pick one palette (see palette table below). If the topic is financial/executive → `midnight`. Energy/startup → `coral`. Nature/wellness → `forest` or `sage`. Technical/minimal → `charcoal`.
+- Pick an `intent:` value that matches the document's purpose.
+- Apply `theme:` + `intent:` in frontmatter. Never leave these blank for a designed output.
 
-상세한 표/카드/목록/page-break 선택 기준은 `references/document-design-rules.md`를 읽고 적용합니다.
-사용자가 “PPT처럼”, “덱”, “발표자료”, “Genspark처럼”, “슬라이드 느낌”을 요구하면 `references/ppt-like-markdown-rules.md`를 반드시 읽고, presentation 모드 규칙을 우선 적용합니다.
+**Phase 4 — Verify**: Run the visual QA checklist before declaring done (see `references/validation-rules.md`).
 
-## 품질 게이트
-- 연속 `page-break`, 문서 말미 `page-break`를 정리합니다.
-- 빈 페이지 생성 요소를 제거합니다.
-- 표/이미지/코드가 밀집된 경우 페이지 분리를 우선 검토합니다.
-- 인코딩 깨짐(UTF-8) 문자를 탐지하고 복구합니다.
-- 페이지/스크립트 정책이 바뀐 경우 저장 HTML 재생성을 안내합니다.
-- 제목 계층이 건너뛰거나 빈 제목이 생기지 않게 합니다.
-- 이미지 alt/caption, 표 caption, 코드블록 언어를 가능한 보강합니다.
-- 출력용 문서는 화면 인터랙션에 의존하지 않게 만듭니다.
-- PPT형 Markdown은 슬라이드마다 `---` + `{: .page-break}`로 분리합니다.
-- PPT형 Markdown은 한 슬라이드에 하나의 메시지, 3~5개 bullet, 짧은 제목을 우선합니다.
+## Execution Rules
 
-## 기본 문법 보존 체크리스트
+1. Classify document purpose first: `report`, `pitch`, `technical`, `tutorial`, `presentation`.
+2. Present the full transformation plan. Do not modify the original at this stage.
+3. The plan must include: change summary, auto-insert candidates, layout decisions, palette recommendation, `intent:` value, aspect ratio.
+4. Get user approval, then emit `[FINAL OUTPUT]`.
+5. When in doubt: fewer decorations, clearer structure.
 
-변환 시 아래 문법을 손상시키지 않습니다.
+## Input Rules
 
-- 체크리스트(`- [ ]`, `- [x]`)
-- 중첩 리스트와 아이템 후속 문단
-- `_ / __ / * / ** / ~~` 인라인 강조
-- 자동 URL 링크와 참조형 링크/이미지
-- 코드펜스(````/~~~`)와 하드 브레이크
+1. If `$ARGUMENTS[0]` is a file path, read and process it.
+2. If `$ARGUMENTS[0]` is body text, process it directly.
+3. If `$ARGUMENTS[1]` is absent, default tone is `report`.
 
-## Export 품질 체크 (추가)
+## Frontmatter Reference
 
-- 상대경로 이미지는 standalone CLI 저장 시 기본적으로 Base64 내장 대상입니다. HTML만 외부로 옮겨도 이미지가 유지되는지 확인합니다.
-- 로컬 이미지 파일이 없거나 읽기 실패하면 변환 품질 안내와 이미지 fallback 영역이 표시되는지 확인합니다.
-- Mermaid가 성공 시 시각화, 실패 시 원문 유지되는지 확인
-- Outline 클릭 이동 및 현재 위치 표시가 동작하는지 확인
-- 코드 블록 헤더 복사 버튼이 동작하는지 확인(standalone 기준)
-- 긴 코드에는 `maxHeight` 속성을 우선 검토하고 섹션 높이는 필요 시에만 제한
+```yaml
+---
+title: Document Title
+theme: midnight          # See palette table below
+intent: pitch            # report | pitch | reference | narrative
+pageWidth: 1120px
+pageHeight: 720px
+toc: false
+---
+```
 
-## 최종 자체 점검
-1. 문서 목적이 첫 페이지 구조와 레이아웃 선택에 반영되었는가?
-2. 표, 카드, 목록, page-break의 선택 이유가 정보 구조에 맞는가?
-3. 첫 페이지 또는 첫 화면에서 핵심 메시지가 보이는가?
-4. 장식이 의미 없이 반복되지 않는가?
-5. 원문 Markdown의 의미, 코드, 표, 링크, 이미지 문법이 보존되었는가?
+### `intent:` Values
+
+| Value | Effect | Best for |
+|-------|--------|----------|
+| `report` | Dense layout, full TOC, compact tables | Business reports, summaries |
+| `pitch` | Large headings, bold callouts, visual templates | Investor decks, proposals |
+| `reference` | Compact, navigable, info-dense | Docs, wikis, technical guides |
+| `narrative` | Generous whitespace, reading flow | Tutorials, essays, onboarding |
+
+## Palette Reference (All 16 Themes)
+
+| Theme | Character | Primary | Best for |
+|-------|-----------|---------|----------|
+| `default` | Blue standard | `#5e6ad2` | General purpose |
+| `report` | Professional blue | `#3a63d6` | Business reports |
+| `slate` | Dark premium | `#8cb4ff` | Dark-mode decks |
+| `paper` | Warm document | `#b26a2f` | Print-style docs |
+| `forest` | Nature green | `#2d8a57` | Sustainability, health |
+| `sunset` | Pink/warm | `#c04878` | Creative, lifestyle |
+| `ocean` | Ocean blue | `#2f74c8` | Tech, data, travel |
+| `mono` | Neutral minimal | `#424242` | Legal, academic |
+| `midnight` | Navy executive | `#1e2761` | Finance, executive |
+| `coral` | Bold coral | `#f96167` | Startup, energy, launch |
+| `terracotta` | Warm earth | `#b85042` | Culture, design, food |
+| `charcoal` | Dark minimal | `#36454f` | Technical, B2B |
+| `teal-trust` | Calm teal | `#028090` | Healthcare, NGO |
+| `berry` | Rich berry | `#6d2e46` | Luxury, fashion |
+| `cherry` | Bold cherry | `#990011` | Sport, urgency |
+| `sage` | Calm sage | `#84b59f` | Wellness, education |
+
+**Palette selection rule (from PPTX skill):** Pick colors that match THIS specific topic. One color must dominate at 60–70% visual weight. Never give all colors equal weight.
+
+## Template Reference (All Templates)
+
+### Existing Templates
+
+| Markdown Class | Template | Best for |
+|---------------|----------|----------|
+| `.cover` | Cover | First slide, title page |
+| `.two-column` / `.cols-N` | Column layout | Side-by-side comparison |
+| `.card` | Card | Highlighted section box |
+| `.spotlight` | Spotlight | Lead image/stat with body |
+| `.stats` / `.stats-list` | Stats | KPI cards: `label \| value \| delta` |
+| `.agenda` | Agenda | Ordered agenda list |
+| `.timeline` | Timeline | Roadmap, event sequence |
+| `.compare` | Compare | Explicit 2-column compare |
+| `.quote-slide` | Quote | Large pull-quote display |
+| `.message` | Message | Single bold key message |
+
+### New Templates (Added in This Session)
+
+| Markdown Class | Template | Syntax | Best for |
+|---------------|----------|--------|----------|
+| `.dark` | Dark Slide | `## Title {: .dark}` | Cover, conclusion, section divider — creates the "sandwich" pattern |
+| `.half-bleed` | Half-Bleed | `## Title {: .half-bleed side="right"}` + image first | Image fills one half, text fills the other |
+| `.icon-list` | Icon List | `## Title {: .icon-list}` + `- 🚀 \| Header \| Description` | Feature list with icon circles |
+
+### Sandwich Structure Pattern (PPTX skill concept)
+
+Dark title slide → light content slides → dark conclusion slide.
+
+```markdown
+# Product Launch {#cover .cover .dark eyebrow="Q2 2026"}
+
+---
+{: .page-break}
+
+## Key Features {#features .two-column}
+...
+
+---
+{: .page-break}
+
+## Get Started Today {: .dark}
+Contact us at hello@company.com
+```
+
+### Half-Bleed Example
+
+```markdown
+## Why It Works {: .half-bleed side="right"}
+
+![product screenshot](./screenshot.png)
+
+The image fills the right half. This text appears on the left with generous padding and vertical centering.
+```
+
+### Icon List Example
+
+```markdown
+## Why Choose Us {: .icon-list}
+
+- 🚀 | Fast Delivery | Ship features in days, not weeks
+- 🔒 | Secure by Default | Zero-trust architecture built in
+- 📊 | Data-Driven | Real-time analytics on every decision
+- 🌍 | Global Scale | 99.99% uptime across 30 regions
+```
+
+## Output Sequence
+
+1. `[DOCUMENT PLAN]` — original diagnosis, document purpose, audience, first-page role
+2. `[PALETTE & INTENT]` — recommended theme + intent + font pairing rationale
+3. `[SECTION BREAKDOWN]` — section reorder and page-break plan, one layout per slide
+4. `[DESIGN DECISIONS]` — why each template was chosen, what visual element each slide gets
+5. `[RISK CHECK]` — meaning preservation risk, aspect ratio recommendation with rationale
+6. User approval
+7. `[FINAL OUTPUT]` — final Markdown
+
+## Design Anti-Patterns to Avoid
+
+These are structurally prevented by the engine, but avoid introducing them in content:
+
+- Never repeat the same layout more than 2 slides in a row
+- Never center-align body paragraphs or list items (only titles)
+- Never leave a slide with only text and no visual element (image, stat, icon, or shape)
+- Never use a decorative `---` border under headings (the engine no longer renders these)
+- Never choose blue just because it's safe — pick the palette that fits the topic
+- Never commit to a palette after writing content — choose it first
+
+## Page Sizing Policy
+
+- `pageWidth` / `pageHeight` accept CSS length values.
+- Unitless numbers are auto-corrected to `px`: e.g. `1900` → `1900px`.
+- Web preview uses `contain` responsive scale.
+- Saved HTML / print uses fixed page size.
+
+## Quality Gates
+
+- No consecutive `page-break` tokens; no trailing `page-break`.
+- No blank pages (section with no meaningful content).
+- Dense tables/images/code → prioritize page separation.
+- UTF-8 encoding — detect and recover garbled characters.
+- Heading hierarchy must not skip levels or have empty headings.
+- Images should have `alt` / `caption`; tables should have `caption`; code blocks should have a language tag.
+
+## Syntax Preservation Checklist
+
+Do not damage these during transformation:
+
+- Task lists (`- [ ]`, `- [x]`)
+- Nested lists and item continuation paragraphs
+- Inline emphasis (`_ / __ / * / ** / ~~`)
+- Auto-links and reference-style links/images
+- Code fences (```` ``` ```` / `~~~`) and hard line breaks
+
+## Export Quality Checklist
+
+- Relative-path images → verify Base64 embedding in standalone CLI output
+- Missing local images → conversion continues, original `src` preserved + fallback region shown
+- Mermaid → render attempt first, fallback to source on failure
+- Outline sidebar click → scroll to section
+- Code block copy button → works in standalone HTML
+- Long code → prefer `maxHeight` attribute over section height restriction
+
+## Self-Check Before Final Output
+
+1. Does the first page communicate the core message within 3 seconds?
+2. Is the chosen palette dominant (one color at 60–70% weight)?
+3. Does every slide have at least one non-text visual element?
+4. Does the layout vary — no same template used 3+ times in a row?
+5. Are the `intent:` and `theme:` set in frontmatter?
+6. Is the sandwich structure applied (dark cover + dark conclusion)?
+7. Is original meaning, code, tables, links, and image syntax fully preserved?
+
+## Reference Documents
+
+- Design decision rules: `references/document-design-rules.md`
+- PPT-style Markdown deck rules: `references/ppt-like-markdown-rules.md`
+- Quick insert catalog: `references/quick-insert-catalog.md`
+- Layout orientation rules: `references/layout-orientation-rules.md`
+- Validation and QA rules: `references/validation-rules.md`
