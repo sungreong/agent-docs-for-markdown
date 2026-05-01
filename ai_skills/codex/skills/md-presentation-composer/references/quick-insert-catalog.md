@@ -59,16 +59,18 @@ Choosing the palette after filling content leads to mismatch. Pick for the topic
 
 ### Template Selection by Item Count
 
-Before picking a layout, count the child items first:
+Before picking a layout, count the child items first. The canvas is **1120×720px** — content is vertically centered, so sparse slides look intentionally spacious only if content density is high enough.
 
-| Items | Best template | Avoid |
-|-------|--------------|-------|
-| 1 | `.message` or `.spotlight` | — |
-| 2 | `.compare` or `.two-column` | — |
-| **3** | **`.three-column`** (symmetric) or `.timeline` (if sequential) or `.icon-list` (if visual) | **`.compare`** — leaves one card orphaned |
-| 4+ | `.icon-list`, `.stats`, or `.agenda` | `.compare`, `.three-column` |
-| Sequential (Level 1→2→3, Step A→B) | `.timeline` regardless of count | `.compare` |
-| With icons/emoji | `.icon-list` | — |
+| Items | Best template | Density check | Avoid |
+|-------|--------------|--------------|-------|
+| 1 | `.message` or `.spotlight` | Add 2–3 body sentences; heading alone = sparse | — |
+| 2 | `.compare` or `.two-column` | OK if each block has 3–5 lines | — |
+| **3** | **`.three-column`** (symmetric) or `.timeline` (sequential) or `.icon-list` (visual) | 3 icon-list items fills ~half the slide; consider adding a 4th or an intro paragraph | **`.compare`** — leaves one card orphaned |
+| 4–5 | `.icon-list`, `.stats`, `.agenda` | Optimal density range for most templates | `.compare`, `.three-column` |
+| 6+ | `.agenda`, `.stats`, `.icon-list` | May need a page-break if content overflows | `.timeline` (overflows at 6+) |
+| Sequential (Level 1→2→3, Step A→B) | `.timeline` regardless of count | 3–5 stages is optimal; 2 stages is thin | `.compare` |
+| With icons/emoji | `.icon-list` | 4–5 items for full-slide feel | — |
+| Thin content (1 insight, 1 image) | `.half-bleed` or `.dark` | Both fill the full canvas regardless of text density | — |
 
 ### Existing Templates
 

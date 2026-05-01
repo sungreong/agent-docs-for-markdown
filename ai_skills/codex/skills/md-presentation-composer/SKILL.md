@@ -13,26 +13,33 @@ Transform Markdown into purpose-driven, visually structured documents that rival
 
 Before writing a single line of output, work through four phases:
 
-**Phase 1 — Audit**: Classify the content type.
+**Phase 1 — Audit**: Classify content AND assess density.
 - What is the primary content? text-heavy / data-heavy / visual-heavy / mixed
 - Who is the reader? executive / technical / general / student
 - What action should they take after reading?
+- **For each section: count the items.** A slide is 1120×720px with ~656px usable height. Content is vertically centered. A section with only 2–3 items or 1 short paragraph will feel sparse — decide whether to merge it with adjacent content, add supporting body text, or use a visually heavier template (`.half-bleed` always fills the canvas). See `references/environment-guide.md` for per-template height footprints.
 
-**Phase 2 — Map**: Assign content to layout archetypes.
+**Phase 2 — Map**: Assign content to layout archetypes, accounting for item count.
 - Cover → `.cover` or `.cover .dark`
-- Key stats/KPIs → `.stats`
-- Argument/message → `.message`
-- Side-by-side → `.compare` or `.two-column`
-- Feature list with icons → `.icon-list`
-- Image-dominant → `.half-bleed`
-- Conclusion/CTA → `.dark`
+- Key stats/KPIs → `.stats` (need 4–6 for a full slide; fewer → combine with adjacent content)
+- Single argument/message → `.message` (always add 2–3 supporting sentences — heading alone is too sparse)
+- Side-by-side exactly 2 → `.compare` or `.two-column`
+- Exactly 3 symmetric items → `.three-column` (never `.compare` for 3 items)
+- Feature list with icons → `.icon-list` (4–5 items optimal; 3 items fills only half the slide)
+- Sequential stages → `.timeline` (3–5 stages; more than 5 may overflow)
+- Image-dominant → `.half-bleed` (always full-canvas; use when content is otherwise thin)
+- Conclusion/CTA → `.dark` (always full-canvas)
+- Consecutive slides should alternate visual weight — see pairing table in `references/environment-guide.md`
 
 **Phase 3 — Commit**: Choose a cohesive visual identity BEFORE filling content.
 - Pick one palette (see palette table below). If the topic is financial/executive → `midnight`. Energy/startup → `coral`. Nature/wellness → `forest` or `sage`. Technical/minimal → `charcoal`.
+- **Density check against theme**: lighter themes (`default`, `report`, `sage`, `paper`) need denser content to anchor the slide. Darker themes (`midnight`, `charcoal`, `berry`) carry sparser slides better.
 - Pick an `intent:` value that matches the document's purpose.
 - Apply `theme:` + `intent:` in frontmatter. Never leave these blank for a designed output.
 
 **Phase 4 — Verify**: Run the visual QA checklist before declaring done (see `references/validation-rules.md`).
+- For each slide: would a reader see this and think "this slide is full"? If not, add content or switch to a denser template.
+- Check template pairing: no same template used 3+ slides in a row; alternate heavy and light templates.
 
 ## Execution Rules
 
@@ -227,6 +234,7 @@ Do not damage these during transformation:
 
 ## Reference Documents
 
+- **Rendering environment guide** (read first): `references/environment-guide.md` — canvas dimensions, per-template height footprints, density rules, template pairing, what the renderer does NOT support
 - Design decision rules: `references/document-design-rules.md`
 - PPT-style Markdown deck rules: `references/ppt-like-markdown-rules.md`
 - Quick insert catalog: `references/quick-insert-catalog.md`

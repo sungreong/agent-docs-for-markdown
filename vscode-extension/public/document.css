@@ -262,7 +262,7 @@
 
 .doc-page {
   border: 1px solid var(--doc-line-soft);
-  border-radius: 24px;
+  border-radius: 16px;
   background: var(--doc-bg-soft);
   padding: 14px;
   display: grid;
@@ -286,7 +286,7 @@
 
 .doc-page-inner {
   background: var(--doc-bg);
-  border-radius: 18px;
+  border-radius: 12px;
   border: 1px solid var(--doc-line-soft);
   padding: 14px;
   display: grid;
@@ -294,6 +294,7 @@
 }
 
 .document-shell.is-paginated .doc-page-inner {
+  align-content: center;
   min-height: 0;
   overflow: auto;
   border: 0;
@@ -350,7 +351,7 @@
 .document-intro,
 .md-toc,
 .md-section {
-  border-radius: 22px;
+  border-radius: 10px;
 }
 
 .document-intro,
@@ -550,7 +551,7 @@
 .md-callout {
   padding: 16px 18px;
   border: 1px solid var(--doc-line-soft);
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .md-callout.type-info {
@@ -597,7 +598,7 @@
 
 .md-code {
   border: 1px solid var(--doc-line-soft);
-  border-radius: 18px;
+  border-radius: 8px;
   overflow: hidden;
   min-width: 0;
   color: var(--doc-text);
@@ -695,7 +696,7 @@
   width: min(100%, var(--figure-width, 100%));
   margin-left: auto;
   margin-right: auto;
-  border-radius: 20px;
+  border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--doc-line-soft);
 }
@@ -751,7 +752,7 @@
 
 .md-table-shell {
   border: 1px solid var(--doc-line-soft);
-  border-radius: 18px;
+  border-radius: 8px;
   overflow: auto;
   max-width: 100%;
 }
@@ -945,7 +946,7 @@
 .section-card {
   padding: 22px;
   border: 1px solid var(--doc-line-soft);
-  border-radius: 18px;
+  border-radius: 8px;
   background: var(--doc-bg-soft);
 }
 
@@ -955,7 +956,7 @@
 
 .template-spotlight .spotlight-lead > * {
   background: var(--doc-bg-soft);
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 16px 18px;
 }
 
@@ -969,7 +970,7 @@
 .stat-card {
   padding: 16px;
   border: 1px solid var(--doc-line-soft);
-  border-radius: 18px;
+  border-radius: 8px;
   background: var(--doc-bg-soft);
   display: grid;
   gap: 6px;
@@ -1054,6 +1055,26 @@
   padding-bottom: 1.8rem;
 }
 
+/* Stats cards: larger values and taller cards in slide mode */
+.document-shell.is-paginated .stats-grid {
+  gap: 20px;
+}
+.document-shell.is-paginated .stat-card {
+  border-radius: 8px;
+  padding: 24px 20px;
+  min-height: 110px;
+  justify-content: center;
+}
+.document-shell.is-paginated .stat-value {
+  font-size: 2.2rem;
+}
+.document-shell.is-paginated .stat-label {
+  font-size: 0.85rem;
+}
+.document-shell.is-paginated .stat-delta {
+  font-size: 0.9rem;
+}
+
 /* Standardize content block vertical gap */
 .document-shell.is-paginated .md-paragraph,
 .document-shell.is-paginated .md-list,
@@ -1068,7 +1089,21 @@
 
 .template-dark-slide {
   background: var(--doc-accent) !important;
-  border-radius: 18px;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Dark slide pages: disable centering and let dark section fill the full slide */
+.document-shell.is-paginated .doc-page-inner:has(> .template-dark-slide) {
+  align-content: stretch;
+  overflow: hidden;
+}
+.document-shell.is-paginated .template-dark-slide {
+  align-self: stretch;
+  padding: 3rem 3.5rem !important;
 }
 
 .template-dark-slide .section-heading {
@@ -1184,12 +1219,12 @@
   }
 
   .doc-page {
-    border-radius: 18px;
+    border-radius: 12px;
     padding: 10px;
   }
 
   .doc-page-inner {
-    border-radius: 14px;
+    border-radius: 8px;
     padding: 10px;
   }
 
