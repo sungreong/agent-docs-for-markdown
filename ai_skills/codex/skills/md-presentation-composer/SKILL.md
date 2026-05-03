@@ -1,6 +1,6 @@
 ---
 name: md-presentation-composer
-description: Reads existing Markdown and restructures it into a well-designed report, pitch, technical doc, tutorial, or presentation. Applies PPTX-skill-grade design thinking: audit → map → commit → verify. Proposes structure, palette, typography, and layout before making any changes.
+description: Reads existing Markdown and restructures it into a well-designed report, pitch, technical doc, tutorial, or presentation. Applies PPTX-skill-grade design thinking and a curated 70-brand DESIGN.md insight library to choose visual archetypes, palette, typography, slide density, and layout before making changes.
 ---
 
 # MD Presentation Composer
@@ -8,6 +8,8 @@ description: Reads existing Markdown and restructures it into a well-designed re
 ## Purpose
 
 Transform Markdown into purpose-driven, visually structured documents that rival professionally designed presentations. Apply the same design discipline used in the Anthropic PPTX skill — named palettes, layout variety, typography scale, visual QA — without leaving Markdown.
+
+This skill also includes a curated DESIGN.md knowledge base from 70 public brand-inspired design systems. Use it to decide the visual direction, not to blindly copy brands. Start from the synthesized insight files, then open raw brand DESIGN.md files only when a specific brand or archetype is relevant.
 
 ## Design Framework (Audit → Map → Commit → Verify)
 
@@ -17,6 +19,7 @@ Before writing a single line of output, work through four phases:
 - What is the primary content? text-heavy / data-heavy / visual-heavy / mixed
 - Who is the reader? executive / technical / general / student
 - What action should they take after reading?
+- Is a brand or visual archetype requested? If yes, use `references/design-md/manifest.json` and the synthesis files before writing content.
 - **For each section: count the items.** A slide is 1120×720px with ~656px usable height. Content is vertically centered. A section with only 2–3 items or 1 short paragraph will feel sparse — decide whether to merge it with adjacent content, add supporting body text, or use a visually heavier template (`.half-bleed` always fills the canvas). See `references/environment-guide.md` for per-template height footprints.
 
 **Phase 2 — Map**: Assign content to layout archetypes, accounting for item count.
@@ -32,10 +35,12 @@ Before writing a single line of output, work through four phases:
 - Consecutive slides should alternate visual weight — see pairing table in `references/environment-guide.md`
 
 **Phase 3 — Commit**: Choose a cohesive visual identity BEFORE filling content.
+- Pick a design direction first: either a named `design:` brand from the DESIGN.md library, a synthesized archetype, or one built-in palette.
+- For brand/archetype decisions, read `references/design-md/design-md-insights.md`, then `design-md-archetypes.md`, then `design-md-decision-framework.md`.
 - Pick one palette (see palette table below). If the topic is financial/executive → `midnight`. Energy/startup → `coral`. Nature/wellness → `forest` or `sage`. Technical/minimal → `charcoal`.
 - **Density check against theme**: lighter themes (`default`, `report`, `sage`, `paper`) need denser content to anchor the slide. Darker themes (`midnight`, `charcoal`, `berry`) carry sparser slides better.
 - Pick an `intent:` value that matches the document's purpose.
-- Apply `theme:` + `intent:` in frontmatter. Never leave these blank for a designed output.
+- Apply `theme:` + `intent:` in frontmatter. If using a specific brand preset, also apply `design:`. Never leave these blank for a designed output.
 
 **Phase 4 — Verify**: Run the visual QA checklist before declaring done (see `references/validation-rules.md`).
 - For each slide: would a reader see this and think "this slide is full"? If not, add content or switch to a denser template.
@@ -46,8 +51,9 @@ Before writing a single line of output, work through four phases:
 1. Classify document purpose first: `report`, `pitch`, `technical`, `tutorial`, `presentation`.
 2. Present the full transformation plan. Do not modify the original at this stage.
 3. The plan must include: change summary, auto-insert candidates, layout decisions, palette recommendation, `intent:` value, aspect ratio.
-4. Get user approval, then emit `[FINAL OUTPUT]`.
-5. When in doubt: fewer decorations, clearer structure.
+4. If a brand/archetype is used, include the DESIGN.md insight source and how it maps to PPT Markdown templates.
+5. Get user approval, then emit `[FINAL OUTPUT]`.
+6. When in doubt: fewer decorations, clearer structure.
 
 ## Input Rules
 
@@ -61,12 +67,15 @@ Before writing a single line of output, work through four phases:
 ---
 title: Document Title
 theme: midnight          # See palette table below
+design: stripe           # Optional: one of references/design-md/manifest.json slugs
 intent: pitch            # report | pitch | reference | narrative
 pageWidth: 1120px
 pageHeight: 720px
 toc: false
 ---
 ```
+
+Use `design:` only when a specific brand direction is requested or clearly useful. If using an archetype without a specific brand, omit `design:` and use the recommended `theme:`.
 
 ### `intent:` Values
 
@@ -99,6 +108,21 @@ toc: false
 | `sage` | Calm sage | `#84b59f` | Wellness, education |
 
 **Palette selection rule (from PPTX skill):** Pick colors that match THIS specific topic. One color must dominate at 60–70% visual weight. Never give all colors equal weight.
+
+## DESIGN.md Insight Library
+
+Use these references progressively:
+
+| Reference | Use when |
+|-----------|----------|
+| `references/design-md/design-md-insights.md` | Need cross-brand principles and the shortest synthesis |
+| `references/design-md/design-md-archetypes.md` | Need to choose a visual archetype for the deck |
+| `references/design-md/design-md-decision-framework.md` | Need to map audience/content to a design direction |
+| `references/design-md/design-md-to-ppt-rules.md` | Need to translate brand rules into Markdown Pattern Studio templates |
+| `references/design-md/manifest.json` | Need exact brand slugs, tokens, categories, and recommended theme/intent |
+| `references/design-md/raw/<slug>/DESIGN.md` | Need detailed rules for one specific brand only |
+
+Do not load all 70 raw DESIGN.md files into context. Use the synthesis and manifest first, then open one or two raw files only when needed.
 
 ## Template Reference (All Templates)
 
@@ -170,11 +194,12 @@ The image fills the right half. This text appears on the left with generous padd
 
 1. `[DOCUMENT PLAN]` — original diagnosis, document purpose, audience, first-page role
 2. `[PALETTE & INTENT]` — recommended theme + intent + font pairing rationale
-3. `[SECTION BREAKDOWN]` — section reorder and page-break plan, one layout per slide
-4. `[DESIGN DECISIONS]` — why each template was chosen, what visual element each slide gets
-5. `[RISK CHECK]` — meaning preservation risk, aspect ratio recommendation with rationale
-6. User approval
-7. `[FINAL OUTPUT]` — final Markdown
+3. `[DESIGN DIRECTION]` — selected DESIGN.md brand/archetype, why it fits, and what NOT to copy
+4. `[SECTION BREAKDOWN]` — section reorder and page-break plan, one layout per slide
+5. `[DESIGN DECISIONS]` — why each template was chosen, what visual element each slide gets
+6. `[RISK CHECK]` — meaning preservation risk, aspect ratio recommendation with rationale
+7. User approval
+8. `[FINAL OUTPUT]` — final Markdown
 
 ## Design Anti-Patterns to Avoid
 
@@ -229,8 +254,9 @@ Do not damage these during transformation:
 3. Does every slide have at least one non-text visual element?
 4. Does the layout vary — no same template used 3+ times in a row?
 5. Are the `intent:` and `theme:` set in frontmatter?
-6. Is the sandwich structure applied (dark cover + dark conclusion)?
-7. Is original meaning, code, tables, links, and image syntax fully preserved?
+6. If `design:` is set, does it match a valid manifest slug and an appropriate archetype?
+7. Is the sandwich structure applied (dark cover + dark conclusion)?
+8. Is original meaning, code, tables, links, and image syntax fully preserved?
 
 ## Reference Documents
 
@@ -240,3 +266,4 @@ Do not damage these during transformation:
 - Quick insert catalog: `references/quick-insert-catalog.md`
 - Layout orientation rules: `references/layout-orientation-rules.md`
 - Validation and QA rules: `references/validation-rules.md`
+- DESIGN.md insight library: `references/design-md/design-md-insights.md`, `references/design-md/design-md-archetypes.md`, `references/design-md/design-md-decision-framework.md`, `references/design-md/design-md-to-ppt-rules.md`, `references/design-md/manifest.json`

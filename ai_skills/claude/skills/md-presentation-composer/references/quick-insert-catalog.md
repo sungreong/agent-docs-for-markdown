@@ -11,6 +11,7 @@ Reference catalog for `md-presentation-composer`. Used during proposal and trans
 ```yaml
 ---
 theme: midnight       # Pick from palette table below
+design: stripe        # Optional: pick a valid manifest slug when using a brand direction
 intent: pitch         # report | pitch | reference | narrative
 ---
 ```
@@ -29,6 +30,47 @@ Choosing the palette after filling content leads to mismatch. Pick for the topic
 | Tutorial / onboarding | `theme: ocean` + `intent: narrative` |
 | Wellness / education | `theme: sage` + `intent: narrative` |
 | Startup launch | `theme: coral` + `intent: pitch` |
+| Specific brand-inspired deck | `design: <slug>` + manifest-recommended `theme` / `intent` |
+
+---
+
+## DESIGN.md Brand Insight Snippets
+
+Use these only after selecting a valid slug from `references/design-md/manifest.json`.
+
+### Brand-Inspired Pitch
+
+```yaml
+---
+title: "Product Narrative"
+theme: midnight
+design: stripe
+intent: pitch
+pageWidth: 1120px
+pageHeight: 720px
+---
+```
+
+### Archetype Without Specific Brand
+
+```yaml
+---
+title: "Technical Strategy"
+theme: charcoal
+intent: reference
+pageWidth: 1120px
+pageHeight: 720px
+---
+```
+
+### Decision Rule
+
+| User asks for... | Read first | Then use |
+|------------------|------------|----------|
+| "like Stripe/Vercel/Airbnb" | `manifest.json` brand item | raw `<slug>/DESIGN.md` only for details |
+| "more premium/editorial/data-rich" | `design-md-archetypes.md` | matching `theme:` and templates |
+| "choose a style for this deck" | `design-md-decision-framework.md` | one archetype, not multiple |
+| "make this PPT-like" | `design-md-to-ppt-rules.md` | template and density mapping |
 
 ---
 

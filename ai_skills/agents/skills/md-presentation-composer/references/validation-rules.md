@@ -72,6 +72,8 @@ Run this checklist on every slide deck before declaring done. Assume there are p
 **Color & Contrast**
 - [ ] One palette color dominates at 60–70% visual weight
 - [ ] `theme:` and `intent:` are both set in frontmatter
+- [ ] If `design:` is set, the slug exists in `references/design-md/manifest.json`
+- [ ] The selected brand/archetype is visible through structure, density, typography, and accent role, not through color alone
 - [ ] No text-on-background with insufficient contrast (especially in `.dark` slides)
 - [ ] Accent color (`--doc-accent`) is not overused — used only for emphasis
 
@@ -90,6 +92,15 @@ Run this checklist on every slide deck before declaring done. Assume there are p
 - [ ] First slide communicates the core message within 3 seconds
 - [ ] No placeholder text remaining in the output
 - [ ] No slide is purely text — at minimum a `.stats` or `.icon-list` breaks it up
+- [ ] Brand-inspired decks do not invent facts, metrics, logos, screenshots, or proprietary assets not present in the source
+
+## DESIGN.md Library Checks
+
+- Use `references/design-md/design-md-insights.md` before raw brand files.
+- Use `references/design-md/design-md-archetypes.md` when no specific brand is requested.
+- Use only one primary brand/archetype per deck unless the user explicitly asks for a comparison.
+- Treat `references/design-md/raw/<slug>/DESIGN.md` as design guidance, not as permission to copy protected assets or logos.
+- If a brand uses custom fonts, map them to available system fallbacks and preserve the design intent through hierarchy and spacing.
 
 ## 기본 Markdown 호환 체크 (추가)
 

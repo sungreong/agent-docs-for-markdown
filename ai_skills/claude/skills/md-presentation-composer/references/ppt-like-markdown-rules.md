@@ -9,6 +9,8 @@
 - 모든 슬라이드는 제목을 갖고, `---` 다음 줄의 `{: .page-break}`로 끝냅니다.
 - 기본 화면비는 `landscape`를 추천합니다. 표/코드가 많으면 `pageWidth: 1120px`, `pageHeight: 720px`를 유지합니다.
 - 같은 슬라이드 패턴을 3회 이상 연속 사용하지 않습니다.
+- 브랜드 방향이 필요하면 `references/design-md`의 통합 인사이트를 먼저 보고, 특정 브랜드 원문은 필요한 1~2개만 엽니다.
+- DESIGN.md의 색/타입/컴포넌트 규칙은 PPT 제약에 맞게 번역합니다. 외부 폰트, 애니메이션, hover, 비디오에 의존하지 않습니다.
 
 ## Frontmatter 기본값
 
@@ -16,6 +18,7 @@
 ---
 title: "Deck Title"
 theme: "presentation"
+design: "vercel" # optional; valid manifest slug only
 pageWidth: 1120px
 pageHeight: 720px
 ---
@@ -59,10 +62,11 @@ pageHeight: 720px
 2. 각 topic에서 한 문장 핵심 메시지를 뽑습니다.
 3. topic 하나를 1~2장으로 제한합니다.
 4. 슬라이드별 패턴을 고릅니다: message, compare, timeline, stats, data, quote, columns.
-5. 긴 문단은 3~5개 bullet로 줄입니다.
-6. 표가 크면 핵심 행/열만 남기고 나머지는 부록 또는 별도 슬라이드로 분리합니다.
-7. 각 슬라이드 뒤에 page-break를 둡니다.
-8. 마지막에 연속 패턴, bullet 길이, 제목 누락, page-break 누락을 점검합니다.
+5. 브랜드/archetype이 있으면 색상 역할, 타입 밀도, 이미지 전략, 카드 스타일을 슬라이드별로 지정합니다.
+6. 긴 문단은 3~5개 bullet로 줄입니다.
+7. 표가 크면 핵심 행/열만 남기고 나머지는 부록 또는 별도 슬라이드로 분리합니다.
+8. 각 슬라이드 뒤에 page-break를 둡니다.
+9. 마지막에 연속 패턴, bullet 길이, 제목 누락, page-break 누락, brand accent 과사용을 점검합니다.
 
 ## 템플릿 예시
 
@@ -133,6 +137,7 @@ pageHeight: 720px
 
 - 한 슬라이드에 표, 긴 문단, 리스트를 모두 넣지 않습니다.
 - 모든 슬라이드를 카드형으로 만들지 않습니다.
+- 브랜드 색을 모든 요소에 반복하지 않습니다. 색은 의미 역할이 있을 때만 씁니다.
 - `###` 이하 heading을 남발하지 않습니다. 슬라이드 안의 계층은 bullet과 bold로 처리합니다.
 - 원문에 없는 수치, 결론, 사례를 만들어 넣지 않습니다.
 - 의미 없는 “~입니다”, “~합니다” bullet 반복을 줄이고 동사형 행동 또는 명사형 핵심으로 정리합니다.
