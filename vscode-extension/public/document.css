@@ -906,6 +906,27 @@
   color: var(--doc-inverse-text);
 }
 
+.template-cover.section-dark a,
+.template-dark-slide a {
+  color: color-mix(in srgb, var(--doc-inverse-text) 90%, #b8d6ff);
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 0.02em 0.24em;
+  font-weight: 750;
+  text-decoration-color: rgba(255, 255, 255, 0.58);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.17em;
+  overflow-wrap: anywhere;
+}
+
+.template-cover.section-dark a:hover,
+.template-dark-slide a:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--doc-inverse-text);
+}
+
 .cover-body {
   display: grid;
   gap: 14px;
