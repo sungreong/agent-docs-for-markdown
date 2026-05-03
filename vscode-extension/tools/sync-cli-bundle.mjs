@@ -16,6 +16,7 @@ const filePairs = [
   ['public/core/quality.js', 'public/core/quality.js'],
   ['public/core/registry.js', 'public/core/registry.js'],
   ['public/core/snippets.js', 'public/core/snippets.js'],
+  ['public/core/brand-designs.js', 'public/core/brand-designs.js'],
   ['public/document.css', 'public/document.css'],
   // NOTE: public/template-builder-vscode.html is VSCode-dedicated; do NOT sync from repo root
 ];

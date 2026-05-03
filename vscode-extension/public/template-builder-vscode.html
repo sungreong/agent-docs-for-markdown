@@ -1259,8 +1259,8 @@ function buildSlideGroupMd(item) {
 function buildMd() {
   const theme = document.getElementById('docThemeSelect')?.value || 'report';
   const frontmatter = theme === 'presentation'
-    ? `---\ntitle: "Presentation Template"\ntheme: "presentation"\n---\n\n`
-    : `---\ntitle: "Document Template"\ntheme: "report"\n---\n\n`;
+    ? `---\ntitle: "Presentation Template"\ntheme: "midnight"\nintent: "pitch"\n---\n\n`
+    : `---\ntitle: "Document Template"\ntheme: "report"\nintent: "report"\n---\n\n`;
 
   const bodyParts = canvasItems.map((item, idx) => {
     if (item.isSlideGroup) {
