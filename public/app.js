@@ -3,9 +3,11 @@ import { TemplateRegistry } from '/core/registry.js';
 import { buildStandaloneHtmlDocument } from '/core/export-standalone.js';
 import { SNIPPETS } from '/core/snippets.js';
 import { analyzeMarkdownQuality } from '/core/quality.js';
+import { BRAND_DESIGN_LIST, buildBrandDesignStyle, getBrandDesign, normalizeBrandDesignSlug } from '/core/brand-designs.js';
 
 const STORAGE_KEY_MD = 'markdown-pattern-studio:markdown';
 const STORAGE_KEY_THEME = 'markdown-pattern-studio:theme';
+const STORAGE_KEY_DESIGN = 'markdown-pattern-studio:design';
 const STORAGE_KEY_SOURCE_BASE = 'markdown-pattern-studio:source-base';
 
 const registry = new TemplateRegistry();
@@ -15,6 +17,7 @@ const dom = {
   statusText: document.getElementById('statusText'),
   editorModePill: document.getElementById('editorModePill'),
   themeSelect: document.getElementById('themeSelect'),
+  designSelect: document.getElementById('designSelect'),
   loadSampleBtn: document.getElementById('loadSampleBtn'),
   openMdBtn: document.getElementById('openMdBtn'),
   openMdInput: document.getElementById('openMdInput'),
@@ -50,6 +53,7 @@ const state = {
   renderedHtml: '',
   selectedSectionId: '',
   themeOverride: localStorage.getItem(STORAGE_KEY_THEME) || 'auto',
+  designOverride: localStorage.getItem(STORAGE_KEY_DESIGN) || 'auto',
   sourceBaseDir: localStorage.getItem(STORAGE_KEY_SOURCE_BASE) || '',
   renderTimer: null,
   statusTimer: null,
@@ -68,6 +72,14 @@ const THEMES = [
   { value: 'sunset', label: 'sunset' },
   { value: 'ocean', label: 'ocean' },
   { value: 'mono', label: 'mono' },
+  { value: 'midnight', label: 'midnight' },
+  { value: 'coral', label: 'coral' },
+  { value: 'terracotta', label: 'terracotta' },
+  { value: 'charcoal', label: 'charcoal' },
+  { value: 'teal-trust', label: 'teal-trust' },
+  { value: 'berry', label: 'berry' },
+  { value: 'cherry', label: 'cherry' },
+  { value: 'sage', label: 'sage' },
 ];
 
 const PATTERN_GUIDE = [
@@ -127,6 +139,7 @@ boot();
 
 async function boot() {
   populateThemeSelect();
+  populateDesignSelect();
   renderSnippetGrid();
   renderPatternGuide();
   bindEvents();
@@ -138,6 +151,30 @@ async function boot() {
 function populateThemeSelect() {
   dom.themeSelect.innerHTML = THEMES.map((theme) => `<option value="${theme.value}">${theme.label}</option>`).join('');
   dom.themeSelect.value = THEMES.some((theme) => theme.value === state.themeOverride) ? state.themeOverride : 'auto';
+}
+
+function populateDesignSelect() {
+  if (!dom.designSelect) return;
+  const grouped = BRAND_DESIGN_LIST.reduce((acc, item) => {
+    const key = item.category || 'Other';
+    (acc[key] = acc[key] || []).push(item);
+    return acc;
+  }, {});
+  const groups = Object.keys(grouped)
+    .sort()
+    .map((category) => `
+      <optgroup label="${escapeHtml(category)}">
+        ${grouped[category]
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((item) => `<option value="${escapeHtml(item.slug)}">${escapeHtml(item.name)}</option>`)
+          .join('')}
+      </optgroup>
+    `)
+    .join('');
+  dom.designSelect.innerHTML = `<option value="auto">front matter 따르기</option><option value="">브랜드 없음</option>${groups}`;
+  const saved = normalizeBrandDesignSlug(state.designOverride);
+  dom.designSelect.value = state.designOverride === '' || saved ? state.designOverride : 'auto';
 }
 
 function renderSnippetGrid() {
@@ -160,6 +197,12 @@ function bindEvents() {
   dom.themeSelect.addEventListener('change', () => {
     state.themeOverride = dom.themeSelect.value;
     localStorage.setItem(STORAGE_KEY_THEME, state.themeOverride);
+    render();
+  });
+
+  dom.designSelect?.addEventListener('change', () => {
+    state.designOverride = dom.designSelect.value;
+    localStorage.setItem(STORAGE_KEY_DESIGN, state.designOverride);
     render();
   });
 
@@ -641,9 +684,17 @@ function buildRenderBundle(source) {
   if (hasRelativeImage && !sourceBaseDir) {
     console.warn('[relative-image-without-base] source base directory unavailable; keeping original relative src');
   }
-  const theme = dom.themeSelect.value === 'auto' ? model.meta.theme || 'report' : dom.themeSelect.value;
+  const design =
+    dom.designSelect?.value === 'auto'
+      ? model.meta.design || model.meta.designMd || ''
+      : dom.designSelect?.value || '';
+  const brandDesignForDefaults = getBrandDesign(design);
+  const theme = dom.themeSelect.value === 'auto' ? model.meta.theme || brandDesignForDefaults?.theme || 'report' : dom.themeSelect.value;
+  const intent = model.meta.intent || brandDesignForDefaults?.intent || '';
   const options = {
     theme,
+    design,
+    intent,
     toc: Boolean(model.meta.toc),
     tocDepth: Number(model.meta.tocDepth || 3),
     mode: model.meta.mode || 'web',
@@ -703,13 +754,17 @@ function buildRenderBundle(source) {
       `,
     )
     .join('');
-  const styleAttr = `--page-width:${escapeHtml(width)};--page-height:${escapeHtml(height)};`;
+  const brandDesign = getBrandDesign(options.design);
+  const designClass = brandDesign?.className ? ` design-${escapeHtml(brandDesign.className)}` : '';
+  const intentClass = options.intent ? ` intent-${escapeHtml(options.intent)}` : '';
+  const designStyle = brandDesign ? buildBrandDesignStyle(brandDesign) : '';
+  const styleAttr = `${designStyle}--page-width:${escapeHtml(width)};--page-height:${escapeHtml(height)};`;
 
   return {
     model,
     options,
     html: `
-      <div class="studio-document theme-${escapeHtml(options.theme)} mode-${escapeHtml(options.mode)}" style="${styleAttr}">
+      <div class="studio-document theme-${escapeHtml(options.theme)} mode-${escapeHtml(options.mode)}${intentClass}${designClass}" style="${escapeHtml(styleAttr)}">
         <div class="document-shell is-paginated">
           ${pageHtml}
         </div>

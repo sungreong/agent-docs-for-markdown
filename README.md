@@ -26,6 +26,7 @@ http://localhost:3188
 - 페이지 분리(`{: .page-break}`) 기반 Slides 모드
 - CLI 변환(`npm run md2html -- ...`)
 - **16종 네임드 팔레트** — 각 테마에 컬러 + 폰트 페어링 내장
+- **70개 DESIGN.md 인사이트 라이브러리** — 회사별 디자인 문서를 수집/분석해 PPT형 Markdown의 디자인 방향으로 활용
 - **`intent:` 프론트매터** — `pitch / report / reference / narrative` 문서 목적 선언
 - Mermaid 렌더링 지원
 - standalone HTML의 로컬 이미지 자동 Base64 내장 및 누락 이미지 fallback
@@ -61,6 +62,7 @@ http://localhost:3188
 ---
 title: 2026년 3월 운영 보고서
 theme: midnight        # 16종 팔레트 중 선택
+design: stripe         # 선택: 수집된 DESIGN.md 브랜드 slug
 intent: pitch          # report | pitch | reference | narrative
 mode: web
 toc: true
@@ -184,12 +186,16 @@ npm run md2html -- test/notes.md
 
 # 출력 경로/테마 지정
 npm run md2html -- test/notes.md --out test/notes.cli.html --theme report --standalone
+
+# DESIGN.md 브랜드 방향 적용
+npm run md2html -- test/notes.md --out test/notes.vercel.html --design vercel --intent pitch --standalone
 ```
 
 옵션:
 
 - `--out`, `-o`: 출력 HTML 경로
 - `--theme`: 팔레트 지정 (아래 16종 참고)
+- `--design`: DESIGN.md 브랜드 preset 지정 (`vercel`, `stripe`, `airbnb` 등)
 - `--intent`: `report | pitch | reference | narrative`
 - `--mode`: 렌더 모드 (`web` 등)
 - `--standalone` / `--no-standalone`: standalone HTML 셸 포함 여부
@@ -374,6 +380,19 @@ cd ai_skills && bash sync.sh
 | `ppt-like-markdown-rules.md` | 슬라이드형 Markdown 덱 규칙 |
 | `layout-orientation-rules.md` | 화면비 판단 규칙 |
 | `validation-rules.md` | 검증 및 시각적 QA 체크리스트 |
+| `design-md/design-md-insights.md` | 70개 DESIGN.md 통합 인사이트 |
+| `design-md/design-md-archetypes.md` | 브랜드별 디자인 archetype 선택 가이드 |
+| `design-md/design-md-decision-framework.md` | 문서 목적에 따른 디자인 방향 결정 프레임워크 |
+| `design-md/design-md-to-ppt-rules.md` | DESIGN.md를 PPT형 Markdown으로 번역하는 규칙 |
+| `design-md/manifest.json` | 70개 브랜드 slug, 토큰, 추천 theme/intent 인덱스 |
+
+DESIGN.md 수집/분석 재생성:
+
+```bash
+npm run design:update
+```
+
+수집 원본은 `ai_skills/claude/skills/md-presentation-composer/references/design-md/raw/`에 저장하고, `ai_skills/sync.sh`로 `agents`/`codex`에 동기화합니다.
 
 스킬 동작 프레임워크 (Audit → Map → Commit → Verify):
 

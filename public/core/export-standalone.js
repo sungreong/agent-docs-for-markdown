@@ -371,6 +371,10 @@ function buildEnhancementScript({ mermaid = true } = {}) {
     if (pages.length >= 2) {
       document.body.classList.add('has-js-slides');
       switchMode(false);
+      if (outline) {
+        outline.classList.add('is-collapsed');
+        if (outlineToggle) outlineToggle.textContent = 'Show';
+      }
     } else {
       switchMode(true);
     }

@@ -7,7 +7,11 @@
   "scripts": {
     "start": "node server.js",
     "md2html": "node scripts/md-to-html.mjs",
-    "test:embed-images": "node test/embed-local-images.mjs"
+    "test:embed-images": "node test/embed-local-images.mjs",
+    "test:brand-designs": "node test/brand-design-integration.mjs",
+    "design:collect": "node scripts/collect-design-md.mjs",
+    "design:analyze": "node scripts/analyze-design-md.mjs",
+    "design:update": "node scripts/collect-design-md.mjs && node scripts/analyze-design-md.mjs"
   },
   "engines": {
     "node": ">=18"

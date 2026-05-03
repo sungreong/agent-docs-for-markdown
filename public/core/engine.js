@@ -1,4 +1,5 @@
 import { PAGE_BREAK_TOKEN, buildPaginatedSegments } from './pagination.js';
+import { buildBrandDesignStyle, getBrandDesign } from './brand-designs.js';
 
 const HEADING_RE = /^(#{1,6})\s+(.*)$/;
 const IMAGE_RE = /^!\[([^\]]*)\]\(([^)]+)\)\s*$/;
@@ -787,9 +788,11 @@ function getSectionTemplateName(section) {
 }
 
 export function renderDocument(model, options = {}, registry) {
-  const theme = options.theme || model.meta.theme || 'report';
+  const designValue = options.design ?? model.meta.design ?? model.meta.designMd ?? '';
+  const brandDesign = getBrandDesign(designValue);
+  const theme = options.theme || model.meta.theme || brandDesign?.theme || 'report';
   const mode = options.mode || model.meta.mode || 'web';
-  const intent = options.intent || model.meta.intent || '';
+  const intent = options.intent || model.meta.intent || brandDesign?.intent || '';
   const showToc = options.toc ?? Boolean(model.meta.toc);
   const tocDepth = Number(options.tocDepth || model.meta.tocDepth || 3);
 
@@ -827,8 +830,11 @@ export function renderDocument(model, options = {}, registry) {
       : composed;
 
   const intentClass = intent ? ` intent-${escapeHtml(intent)}` : '';
+  const designClass = brandDesign?.className ? ` design-${escapeHtml(brandDesign.className)}` : '';
+  const designStyle = brandDesign ? buildBrandDesignStyle(brandDesign) : '';
+  const styleAttr = designStyle ? ` style="${escapeHtml(designStyle)}"` : '';
   return `
-    <div class="studio-document theme-${escapeHtml(theme)} mode-${escapeHtml(mode)}${intentClass}">
+    <div class="studio-document theme-${escapeHtml(theme)} mode-${escapeHtml(mode)}${intentClass}${designClass}"${styleAttr}>
       <div class="${shellClass}">
         ${content}
       </div>

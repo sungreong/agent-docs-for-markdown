@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 import fs from 'fs/promises';
 import path from 'path';
 import process from 'process';
@@ -13,6 +13,7 @@ import {
 } from '../public/core/engine.js';
 import { TemplateRegistry } from '../public/core/registry.js';
 import { buildStandaloneHtmlDocument } from '../public/core/export-standalone.js';
+import { buildBrandDesignStyle, getBrandDesign, normalizeBrandDesignSlug } from '../public/core/brand-designs.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,11 +29,12 @@ const EMAIL_DISCLAIMER_CONFIRM_RE =
 
 function printUsage() {
   console.log(`Usage:
-  node scripts/md-to-html.mjs <input.md> [--out output.html] [--theme report] [--mode web] [--standalone] [--base-dir path] [--embed-local-images|--no-embed-local-images] [--strip-email-disclaimer] [--mermaid|--no-mermaid]
+  node scripts/md-to-html.mjs <input.md> [--out output.html] [--theme report] [--design vercel] [--mode web] [--standalone] [--base-dir path] [--embed-local-images|--no-embed-local-images] [--strip-email-disclaimer] [--mermaid|--no-mermaid]
 
 Examples:
   node scripts/md-to-html.mjs test/notes.md
   node scripts/md-to-html.mjs test/notes.md --out test/notes.html --theme slate --standalone
+  node scripts/md-to-html.mjs test/notes.md --design vercel --intent pitch --standalone
 `);
 }
 
@@ -41,6 +43,7 @@ function parseArgs(argv) {
     input: '',
     out: '',
     theme: '',
+    design: '',
     mode: '',
     intent: '',
     standalone: true,
@@ -64,6 +67,10 @@ function parseArgs(argv) {
     }
     if (token === '--theme') {
       result.theme = args.shift() || '';
+      continue;
+    }
+    if (token === '--design') {
+      result.design = args.shift() || '';
       continue;
     }
     if (token === '--mode') {
@@ -442,22 +449,30 @@ function hasMeaningfulText(html) {
 
 function buildRenderedHtml(source, options, registry) {
   const model = parseMarkdownDocument(source);
-  const effectiveTheme = options.theme || model.meta.theme || 'report';
+  const effectiveDesign = options.design || model.meta.design || model.meta.designMd || '';
+  const brandDesign = getBrandDesign(effectiveDesign);
+  const effectiveTheme = options.theme || model.meta.theme || brandDesign?.theme || 'report';
   const effectiveMode = options.mode || model.meta.mode || 'web';
-  const effectiveIntent = options.intent || model.meta.intent || '';
+  const effectiveIntent = options.intent || model.meta.intent || brandDesign?.intent || '';
   const sourceBaseDir = String(options.sourceBaseDir || model.meta.sourceBaseDir || '').trim();
   const resolveAssetUrl = createNodeAssetResolver(sourceBaseDir);
   const enableMermaid = options.enableMermaid !== false;
   const enableCodeCopy = options.enableCodeCopy !== false;
+  const warnings = [];
+  if (effectiveDesign && !normalizeBrandDesignSlug(effectiveDesign)) {
+    warnings.push(`알 수 없는 DESIGN.md preset: ${effectiveDesign}`);
+  }
 
   const segments = splitSourceByPageBreak(source);
   if (segments.length <= 1) {
     return {
       model,
+      warnings,
       html: renderDocument(
         model,
         {
           theme: effectiveTheme,
+          design: effectiveDesign,
           toc: Boolean(model.meta.toc),
           tocDepth: Number(model.meta.tocDepth || 3),
           mode: effectiveMode,
@@ -479,6 +494,7 @@ function buildRenderedHtml(source, options, registry) {
       pageModel,
       {
         theme: effectiveTheme,
+        design: effectiveDesign,
         toc: false,
         tocDepth: Number(model.meta.tocDepth || 3),
         mode: effectiveMode,
@@ -497,10 +513,12 @@ function buildRenderedHtml(source, options, registry) {
   if (!pages.length) {
     return {
       model,
+      warnings,
       html: renderDocument(
         model,
         {
           theme: effectiveTheme,
+          design: effectiveDesign,
           toc: Boolean(model.meta.toc),
           tocDepth: Number(model.meta.tocDepth || 3),
           mode: effectiveMode,
@@ -535,10 +553,13 @@ function buildRenderedHtml(source, options, registry) {
     .join('');
 
   const intentClass = effectiveIntent ? ` intent-${effectiveIntent}` : '';
+  const designClass = brandDesign?.className ? ` design-${brandDesign.className}` : '';
+  const designStyle = brandDesign ? buildBrandDesignStyle(brandDesign) : '';
   return {
     model,
+    warnings,
     html: `
-      <div class="studio-document theme-${effectiveTheme} mode-${effectiveMode}${intentClass}" style="--page-width:${width};--page-height:${height};">
+      <div class="studio-document theme-${escapeHtmlText(effectiveTheme)} mode-${escapeHtmlText(effectiveMode)}${escapeHtmlText(intentClass)}${escapeHtmlText(designClass)}" style="${escapeHtmlText(`${designStyle}--page-width:${width};--page-height:${height};`)}">
         <div class="document-shell is-paginated">
           ${content}
         </div>
@@ -581,10 +602,11 @@ async function main() {
   const registry = new TemplateRegistry();
   registerBuiltInTemplates(registry);
 
-  const { model, html: renderedHtml } = buildRenderedHtml(
+  const { model, html: renderedHtml, warnings: renderWarnings = [] } = buildRenderedHtml(
     source,
     {
       theme: args.theme,
+      design: args.design,
       mode: args.mode,
       intent: args.intent,
       sourceBaseDir,
@@ -593,6 +615,7 @@ async function main() {
     },
     registry,
   );
+  exportWarnings.push(...renderWarnings);
   const inlined = await inlineLocalImages(renderedHtml, {
     baseDir: sourceBaseDir,
     embedLocalImages,
@@ -620,4 +643,3 @@ main().catch((error) => {
   console.error(error.stack || String(error));
   process.exit(1);
 });
-

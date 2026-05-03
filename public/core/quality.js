@@ -1,3 +1,5 @@
+import { getBrandDesign, normalizeBrandDesignSlug } from './brand-designs.js';
+
 export function analyzeMarkdownQuality(source = '', model = null) {
   const text = String(source || '').replace(/\r\n?/g, '\n');
   const lines = text.split('\n');
@@ -101,6 +103,15 @@ export function analyzeMarkdownQuality(source = '', model = null) {
   const pageBreakCount = (text.match(/\{: ?\.page-break/g) || []).length;
   if (headings.length >= 5 && pageBreakCount === 0) {
     add('info', '페이지 분리 후보', '섹션이 많은 문서입니다. 핵심 요약, 데이터, 결론 앞 page-break를 검토하세요.', 0);
+  }
+
+  const designValue = model?.meta?.design || model?.meta?.designMd || '';
+  if (designValue) {
+    const normalizedDesign = normalizeBrandDesignSlug(designValue);
+    const design = getBrandDesign(designValue);
+    if (!normalizedDesign || !design) {
+      add('warn', '알 수 없는 DESIGN.md preset', `"${designValue}"는 수집된 70개 DESIGN.md manifest에 없는 slug입니다. theme fallback은 유지되지만 브랜드 토큰은 적용되지 않습니다.`, 0);
+    }
   }
 
   issues.sort((a, b) => severityValue(b.level) - severityValue(a.level) || (a.line || 999999) - (b.line || 999999));
