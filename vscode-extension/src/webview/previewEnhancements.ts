@@ -139,7 +139,9 @@ function buildBridgeScript({ preferredViewMode, outlineCollapsed }: PreviewEnhan
   let autoChangingOutline = false;
   let stackFitActive = false;
   let stackZoomOverride = null;
-  const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  const ZOOM_MIN = 0.25;
+  const ZOOM_MAX = 2;
+  const ZOOM_STEP = 0.05;
 
   const post = (message) => {
     if (vscodeApi && typeof vscodeApi.postMessage === 'function') vscodeApi.postMessage(message);
@@ -201,8 +203,8 @@ function buildBridgeScript({ preferredViewMode, outlineCollapsed }: PreviewEnhan
       fallbackWidth,
     );
     const availableWidth = Math.max(120, window.innerWidth - getBodyHorizontalPadding() - 16);
-    const nextScale = Math.min(1, availableWidth / Math.max(1, contentWidth));
-    return Number.isFinite(nextScale) ? Math.max(0.5, Math.min(1, nextScale)) : 1;
+    const nextScale = availableWidth / Math.max(1, contentWidth);
+    return Number.isFinite(nextScale) ? clampZoom(nextScale) : 1;
   }
 
   function updateStackZoomUi(scale, fit) {
@@ -216,10 +218,11 @@ function buildBridgeScript({ preferredViewMode, outlineCollapsed }: PreviewEnhan
   }
 
   function applyStackZoom(scale, fit) {
-    stackZoomOverride = scale;
+    const nextScale = clampZoom(scale);
+    stackZoomOverride = nextScale;
     stackFitActive = Boolean(fit);
-    document.documentElement.style.setProperty('--stacked-zoom', String(scale));
-    updateStackZoomUi(scale, fit);
+    document.documentElement.style.setProperty('--stacked-zoom', String(nextScale));
+    updateStackZoomUi(nextScale, fit);
     updateResponsiveClasses();
   }
 
@@ -229,9 +232,14 @@ function buildBridgeScript({ preferredViewMode, outlineCollapsed }: PreviewEnhan
 
   function adjustStackZoom(delta) {
     const current = getStackScale();
-    const steps = delta > 0 ? ZOOM_STEPS : ZOOM_STEPS.slice().reverse();
-    const next = steps.find((step) => (delta > 0 ? step > current + 0.001 : step < current - 0.001));
-    applyStackZoom(next == null ? current : next, false);
+    const scaled = current / ZOOM_STEP;
+    const nextIndex = delta > 0 ? Math.floor(scaled + 0.0001) + 1 : Math.ceil(scaled - 0.0001) - 1;
+    applyStackZoom(nextIndex * ZOOM_STEP, false);
+  }
+
+  function clampZoom(scale) {
+    const clamped = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, scale));
+    return Number(clamped.toFixed(4));
   }
 
   function bindStackZoomControls() {
@@ -251,30 +259,18 @@ function buildBridgeScript({ preferredViewMode, outlineCollapsed }: PreviewEnhan
     }, true);
 
     zoomIn?.addEventListener('click', (event) => {
-      if (!isStackedView() || !stackFitActive) return;
+      if (!isStackedView()) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       adjustStackZoom(1);
     }, true);
 
     zoomOut?.addEventListener('click', (event) => {
-      if (!isStackedView() || !stackFitActive) return;
+      if (!isStackedView()) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       adjustStackZoom(-1);
     }, true);
-
-    for (const button of [zoomIn, zoomOut]) {
-      button?.addEventListener('click', () => {
-        if (!isStackedView()) return;
-        stackFitActive = false;
-        stackZoomOverride = null;
-        window.setTimeout(() => {
-          updateStackZoomUi(getStackScale(), false);
-          updateResponsiveClasses();
-        }, 0);
-      });
-    }
   }
 
   function setOutlineCollapsed(outline, collapsed) {
