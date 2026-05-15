@@ -26,6 +26,15 @@
     "onCommand:mdStudioPreview.downloadSkillFolder",
     "onCommand:mdStudioPreview.diagnoseEnvironment",
     "onCommand:mdStudioFileBrowser.refresh",
+    "onCommand:mdStudioFileBrowser.sort",
+    "onCommand:mdStudioFileBrowser.filter",
+    "onCommand:mdStudioFileBrowser.pinToTop",
+    "onCommand:mdStudioFileBrowser.unpin",
+    "onCommand:mdStudioFileBrowser.copyPath",
+    "onCommand:mdStudioFileBrowser.copyRelativePath",
+    "onCommand:mdStudioFileBrowser.copyFileName",
+    "onCommand:mdStudioFileBrowser.hideItem",
+    "onCommand:mdStudioFileBrowser.manageHidden",
     "onCommand:mdStudioFileBrowser.search"
   ],
   "main": "./dist/extension.js",
@@ -96,6 +105,51 @@
         "command": "mdStudioFileBrowser.search",
         "title": "MD Studio: Search Markdown Files",
         "icon": "$(search)"
+      },
+      {
+        "command": "mdStudioFileBrowser.sort",
+        "title": "MD Studio: Sort Markdown Files",
+        "icon": "$(list-ordered)"
+      },
+      {
+        "command": "mdStudioFileBrowser.filter",
+        "title": "MD Studio: Filter Markdown Files",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "mdStudioFileBrowser.pinToTop",
+        "title": "Pin to Top",
+        "icon": "$(pinned)"
+      },
+      {
+        "command": "mdStudioFileBrowser.unpin",
+        "title": "Unpin",
+        "icon": "$(pinned)"
+      },
+      {
+        "command": "mdStudioFileBrowser.copyPath",
+        "title": "Copy Path",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "mdStudioFileBrowser.copyRelativePath",
+        "title": "Copy Relative Path",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "mdStudioFileBrowser.copyFileName",
+        "title": "Copy Name",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "mdStudioFileBrowser.hideItem",
+        "title": "Hide from Browser",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "mdStudioFileBrowser.manageHidden",
+        "title": "MD Studio: Manage Hidden Items",
+        "icon": "$(eye)"
       }
     ],
     "configuration": {
@@ -166,14 +220,29 @@
           "group": "navigation@1"
         },
         {
-          "command": "mdStudioFileBrowser.refresh",
+          "command": "mdStudioFileBrowser.filter",
           "when": "view == mdStudioFileBrowser",
           "group": "navigation@2"
         },
         {
-          "command": "mdStudioPreview.downloadSkillFolder",
+          "command": "mdStudioFileBrowser.sort",
           "when": "view == mdStudioFileBrowser",
           "group": "navigation@3"
+        },
+        {
+          "command": "mdStudioFileBrowser.manageHidden",
+          "when": "view == mdStudioFileBrowser",
+          "group": "navigation@4"
+        },
+        {
+          "command": "mdStudioFileBrowser.refresh",
+          "when": "view == mdStudioFileBrowser",
+          "group": "navigation@5"
+        },
+        {
+          "command": "mdStudioPreview.downloadSkillFolder",
+          "when": "view == mdStudioFileBrowser",
+          "group": "navigation@6"
         }
       ],
       "editor/title": [
@@ -201,18 +270,48 @@
       "view/item/context": [
         {
           "command": "mdStudioPreview.openFileInNewPanel",
-          "when": "view == mdStudioFileBrowser && viewItem == mdFile",
+          "when": "view == mdStudioFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
           "group": "inline"
         },
         {
+          "command": "mdStudioFileBrowser.pinToTop",
+          "when": "view == mdStudioFileBrowser && (viewItem == mdFile || viewItem == mdRecentFile || viewItem == mdFilterFile)",
+          "group": "navigation@0"
+        },
+        {
+          "command": "mdStudioFileBrowser.unpin",
+          "when": "view == mdStudioFileBrowser && (viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdFilterFilePinned)",
+          "group": "navigation@0"
+        },
+        {
           "command": "mdStudioPreview.openFileInNewPanel",
-          "when": "view == mdStudioFileBrowser && viewItem == mdFile",
+          "when": "view == mdStudioFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
           "group": "navigation@1"
         },
         {
           "command": "mdStudioPreview.transformMarkdownToHtml",
-          "when": "view == mdStudioFileBrowser && viewItem == mdFile",
+          "when": "view == mdStudioFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
           "group": "navigation@2"
+        },
+        {
+          "command": "mdStudioFileBrowser.copyPath",
+          "when": "view == mdStudioFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
+          "group": "navigation@3"
+        },
+        {
+          "command": "mdStudioFileBrowser.copyRelativePath",
+          "when": "view == mdStudioFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
+          "group": "navigation@4"
+        },
+        {
+          "command": "mdStudioFileBrowser.copyFileName",
+          "when": "view == mdStudioFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
+          "group": "navigation@5"
+        },
+        {
+          "command": "mdStudioFileBrowser.hideItem",
+          "when": "view == mdStudioFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
+          "group": "navigation@6"
         }
       ],
       "explorer/context": [
