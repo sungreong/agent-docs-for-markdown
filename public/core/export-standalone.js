@@ -665,6 +665,7 @@ export function buildStandaloneHtmlDocument({
       display: none;
       width: var(--page-width, ${DEFAULT_PAGE_WIDTH});
       height: var(--page-height, ${DEFAULT_PAGE_HEIGHT});
+      min-height: var(--page-height, ${DEFAULT_PAGE_HEIGHT});
       margin: 0 auto;
     }
     body.export-slides .doc-page.is-slide-active {

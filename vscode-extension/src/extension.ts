@@ -54,6 +54,15 @@ interface ParsedSection {
   line?: unknown;
 }
 
+interface PreviewWebviewMessage {
+  type?: unknown;
+  collapsed?: unknown;
+  href?: unknown;
+  rawHref?: unknown;
+  text?: unknown;
+  title?: unknown;
+}
+
 type ParseMarkdownDocumentFn = (source: string) => { sections?: ParsedSection[] };
 
 const sessions = new Map<string, PreviewSession>();
@@ -434,10 +443,14 @@ function ensureSession(document: vscode.TextDocument, reveal: boolean): PreviewS
 
   panel.webview.onDidReceiveMessage((message: unknown) => {
     if (!message || typeof message !== 'object') return;
-    const payload = message as { type?: unknown; collapsed?: unknown };
+    const payload = message as PreviewWebviewMessage;
     if (payload.type === 'mdStudioPreview.ready') {
       session.isBridgeReady = true;
       void flushPendingSync(session);
+      return;
+    }
+    if (payload.type === 'mdStudioPreview.openLink') {
+      void handlePreviewLinkClick(session, payload);
       return;
     }
     if (payload.type !== 'mdStudioPreview.outlineStateChanged') return;
@@ -551,6 +564,171 @@ function resolveBundledCliScriptPath(): string | null {
 function resolveBundledParserEnginePath(): string | null {
   if (!extensionInstallPath) return null;
   return path.join(extensionInstallPath, 'public', 'core', 'engine.js');
+}
+
+async function handlePreviewLinkClick(session: PreviewSession, payload: PreviewWebviewMessage): Promise<void> {
+  const rawHref = readRawMessageString(payload.rawHref) || readRawMessageString(payload.href);
+  if (!rawHref || rawHref.startsWith('#')) return;
+
+  const text = normalizeMessageString(payload.text) || normalizeMessageString(payload.title) || rawHref;
+  const resolved = resolvePreviewLink(session, rawHref);
+  if (!resolved) {
+    void vscode.window.showWarningMessage(`Unable to resolve link: ${rawHref}`, 'Copy Link').then((choice) => {
+      if (choice === 'Copy Link') void vscode.env.clipboard.writeText(rawHref);
+    });
+    return;
+  }
+
+  if (resolved.kind === 'external') {
+    const choice = await vscode.window.showInformationMessage(
+      `Open external link "${text}"? ${resolved.uri.toString()}`,
+      'Open',
+      'Copy Link',
+      'Cancel',
+    );
+    if (choice === 'Open') {
+      await vscode.env.openExternal(resolved.uri);
+    } else if (choice === 'Copy Link') {
+      await vscode.env.clipboard.writeText(resolved.uri.toString());
+    }
+    return;
+  }
+
+  const exists = await fileExists(resolved.uri.fsPath);
+  if (!exists) {
+    const choice = await vscode.window.showWarningMessage(
+      `Linked file was not found: ${resolved.uri.fsPath}`,
+      'Copy Path',
+      'Cancel',
+    );
+    if (choice === 'Copy Path') await vscode.env.clipboard.writeText(resolved.uri.fsPath);
+    return;
+  }
+
+  const fileName = path.basename(resolved.uri.fsPath);
+  if (resolved.isMarkdown) {
+    const choice = await vscode.window.showInformationMessage(
+      `Open markdown link "${fileName}"?`,
+      'Open Preview',
+      'Open Editor',
+      'Copy Path',
+      'Cancel',
+    );
+    if (choice === 'Open Preview') {
+      const document = await vscode.workspace.openTextDocument(resolved.uri);
+      await queuePreview(document, 'open');
+    } else if (choice === 'Open Editor') {
+      await vscode.window.showTextDocument(resolved.uri, { preview: false });
+    } else if (choice === 'Copy Path') {
+      await vscode.env.clipboard.writeText(resolved.uri.fsPath);
+    }
+    return;
+  }
+
+  const choice = await vscode.window.showInformationMessage(
+    `Open file link "${fileName}"?`,
+    'Open',
+    'Copy Path',
+    'Cancel',
+  );
+  if (choice === 'Open') {
+    await vscode.commands.executeCommand('vscode.open', resolved.uri);
+  } else if (choice === 'Copy Path') {
+    await vscode.env.clipboard.writeText(resolved.uri.fsPath);
+  }
+}
+
+function normalizeMessageString(value: unknown): string {
+  return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+}
+
+function readRawMessageString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+type PreviewLinkResolution =
+  | { kind: 'external'; uri: vscode.Uri }
+  | { kind: 'local'; uri: vscode.Uri; isMarkdown: boolean };
+
+function resolvePreviewLink(session: PreviewSession, rawHref: string): PreviewLinkResolution | null {
+  const href = rawHref.trim();
+  if (!href || href.startsWith('#')) return null;
+  if (href.startsWith('//')) {
+    return { kind: 'external', uri: vscode.Uri.parse(`https:${href}`) };
+  }
+
+  const localPart = stripQueryAndFragment(href);
+  if (/^[a-zA-Z]:[\\/]/.test(localPart) || localPart.startsWith('\\\\')) {
+    const decodedPath = decodeHrefPath(localPart).replace(/\//g, path.sep);
+    const resolvedPath = path.normalize(decodedPath);
+    return {
+      kind: 'local',
+      uri: vscode.Uri.file(resolvedPath),
+      isMarkdown: isMarkdownPath(resolvedPath),
+    };
+  }
+
+  const schemeMatch = /^([a-z][a-z0-9+.-]*):/i.exec(href);
+  if (schemeMatch) {
+    const scheme = schemeMatch[1].toLowerCase();
+    if (scheme === 'http' || scheme === 'https' || scheme === 'mailto') {
+      return { kind: 'external', uri: vscode.Uri.parse(href) };
+    }
+    if (scheme === 'file') {
+      const uri = vscode.Uri.parse(href);
+      return { kind: 'local', uri, isMarkdown: isMarkdownPath(uri.fsPath) };
+    }
+    return { kind: 'external', uri: vscode.Uri.parse(href) };
+  }
+
+  const sourceUri = getSessionFileUri(session);
+  if (!sourceUri) return null;
+
+  if (!localPart) return null;
+  const decodedPath = decodeHrefPath(localPart).replace(/\//g, path.sep);
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(sourceUri);
+  let resolvedPath: string;
+  if (path.isAbsolute(decodedPath)) {
+    resolvedPath = path.normalize(decodedPath);
+  } else if (localPart.startsWith('/') && workspaceFolder) {
+    resolvedPath = path.join(workspaceFolder.uri.fsPath, decodedPath.replace(/^[/\\]+/, ''));
+  } else {
+    resolvedPath = path.resolve(path.dirname(sourceUri.fsPath), decodedPath);
+  }
+  return {
+    kind: 'local',
+    uri: vscode.Uri.file(resolvedPath),
+    isMarkdown: isMarkdownPath(resolvedPath),
+  };
+}
+
+function getSessionFileUri(session: PreviewSession): vscode.Uri | null {
+  try {
+    const uri = vscode.Uri.parse(session.key);
+    return uri.scheme === 'file' ? uri : null;
+  } catch {
+    return null;
+  }
+}
+
+function stripQueryAndFragment(href: string): string {
+  const queryIndex = href.indexOf('?');
+  const hashIndex = href.indexOf('#');
+  const indexes = [queryIndex, hashIndex].filter((index) => index >= 0);
+  const end = indexes.length ? Math.min(...indexes) : href.length;
+  return href.slice(0, end);
+}
+
+function decodeHrefPath(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function isMarkdownPath(filePath: string): boolean {
+  return ['.md', '.markdown', '.mdown', '.mkdn'].includes(path.extname(filePath).toLowerCase());
 }
 
 function resolveSkillsDirPath(workspaceFolder: vscode.WorkspaceFolder | null): string {
@@ -769,6 +947,15 @@ function spawnProcess(command: string, args: string[], cwd: string): Promise<voi
   });
 }
 
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function rewriteLocalFileUris(html: string, webview: vscode.Webview): string {
   let converted = html.replace(/\b(src|href)=("([^"]*)"|'([^']*)')/gi, (full, attr, quoted, doubleQuoted, singleQuoted) => {
     const originalValue = String(doubleQuoted ?? singleQuoted ?? '').trim();
@@ -778,6 +965,9 @@ function rewriteLocalFileUris(html: string, webview: vscode.Webview): string {
       if (fileUri.scheme !== 'file') return full;
       const webviewUri = webview.asWebviewUri(fileUri).toString();
       const quote = String(quoted).startsWith("'") ? "'" : '"';
+      if (String(attr).toLowerCase() === 'href') {
+        return `${attr}=${quote}${webviewUri}${quote} data-md-studio-original-href=${quote}${escapeHtmlAttribute(originalValue)}${quote}`;
+      }
       return `${attr}=${quote}${webviewUri}${quote}`;
     } catch {
       return full;

@@ -367,6 +367,7 @@ function buildBridgeScript({ preferredViewMode, outlineCollapsed }: PreviewEnhan
 
     const toggle = document.querySelector('.export-slide-nav [data-action="toggle"]');
     const isStacked = isStackedView();
+    const narrow = window.innerWidth < 980;
     if (!userChangedMode && toggle && shouldStack() && !isStacked) {
       autoChangingMode = true;
       toggle.click();
@@ -419,6 +420,41 @@ function buildBridgeScript({ preferredViewMode, outlineCollapsed }: PreviewEnhan
     return document.getElementById(sectionId) || findByDataValue('[data-section-id]', 'data-section-id', sectionId);
   }
 
+  function compactLinkText(value) {
+    return String(value || '').replace(/\\s+/g, ' ').trim().slice(0, 160);
+  }
+
+  function bindLinkClicks() {
+    if (document.body.hasAttribute('data-md-studio-links-bound')) return;
+    document.body.setAttribute('data-md-studio-links-bound', '1');
+    document.addEventListener('click', (event) => {
+      const target = event.target;
+      const anchor = target && target.closest ? target.closest('a[href]') : null;
+      if (!anchor) return;
+
+      const originalHref = anchor.getAttribute('data-md-studio-original-href');
+      const rawHref = String(originalHref || anchor.getAttribute('href') || '').trim();
+      if (!rawHref || rawHref.startsWith('#')) return;
+
+      const lowerHref = rawHref.toLowerCase();
+      if (lowerHref.startsWith('javascript:') || lowerHref.startsWith('data:')) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      post({
+        type: 'mdStudioPreview.openLink',
+        href: anchor.href || rawHref,
+        rawHref: rawHref,
+        text: compactLinkText(anchor.textContent || anchor.title || rawHref),
+        title: compactLinkText(anchor.title || ''),
+      });
+    }, true);
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     notifyReady();
     window.setTimeout(notifyReady, 120);
@@ -431,6 +467,7 @@ function buildBridgeScript({ preferredViewMode, outlineCollapsed }: PreviewEnhan
   for (const waitMs of [0, 80, 220, 450, 900]) {
     window.setTimeout(() => {
       bindOutline();
+      bindLinkClicks();
       applyResponsiveState();
     }, waitMs);
   }

@@ -296,7 +296,8 @@
 }
 
 .document-shell.is-paginated .doc-page-inner {
-  align-content: center;
+  align-content: start;
+  align-content: safe center;
   min-height: 0;
   overflow: auto;
   border: 0;
