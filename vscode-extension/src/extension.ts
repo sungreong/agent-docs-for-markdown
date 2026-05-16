@@ -580,6 +580,24 @@ async function handlePreviewLinkClick(session: PreviewSession, payload: PreviewW
   }
 
   if (resolved.kind === 'external') {
+    if (isHttpUri(resolved.uri)) {
+      const choice = await vscode.window.showInformationMessage(
+        `Open web link "${text}"? ${resolved.uri.toString()}`,
+        'Open in VS Code',
+        'Open External',
+        'Copy Link',
+        'Cancel',
+      );
+      if (choice === 'Open in VS Code') {
+        await openWebLinkInsideVsCode(resolved.uri);
+      } else if (choice === 'Open External') {
+        await vscode.env.openExternal(resolved.uri);
+      } else if (choice === 'Copy Link') {
+        await vscode.env.clipboard.writeText(resolved.uri.toString());
+      }
+      return;
+    }
+
     const choice = await vscode.window.showInformationMessage(
       `Open external link "${text}"? ${resolved.uri.toString()}`,
       'Open',
@@ -635,6 +653,18 @@ async function handlePreviewLinkClick(session: PreviewSession, payload: PreviewW
     await vscode.commands.executeCommand('vscode.open', resolved.uri);
   } else if (choice === 'Copy Path') {
     await vscode.env.clipboard.writeText(resolved.uri.fsPath);
+  }
+}
+
+function isHttpUri(uri: vscode.Uri): boolean {
+  return uri.scheme === 'http' || uri.scheme === 'https';
+}
+
+async function openWebLinkInsideVsCode(uri: vscode.Uri): Promise<void> {
+  try {
+    await vscode.commands.executeCommand('simpleBrowser.show', uri.toString());
+  } catch {
+    await vscode.commands.executeCommand('vscode.open', uri);
   }
 }
 
