@@ -15,7 +15,26 @@ This skill also includes a curated DESIGN.md knowledge base from 70 public brand
 
 Before writing a single line of output, work through four phases:
 
+## Non-Negotiable: Whole Document First
+
+Read the entire source before choosing templates or rewriting sections. Do not design slide-by-slide while still discovering the content.
+
+Before the transformation plan, create a compact document map:
+- Purpose and audience: report, pitch, technical review, tutorial, narrative, or reference.
+- Narrative spine: 3-6 beats that the document should follow from opening to close.
+- Content families: claims, KPIs, evidence tables, code, diagrams, quotes, risks, decisions, appendices.
+- Exact artifacts: tables, code, links, citations, IDs, query results, and numbers that must not be paraphrased away.
+- Visual vocabulary: the small set of templates, palette role, and emphasis style that will repeat consistently.
+
+Then define a component system for the whole document:
+- Choose one primary evidence treatment (`.table-fit`, code block, diagram, or `.compare`) and reuse it.
+- Choose one KPI treatment (`.stats`) only if the content has true top-line metrics.
+- Use at most 1-2 expressive templates (`.dark`, `.half-bleed`, `.quote-slide`) in a normal technical/report deck.
+- Avoid making every section a card grid. Repetition is acceptable for a family of evidence slides, but not as a default decoration.
+- When content is technical, prioritize exactness and scanability over visual spectacle.
+
 **Phase 1 — Audit**: Classify content AND assess density.
+- Read the whole document end-to-end before making section-level edits.
 - What is the primary content? text-heavy / data-heavy / visual-heavy / mixed
 - Who is the reader? executive / technical / general / student
 - What action should they take after reading?
@@ -24,7 +43,8 @@ Before writing a single line of output, work through four phases:
 
 **Phase 2 — Map**: Assign content to layout archetypes, accounting for item count.
 - Cover → `.cover` or `.cover .dark`
-- Key stats/KPIs → `.stats` (need 4–6 for a full slide; fewer → combine with adjacent content)
+- Key stats/KPIs → `.stats` (KPI-only; need 4–6 for a full slide; fewer → combine with adjacent content)
+- Technical evidence/result tables → keep as table with `.table-fit` or use `.compare`; do not use `.stats` for method/hit/rank matrices, long code identifiers, booleans, or qrels.
 - Single argument/message → `.message` (always add 2–3 supporting sentences — heading alone is too sparse)
 - Side-by-side exactly 2 → `.compare` or `.two-column`
 - Exactly 3 symmetric items → `.three-column` (never `.compare` for 3 items)
@@ -50,7 +70,7 @@ Before writing a single line of output, work through four phases:
 
 1. Classify document purpose first: `report`, `pitch`, `technical`, `tutorial`, `presentation`.
 2. Present the full transformation plan. Do not modify the original at this stage.
-3. The plan must include: change summary, auto-insert candidates, layout decisions, palette recommendation, `intent:` value, aspect ratio.
+3. The plan must include: change summary, document map, component system, auto-insert candidates, layout decisions, palette recommendation, `intent:` value, aspect ratio.
 4. If a brand/archetype is used, include the DESIGN.md insight source and how it maps to PPT Markdown templates.
 5. Get user approval, then emit `[FINAL OUTPUT]`.
 6. When in doubt: fewer decorations, clearer structure.
@@ -134,7 +154,7 @@ Do not load all 70 raw DESIGN.md files into context. Use the synthesis and manif
 | `.two-column` / `.cols-N` | Column layout | Side-by-side comparison |
 | `.card` | Card | Highlighted section box |
 | `.spotlight` | Spotlight | Lead image/stat with body |
-| `.stats` / `.stats-list` | Stats | KPI cards: `label \| value \| delta` |
+| `.stats` / `.stats-list` | Stats | KPI cards only: `label \| value \| delta`; use `statsMode="table"` when preserving a table |
 | `.agenda` | Agenda | Ordered agenda list |
 | `.timeline` | Timeline | Roadmap, event sequence |
 | `.compare` | Compare | Explicit 2-column compare |
@@ -193,13 +213,15 @@ The image fills the right half. This text appears on the left with generous padd
 ## Output Sequence
 
 1. `[DOCUMENT PLAN]` — original diagnosis, document purpose, audience, first-page role
-2. `[PALETTE & INTENT]` — recommended theme + intent + font pairing rationale
-3. `[DESIGN DIRECTION]` — selected DESIGN.md brand/archetype, why it fits, and what NOT to copy
-4. `[SECTION BREAKDOWN]` — section reorder and page-break plan, one layout per slide
-5. `[DESIGN DECISIONS]` — why each template was chosen, what visual element each slide gets
-6. `[RISK CHECK]` — meaning preservation risk, aspect ratio recommendation with rationale
-7. User approval
-8. `[FINAL OUTPUT]` — final Markdown
+2. `[DOCUMENT MAP]` — narrative spine, content families, exact artifacts to preserve
+3. `[COMPONENT SYSTEM]` — chosen templates, evidence treatment, KPI treatment, restraint rules
+4. `[PALETTE & INTENT]` — recommended theme + intent + font pairing rationale
+5. `[DESIGN DIRECTION]` — selected DESIGN.md brand/archetype, why it fits, and what NOT to copy
+6. `[SECTION BREAKDOWN]` — section reorder and page-break plan, one layout per slide
+7. `[DESIGN DECISIONS]` — why each template was chosen, what visual element each slide gets
+8. `[RISK CHECK]` — meaning preservation risk, aspect ratio recommendation with rationale
+9. User approval
+10. `[FINAL OUTPUT]` — final Markdown
 
 ## Design Anti-Patterns to Avoid
 
@@ -224,6 +246,7 @@ These are structurally prevented by the engine, but avoid introducing them in co
 - No consecutive `page-break` tokens; no trailing `page-break`.
 - No blank pages (section with no meaningful content).
 - Dense tables/images/code → prioritize page separation.
+- Before using `.stats` on table data, apply `references/component-selection-rules.md`; evidence matrices should remain tables.
 - UTF-8 encoding — detect and recover garbled characters.
 - Heading hierarchy must not skip levels or have empty headings.
 - Images should have `alt` / `caption`; tables should have `caption`; code blocks should have a language tag.
@@ -261,6 +284,7 @@ Do not damage these during transformation:
 ## Reference Documents
 
 - **Rendering environment guide** (read first): `references/environment-guide.md` — canvas dimensions, per-template height footprints, density rules, template pairing, what the renderer does NOT support
+- Component selection rules: `references/component-selection-rules.md` — when to use KPI cards, tables, comparison matrices, callouts, and evidence slides
 - Design decision rules: `references/document-design-rules.md`
 - PPT-style Markdown deck rules: `references/ppt-like-markdown-rules.md`
 - Quick insert catalog: `references/quick-insert-catalog.md`

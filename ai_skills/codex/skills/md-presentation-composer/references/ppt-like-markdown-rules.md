@@ -5,10 +5,12 @@
 ## 기본 원칙
 
 - 하나의 슬라이드는 하나의 메시지만 전달합니다.
+- 슬라이드별 변환 전에 전체 문서를 읽고 narrative spine, content families, component system을 먼저 정합니다.
 - 긴 문단을 그대로 두지 말고 핵심 주장과 근거 bullet로 분해합니다.
 - 모든 슬라이드는 제목을 갖고, `---` 다음 줄의 `{: .page-break}`로 끝냅니다.
 - 기본 화면비는 `landscape`를 추천합니다. 표/코드가 많으면 `pageWidth: 1120px`, `pageHeight: 720px`를 유지합니다.
 - 같은 슬라이드 패턴을 3회 이상 연속 사용하지 않습니다.
+- 여러 화려한 패턴을 한 문서에 모두 쓰지 않습니다. 한 문서에는 작은 표현 어휘를 반복해 통일감을 만듭니다.
 - 브랜드 방향이 필요하면 `references/design-md`의 통합 인사이트를 먼저 보고, 특정 브랜드 원문은 필요한 1~2개만 엽니다.
 - DESIGN.md의 색/타입/컴포넌트 규칙은 PPT 제약에 맞게 번역합니다. 외부 폰트, 애니메이션, hover, 비디오에 의존하지 않습니다.
 
@@ -53,6 +55,7 @@ pageHeight: 720px
 | 단계/일정 | timeline | `## 실행 타임라인 {#timeline .timeline}` |
 | KPI/숫자 | stats | `### 핵심 KPI {#kpi .stats}` |
 | 데이터 표 | card + table-fit | `## 데이터 {#data .card}` + `{: .table-fit ...}` |
+| 기술 근거/result matrix | table-fit 또는 compare | Method/Hit/Rank, qrels, long IDs는 `.stats` 금지 |
 | 병렬 항목 | two-column/three-column | `## 요약 {#summary .two-column}` |
 | 강한 인용 | quote-slide | `## 고객 멘트 {#quote .quote-slide}` |
 
@@ -61,12 +64,13 @@ pageHeight: 720px
 1. 원문의 heading과 문단을 topic 단위로 묶습니다.
 2. 각 topic에서 한 문장 핵심 메시지를 뽑습니다.
 3. topic 하나를 1~2장으로 제한합니다.
-4. 슬라이드별 패턴을 고릅니다: message, compare, timeline, stats, data, quote, columns.
-5. 브랜드/archetype이 있으면 색상 역할, 타입 밀도, 이미지 전략, 카드 스타일을 슬라이드별로 지정합니다.
-6. 긴 문단은 3~5개 bullet로 줄입니다.
-7. 표가 크면 핵심 행/열만 남기고 나머지는 부록 또는 별도 슬라이드로 분리합니다.
-8. 각 슬라이드 뒤에 page-break를 둡니다.
-9. 마지막에 연속 패턴, bullet 길이, 제목 누락, page-break 누락, brand accent 과사용을 점검합니다.
+4. 전체 문서의 component system을 먼저 고릅니다: evidence style, KPI style, code/table treatment, expressive limit.
+5. 슬라이드별 패턴을 고릅니다: message, compare, timeline, stats, data, quote, columns.
+6. 브랜드/archetype이 있으면 색상 역할, 타입 밀도, 이미지 전략, 카드 스타일을 슬라이드별로 지정합니다.
+7. 긴 문단은 3~5개 bullet로 줄입니다.
+8. 표가 크면 핵심 행/열만 남기고 나머지는 부록 또는 별도 슬라이드로 분리합니다.
+9. 각 슬라이드 뒤에 page-break를 둡니다.
+10. 마지막에 연속 패턴, bullet 길이, 제목 누락, page-break 누락, brand accent 과사용을 점검합니다.
 
 ## 템플릿 예시
 
@@ -137,6 +141,8 @@ pageHeight: 720px
 
 - 한 슬라이드에 표, 긴 문단, 리스트를 모두 넣지 않습니다.
 - 모든 슬라이드를 카드형으로 만들지 않습니다.
+- 목적이 다른 섹션에 같은 card grid를 반복하지 않습니다.
+- `.stats`를 기술 근거 표, 검색 평가 표, Method/Hit/Rank 표에 붙이지 않습니다.
 - 브랜드 색을 모든 요소에 반복하지 않습니다. 색은 의미 역할이 있을 때만 씁니다.
 - `###` 이하 heading을 남발하지 않습니다. 슬라이드 안의 계층은 bullet과 bold로 처리합니다.
 - 원문에 없는 수치, 결론, 사례를 만들어 넣지 않습니다.

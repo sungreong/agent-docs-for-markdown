@@ -1018,6 +1018,7 @@
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 14px;
   margin-top: 14px;
+  min-width: 0;
 }
 
 .stat-card {
@@ -1027,22 +1028,53 @@
   background: var(--doc-bg-soft);
   display: grid;
   gap: 6px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .stat-label {
   color: var(--doc-muted);
   font-size: 13px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .stat-value {
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.02em;
+  line-height: 1.08;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .stat-delta {
   font-size: 14px;
   font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.stat-value code,
+.stat-label code,
+.stat-delta code {
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.stat-card.has-code-like-value .stat-value {
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.25;
 }
 
 .stat-delta.positive {
@@ -1120,6 +1152,9 @@
 }
 .document-shell.is-paginated .stat-value {
   font-size: 2.2rem;
+}
+.document-shell.is-paginated .stat-card.has-code-like-value .stat-value {
+  font-size: 1.25rem;
 }
 .document-shell.is-paginated .stat-label {
   font-size: 0.85rem;

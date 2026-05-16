@@ -254,6 +254,8 @@ npm run test:embed-images
 - **Viewer 반응형 개선**: 좁은 패널에서 Outline과 문서 폭이 겹치지 않도록 Slide/Stack 레이아웃 재계산
 - **Zoom/Fit 개선**: Slide/Stack 모두 `+/-`는 5% 단위, `Fit`은 남는 공간이 있으면 100%를 넘어 확대 가능
 - **구조화 리팩터링**: 파일 브라우저 등록, TreeItem, Git 상태, Webview 보강 로직을 별도 모듈로 분리해 주요 소스 파일을 1000줄 미만으로 유지
+- **Stats 렌더 안정화**: `.stats` 섹션의 기술 근거 표(Method/Hit/Rank, long ID, boolean/rank 혼합)는 KPI 카드가 아니라 표로 유지
+- **AI 스킬 작성 프로토콜 강화**: `md-presentation-composer`가 전체 문서를 먼저 읽고 document map/component system을 정한 뒤 통일감 있게 변환하도록 보강
 
 사용 흐름:
 
@@ -319,7 +321,7 @@ npm run package:vsix
 설치:
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.10.vsix
+code --install-extension .\markdown-pattern-studio-preview-0.1.13.vsix
 ```
 
 ### 커서 동기화 동작 (Ctrl+S)
@@ -396,6 +398,7 @@ cd ai_skills && bash sync.sh
 | 참조 문서 | 역할 |
 |----------|------|
 | `quick-insert-catalog.md` | 템플릿·팔레트·스니펫 카탈로그 |
+| `component-selection-rules.md` | KPI 카드/표/비교/콜아웃/기술 근거 슬라이드 선택 기준 |
 | `document-design-rules.md` | 표·카드·목록 선택 기준 |
 | `ppt-like-markdown-rules.md` | 슬라이드형 Markdown 덱 규칙 |
 | `layout-orientation-rules.md` | 화면비 판단 규칙 |
@@ -414,12 +417,14 @@ npm run design:update
 
 수집 원본은 `ai_skills/claude/skills/md-presentation-composer/references/design-md/raw/`에 저장하고, `ai_skills/sync.sh`로 `agents`/`codex`에 동기화합니다.
 
-스킬 동작 프레임워크 (Audit → Map → Commit → Verify):
+스킬 동작 프레임워크 (Whole Document First → Audit → Map → Commit → Verify):
 
-1. **Audit** — 콘텐츠 유형 분류 (텍스트 중심 / 데이터 중심 / 비주얼 중심)
-2. **Map** — 콘텐츠를 레이아웃 아키타입에 할당 (커버/스탯/타임라인/아이콘리스트 등)
-3. **Commit** — 콘텐츠 작성 전 팔레트 + `intent:` 먼저 확정
-4. **Verify** — 시각적 QA 체크리스트 실행 후 완료 선언
+1. **Whole Document First** — 전체 문서를 읽고 목적, narrative spine, content families, 보존할 artifact를 먼저 정리
+2. **Component System** — evidence/KPI/code/table 처리와 사용할 표현 어휘를 문서 단위로 제한
+3. **Audit** — 콘텐츠 유형과 밀도 분류 (텍스트 중심 / 데이터 중심 / 비주얼 중심)
+4. **Map** — 콘텐츠를 레이아웃 아키타입에 할당 (커버/스탯/타임라인/아이콘리스트 등)
+5. **Commit** — 콘텐츠 작성 전 팔레트 + `intent:` 먼저 확정
+6. **Verify** — 시각적 QA 체크리스트 실행 후 완료 선언
 
 사용 예시:
 
@@ -459,6 +464,15 @@ npm run md2html -- public/examples/design-showcase.md --theme midnight --intent 
 - AI 스킬: `ai_skills/claude/skills/md-presentation-composer/`
 
 ## 변경 이력
+
+### VS Code Extension 0.1.13 — 2026-05-16
+
+- `.stats` 템플릿에 preflight를 추가해 KPI 표/list만 카드화하고, 검색 평가·기술 근거·Method/Hit/Rank 표는 일반 표로 보존
+- `statsMode="cards"` / `statsMode="table"` override를 지원해 작성자가 카드화 여부를 명시 가능
+- 긴 코드형 값이 카드 내부에서 깨지지 않도록 `overflow-wrap`과 code-like stat 스타일 보강
+- `md-presentation-composer` 스킬을 “전체 문서 먼저 읽기 → document map → component system → 섹션 작성” 흐름으로 강화
+- `component-selection-rules.md`를 추가해 KPI 카드, evidence table, compare, callout, technical proof 선택 기준 정리
+- 최신 VSIX: `vscode-extension/markdown-pattern-studio-preview-0.1.13.vsix`
 
 ### VS Code Extension 0.1.10 — 2026-05-16
 

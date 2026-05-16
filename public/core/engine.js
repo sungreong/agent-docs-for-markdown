@@ -1196,25 +1196,108 @@ function splitChildrenForColumns(section, columnCount = 2) {
   return columns;
 }
 
+function normalizeStatsMode(section, block) {
+  const raw =
+    block?.attrs?.statsMode ??
+    block?.attrs?.statsmode ??
+    block?.attrs?.['stats-mode'] ??
+    section?.attrs?.statsMode ??
+    section?.attrs?.statsmode ??
+    section?.attrs?.['stats-mode'] ??
+    'auto';
+  const value = String(raw).trim().toLowerCase();
+  if (['cards', 'card', 'kpi', 'true', 'on'].includes(value)) return 'cards';
+  if (['table', 'tables', 'false', 'off', 'none'].includes(value)) return 'table';
+  return 'auto';
+}
+
+function normalizeStatText(value = '') {
+  return String(value)
+    .replace(/<[^>]*>/g, '')
+    .replace(/[`*~]/g, '')
+    .trim();
+}
+
+function isCodeLikeStatText(value = '') {
+  const text = normalizeStatText(value);
+  if (text.length < 16 || /\s/.test(text)) return false;
+  if (/^[A-Z0-9][A-Z0-9_-]{14,}$/i.test(text) && /[_-]/.test(text)) return true;
+  if (/^[A-Z0-9._:/-]{16,}$/i.test(text) && /[._:/-]/.test(text)) return true;
+  return false;
+}
+
+function normalizeHeaderText(value = '') {
+  return normalizeStatText(value).toLowerCase().replace(/\s+/g, ' ');
+}
+
+function tableLooksLikeStats(block, mode = 'auto') {
+  if (mode === 'cards') return true;
+  if (mode === 'table') return false;
+
+  const headers = (block.headers || []).map(normalizeHeaderText);
+  if (headers.length < 2 || headers.length > 3) return false;
+  if (!Array.isArray(block.rows) || block.rows.length < 1 || block.rows.length > 6) return false;
+
+  const suspiciousHeaders = new Set([
+    'method',
+    'mode',
+    'query',
+    'document',
+    'doc',
+    'expected',
+    'expected document',
+    '기대 문서',
+    'hit',
+    'rank',
+    'page',
+    'status',
+    'supported',
+    'caveat',
+  ]);
+  if (headers.some((header) => suspiciousHeaders.has(header))) return false;
+
+  const labelHeaders = new Set(['metric', 'kpi', 'item', 'label', 'name', 'category', 'key', '지표', '항목', '구분', '이름', '기준']);
+  const valueHeaders = new Set(['value', '값', '수치', '현재', 'current', 'actual', 'score', 'rate', 'count', 'time', 'latency']);
+  const deltaHeaders = new Set(['delta', 'change', 'trend', 'diff', 'difference', '변화', '증감', '차이']);
+  if (!labelHeaders.has(headers[0]) || !valueHeaders.has(headers[1])) return false;
+  if (headers[2] && !deltaHeaders.has(headers[2])) return false;
+
+  const cells = block.rows.flat().map(normalizeStatText);
+  if (cells.some((cell) => /^(true|false)$/i.test(cell))) return false;
+  if (cells.some((cell) => isCodeLikeStatText(cell))) return false;
+
+  return true;
+}
+
+function toStatItem(label, value, delta = '') {
+  return {
+    label,
+    value,
+    delta,
+    isCodeLike: isCodeLikeStatText(label) || isCodeLikeStatText(value) || isCodeLikeStatText(delta),
+  };
+}
+
 function extractStatItems(section) {
   const stats = [];
   const restBlocks = [];
   for (const block of section.blocks || []) {
+    const statsMode = normalizeStatsMode(section, block);
     if (block.type === 'list') {
       const parsed = block.items
         .map((item) => (item?.text ?? '').split('|').map((part) => part.trim()))
         .filter((parts) => parts.length >= 2 && parts.length <= 3 && parts.every(Boolean));
-      if (parsed.length === block.items.length && parsed.length > 0) {
+      if (statsMode !== 'table' && parsed.length === block.items.length && parsed.length > 0) {
         for (const [label, value, delta = ''] of parsed) {
-          stats.push({ label, value, delta });
+          stats.push(toStatItem(label, value, delta));
         }
         continue;
       }
     }
-    if (block.type === 'table' && block.headers.length >= 2 && block.rows.length > 0) {
+    if (block.type === 'table' && block.headers.length >= 2 && block.rows.length > 0 && tableLooksLikeStats(block, statsMode)) {
       for (const row of block.rows) {
         const [label, value = '', delta = ''] = row;
-        stats.push({ label, value, delta });
+        stats.push(toStatItem(label, value, delta));
       }
       continue;
     }
@@ -1366,10 +1449,10 @@ export function registerBuiltInTemplates(registry) {
         ? `<div class="stats-grid">${stats
             .map(
               (item) => `
-                <article class="stat-card">
-                  <div class="stat-label">${escapeHtml(item.label)}</div>
-                  <div class="stat-value">${escapeHtml(item.value)}</div>
-                  ${item.delta ? `<div class="stat-delta ${/^[-]/.test(item.delta) ? 'negative' : 'positive'}">${escapeHtml(item.delta)}</div>` : ''}
+                <article class="stat-card${item.isCodeLike ? ' has-code-like-value' : ''}">
+                  <div class="stat-label">${renderInline(item.label, context)}</div>
+                  <div class="stat-value">${renderInline(item.value, context)}</div>
+                  ${item.delta ? `<div class="stat-delta ${/^[-]/.test(item.delta) ? 'negative' : 'positive'}">${renderInline(item.delta, context)}</div>` : ''}
                 </article>
               `,
             )
