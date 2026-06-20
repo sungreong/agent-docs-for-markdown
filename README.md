@@ -271,9 +271,10 @@ npm run test:embed-images
 
 이 화면은 VS Code에서 Markdown을 저장했을 때, 확장이 CLI 렌더링 결과를 Webview로 보여주고 Outline/페이지 네비게이션을 제공하는 상태입니다.
 
-### 최근 VS Code Extension 배포 준비 (0.1.30 — 2026-06-20)
+### 최근 VS Code Extension 배포 준비 (0.1.31 — 2026-06-20)
 
 - **Marketplace publisher 설정**: `publisher`를 `datanewbie-labs`로 지정하고 GitHub repository/bugs/homepage 링크를 실제 저장소로 정리했습니다.
+- **Marketplace 아이콘 추가**: 확장 대표 아이콘을 `assets/icon.png`로 패키지에 포함했습니다.
 - **배포 문서 최신화**: VSIX 설치 예시, 확장 ID, 변경 이력 파일을 현재 배포 버전에 맞췄습니다.
 
 ### VS Code Extension 업데이트 (0.1.20 — 2026-06-13)
@@ -361,7 +362,7 @@ npm run package:vsix
 설치:
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.30.vsix
+code --install-extension .\markdown-pattern-studio-preview-0.1.31.vsix
 ```
 
 ### 커서 동기화 동작 (Ctrl+S)
@@ -505,6 +506,12 @@ npm run md2html -- public/examples/design-showcase.md --theme midnight --intent 
 - AI 스킬: `ai_skills/claude/skills/md-presentation-composer/`
 
 ## 변경 이력
+
+### VS Code Extension 0.1.31 — 2026-06-20
+
+- Marketplace 대표 아이콘을 추가하고 `package.json`의 `icon` 필드에 연결
+- VSIX 패키지에 `assets/icon.png` 포함
+- 최신 VSIX: `vscode-extension/markdown-pattern-studio-preview-0.1.31.vsix`
 
 ### VS Code Extension 0.1.30 — 2026-06-20
 

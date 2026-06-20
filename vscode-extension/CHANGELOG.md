@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.31 - 2026-06-20
+
+- Added a Marketplace icon to the extension manifest.
+- Packaged the icon as `assets/icon.png`.
+
 ## 0.1.30 - 2026-06-20
 
 - Set the Marketplace publisher to `datanewbie-labs`.
