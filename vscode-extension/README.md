@@ -1,5 +1,7 @@
 # Markdown Pattern Studio Preview Extension
 
+[Install from the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
+
 This extension runs the repository CLI (`scripts/md-to-html.mjs`) and opens the rendered HTML in a VS Code webview.
 
 ## Features

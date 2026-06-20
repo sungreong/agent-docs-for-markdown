@@ -1,5 +1,7 @@
 ﻿# Markdown Pattern Studio
 
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Markdown%20Pattern%20Studio%20Preview-0078d4?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
+
 Markdown 중심으로 문서를 작성하고, 템플릿/속성 문법으로 보고서·슬라이드 스타일 HTML을 빠르게 렌더링하는 도구입니다.
 
 ## 실행
