@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { MarkdownFileBrowserProvider } from '../providers/markdownFileTreeProvider.js';
+import { pickLocalized, readMdStudioLanguage } from '../utils/localization.js';
 
 interface StoredExplorerFocusEntry {
   workspaceFolderUri: string;
@@ -48,7 +49,8 @@ async function focusFolder(
   if (!folderUri) return;
 
   if (!vscode.workspace.getWorkspaceFolder(folderUri)) {
-    void vscode.window.showErrorMessage('FOCUS는 현재 workspace 안의 폴더에서만 사용할 수 있습니다.');
+    const language = readMdStudioLanguage();
+    void vscode.window.showErrorMessage(pickLocalized(language, { en: 'FOCUS can only use folders inside the current workspace.', ko: 'FOCUS는 현재 workspace 안의 폴더에서만 사용할 수 있습니다.' }));
     return;
   }
 
@@ -58,15 +60,21 @@ async function focusFolder(
     await updateFolderFocusContext(provider);
     options.onDidChangeFocus();
 
+    const language = readMdStudioLanguage();
+    const clearFocusLabel = pickLocalized(language, { en: 'Clear Focus', ko: 'FOCUS 해제' });
     const choice = await vscode.window.showInformationMessage(
-      `FOCUS 적용: MD Studio File Browser에서 "${formatRelativePath(folderUri)}"만 봅니다.`,
-      'Clear Focus',
+      pickLocalized(language, {
+        en: `FOCUS applied: MD Studio File Browser now shows only "${formatRelativePath(folderUri)}".`,
+        ko: `FOCUS 적용: MD Studio File Browser에서 "${formatRelativePath(folderUri)}"만 봅니다.`,
+      }),
+      clearFocusLabel,
     );
-    if (choice === 'Clear Focus') {
+    if (choice === clearFocusLabel) {
       await clearFolderFocus(context, provider, options);
     }
   } catch (error) {
-    void vscode.window.showErrorMessage(`FOCUS 적용 실패: ${errorToMessage(error)}`);
+    const language = readMdStudioLanguage();
+    void vscode.window.showErrorMessage(pickLocalized(language, { en: `Failed to apply FOCUS: ${errorToMessage(error)}`, ko: `FOCUS 적용 실패: ${errorToMessage(error)}` }));
   }
 }
 
@@ -76,6 +84,7 @@ async function clearFolderFocus(
   options: RegisterFolderFocusOptions,
 ): Promise<void> {
   try {
+    const language = readMdStudioLanguage();
     const legacyRemovedCount = context ? await clearLegacyExplorerFocus(context) : 0;
     const focusItem = provider.getFocusItem();
     const hadBrowserFocus = provider.isFocusActive();
@@ -84,15 +93,20 @@ async function clearFolderFocus(
     options.onDidChangeFocus();
 
     if (!hadBrowserFocus && legacyRemovedCount === 0) {
-      void vscode.window.showInformationMessage('적용된 Folder Focus가 없습니다.');
+      void vscode.window.showInformationMessage(pickLocalized(language, { en: 'No Folder Focus is active.', ko: '적용된 Folder Focus가 없습니다.' }));
       return;
     }
 
     const target = focusItem ? `: ${focusItem.description ? `${focusItem.description}/` : ''}${focusItem.label}` : '';
-    const legacyNote = legacyRemovedCount > 0 ? ` Explorer 숨김 설정 ${legacyRemovedCount.toLocaleString()}개도 정리했습니다.` : '';
-    void vscode.window.showInformationMessage(`Folder Focus를 해제했습니다${target}.${legacyNote}`);
+    const legacyNote = legacyRemovedCount > 0
+      ? pickLocalized(language, { en: ` Also cleaned ${legacyRemovedCount.toLocaleString()} legacy Explorer exclude setting(s).`, ko: ` Explorer 숨김 설정 ${legacyRemovedCount.toLocaleString()}개도 정리했습니다.` })
+      : '';
+    void vscode.window.showInformationMessage(
+      pickLocalized(language, { en: `Cleared Folder Focus${target}.${legacyNote}`, ko: `Folder Focus를 해제했습니다${target}.${legacyNote}` }),
+    );
   } catch (error) {
-    void vscode.window.showErrorMessage(`Folder Focus 해제 실패: ${errorToMessage(error)}`);
+    const language = readMdStudioLanguage();
+    void vscode.window.showErrorMessage(pickLocalized(language, { en: `Failed to clear Folder Focus: ${errorToMessage(error)}`, ko: `Folder Focus 해제 실패: ${errorToMessage(error)}` }));
   }
 }
 
@@ -102,7 +116,8 @@ async function resolveFolderUri(commandArg: unknown): Promise<vscode.Uri | null>
   if (!uri) return null;
 
   if (uri.scheme !== 'file') {
-    void vscode.window.showErrorMessage('FOCUS는 로컬 폴더에서만 사용할 수 있습니다.');
+    const language = readMdStudioLanguage();
+    void vscode.window.showErrorMessage(pickLocalized(language, { en: 'FOCUS can only use local folders.', ko: 'FOCUS는 로컬 폴더에서만 사용할 수 있습니다.' }));
     return null;
   }
 
@@ -110,12 +125,14 @@ async function resolveFolderUri(commandArg: unknown): Promise<vscode.Uri | null>
   try {
     stat = await vscode.workspace.fs.stat(uri);
   } catch {
-    void vscode.window.showErrorMessage('선택한 폴더를 찾을 수 없습니다.');
+    const language = readMdStudioLanguage();
+    void vscode.window.showErrorMessage(pickLocalized(language, { en: 'The selected folder was not found.', ko: '선택한 폴더를 찾을 수 없습니다.' }));
     return null;
   }
 
   if ((stat.type & vscode.FileType.Directory) === 0) {
-    void vscode.window.showErrorMessage('FOCUS는 폴더를 선택했을 때만 사용할 수 있습니다.');
+    const language = readMdStudioLanguage();
+    void vscode.window.showErrorMessage(pickLocalized(language, { en: 'FOCUS requires a selected folder.', ko: 'FOCUS는 폴더를 선택했을 때만 사용할 수 있습니다.' }));
     return null;
   }
 

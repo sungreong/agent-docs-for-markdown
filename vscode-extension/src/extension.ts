@@ -10,7 +10,14 @@ import {
   type MarkdownFileBrowserController,
   registerMarkdownFileBrowser,
 } from './fileBrowser/registerMarkdownFileBrowser.js';
-import { getUriFromCommandArg, isMarkdownFile, isMarkdownFileUri, isMarkdownPath } from './utils/markdownFiles.js';
+import {
+  getUriFromCommandArg,
+  isHtmlFileUri,
+  isMarkdownFile,
+  isMarkdownFileUri,
+  isMarkdownPath,
+  isPreviewableFileUri,
+} from './utils/markdownFiles.js';
 import { assertFileExists, delay, errorToMessage, fileExists } from './utils/runtime.js';
 import { injectPreviewEnhancements } from './webview/previewEnhancements.js';
 import { renderErrorHtml, setPanelStatus } from './webview/statusHtml.js';
@@ -55,7 +62,10 @@ interface RenderOutput {
 interface RunCliRendererOptions {
   outputPath?: string;
   forceStandalone?: boolean;
+  exportTarget?: ExportTarget;
 }
+
+type ExportTarget = 'standalone' | 'blog-embed' | 'fragment';
 
 interface ParsedSection {
   id?: unknown;
@@ -118,15 +128,13 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('mdStudioPreview.refresh', async () => {
-      const document = await resolveTargetDocument();
-      if (!document) return;
-      await queuePreview(document, 'refresh');
+      await refreshCurrentPreview();
     }),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('mdStudioPreview.openSourceEditor', async (commandArg?: unknown) => {
-      await openMarkdownSourceEditor(commandArg);
+      await openPreviewSourceEditor(commandArg);
     }),
   );
 
@@ -184,11 +192,16 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((document) => {
-      if (!isMarkdownFile(document)) return;
-      captureCursorLineForDocument(document);
       const config = readConfig();
       if (!config.autoOnSave) return;
-      void queuePreview(document, 'save');
+      if (isMarkdownFile(document)) {
+        captureCursorLineForDocument(document);
+        void queuePreview(document, 'save');
+        return;
+      }
+      if (isHtmlFileUri(document.uri) && sessions.has(document.uri.toString())) {
+        void previewHtmlFile(document.uri, false);
+      }
     }),
   );
 
@@ -213,8 +226,9 @@ export function activate(context: vscode.ExtensionContext) {
   fileBrowserController = registerMarkdownFileBrowser(context, {
     openInEditor: openUriInTextEditor,
     resolveMarkdownUri: resolveMarkdownUriFromCommandArg,
-    openInViewer: openMarkdownInBrowserPanel,
-    openInNewPanel: openMarkdownInNewPanel,
+    resolvePreviewUri: resolvePreviewUriFromCommandArg,
+    openInViewer: openFileInBrowserPanel,
+    openInNewPanel: openFileInNewPanel,
   });
 }
 
@@ -292,14 +306,17 @@ async function transformMarkdownToHtml(commandArg?: unknown): Promise<void> {
     }
   }
 
+  const exportTarget = await pickHtmlExportTarget();
+  if (!exportTarget) return;
+
   let outputUri: vscode.Uri;
   if (skipSaveDialog) {
-    outputUri = vscode.Uri.file(buildDefaultStyledHtmlPath(sourceUri.fsPath));
+    outputUri = vscode.Uri.file(buildDefaultStyledHtmlPath(sourceUri.fsPath, exportTarget));
   } else {
     const picked = await vscode.window.showSaveDialog({
-      title: 'Save Styled HTML',
+      title: `Save ${getExportTargetLabel(exportTarget)}`,
       saveLabel: 'Transform',
-      defaultUri: vscode.Uri.file(buildDefaultStyledHtmlPath(sourceUri.fsPath)),
+      defaultUri: vscode.Uri.file(buildDefaultStyledHtmlPath(sourceUri.fsPath, exportTarget)),
       filters: {
         HTML: ['html'],
       },
@@ -321,7 +338,8 @@ async function transformMarkdownToHtml(commandArg?: unknown): Promise<void> {
       async () => {
         await runCliRendererForPath(sourceUri.fsPath, {
           outputPath: outputUri.fsPath,
-          forceStandalone: true,
+          forceStandalone: exportTarget === 'standalone',
+          exportTarget,
         });
       },
     );
@@ -330,13 +348,47 @@ async function transformMarkdownToHtml(commandArg?: unknown): Promise<void> {
     return;
   }
 
-  void vscode.window.showInformationMessage(`Styled HTML generated: ${outputUri.fsPath}`);
+  void vscode.window.showInformationMessage(`${getExportTargetLabel(exportTarget)} generated: ${outputUri.fsPath}`);
 }
 
-function buildDefaultStyledHtmlPath(inputPath: string): string {
+async function pickHtmlExportTarget(): Promise<ExportTarget | null> {
+  const picked = await vscode.window.showQuickPick(
+    [
+      {
+        label: 'Standalone HTML',
+        description: 'Full-page viewer with Style, Outline, Slides/Stack, and zoom controls',
+        target: 'standalone' as ExportTarget,
+      },
+      {
+        label: 'Blog Embed HTML',
+        description: 'Copy/paste fragment for Tistory, WordPress, Velog, and narrow article containers',
+        target: 'blog-embed' as ExportTarget,
+      },
+      {
+        label: 'Content Fragment',
+        description: 'Scoped document HTML without viewer chrome or scripts',
+        target: 'fragment' as ExportTarget,
+      },
+    ],
+    {
+      title: 'Choose HTML export target',
+      placeHolder: 'Standalone for local files, Blog Embed for copy/paste into an existing site.',
+    },
+  );
+  return picked?.target ?? null;
+}
+
+function getExportTargetLabel(target: ExportTarget): string {
+  if (target === 'blog-embed') return 'Blog Embed HTML';
+  if (target === 'fragment') return 'Content Fragment HTML';
+  return 'Styled HTML';
+}
+
+function buildDefaultStyledHtmlPath(inputPath: string, exportTarget: ExportTarget = 'standalone'): string {
   const inputDir = path.dirname(inputPath);
   const inputBaseName = path.basename(inputPath, path.extname(inputPath));
-  return path.join(inputDir, `${inputBaseName}.styled.html`);
+  const suffix = exportTarget === 'blog-embed' ? 'blog-embed' : exportTarget === 'fragment' ? 'fragment' : 'styled';
+  return path.join(inputDir, `${inputBaseName}.${suffix}.html`);
 }
 
 async function resolveMarkdownUriFromCommandArg(commandArg: unknown): Promise<vscode.Uri | null> {
@@ -351,6 +403,51 @@ async function resolveMarkdownUriFromCommandArg(commandArg: unknown): Promise<vs
   return document?.uri ?? null;
 }
 
+async function resolvePreviewUriFromCommandArg(commandArg: unknown): Promise<vscode.Uri | null> {
+  const commandUri = getUriFromCommandArg(commandArg);
+  if (commandUri) {
+    if (isPreviewableFileUri(commandUri)) return commandUri;
+    if (commandUri.scheme === 'file') {
+      void vscode.window.showErrorMessage('Select a local markdown or HTML file and try again.');
+      return null;
+    }
+  }
+
+  const active = vscode.window.activeTextEditor?.document;
+  if (active && !active.isUntitled && isPreviewableFileUri(active.uri)) {
+    return active.uri;
+  }
+
+  const activeTabUri = getActiveTabPreviewUri();
+  if (activeTabUri) return activeTabUri;
+
+  return resolvePreviewUriForCurrentContext();
+}
+
+async function openFileInBrowserPanel(uri: vscode.Uri): Promise<void> {
+  if (isMarkdownFileUri(uri)) {
+    await openMarkdownInBrowserPanel(uri);
+    return;
+  }
+  if (isHtmlFileUri(uri)) {
+    await openHtmlInBrowserPanel(uri);
+    return;
+  }
+  void vscode.window.showErrorMessage('Select a local markdown or HTML file and try again.');
+}
+
+async function openFileInNewPanel(uri: vscode.Uri): Promise<void> {
+  if (isMarkdownFileUri(uri)) {
+    await openMarkdownInNewPanel(uri);
+    return;
+  }
+  if (isHtmlFileUri(uri)) {
+    await previewHtmlFile(uri, true);
+    return;
+  }
+  void vscode.window.showErrorMessage('Select a local markdown or HTML file and try again.');
+}
+
 async function openMarkdownInBrowserPanel(uri: vscode.Uri): Promise<void> {
   const newKey = uri.toString();
   if (lastBrowserKey && lastBrowserKey !== newKey) {
@@ -362,9 +459,57 @@ async function openMarkdownInBrowserPanel(uri: vscode.Uri): Promise<void> {
   await queuePreview(document, 'open');
 }
 
+async function openHtmlInBrowserPanel(uri: vscode.Uri): Promise<void> {
+  const newKey = uri.toString();
+  if (lastBrowserKey && lastBrowserKey !== newKey) {
+    const previous = sessions.get(lastBrowserKey);
+    if (previous) previous.panel.dispose();
+  }
+  lastBrowserKey = newKey;
+  await previewHtmlFile(uri, true);
+}
+
 async function openMarkdownInNewPanel(uri: vscode.Uri): Promise<void> {
   const document = await vscode.workspace.openTextDocument(uri);
   await queuePreview(document, 'open');
+}
+
+async function refreshCurrentPreview(): Promise<void> {
+  const uri = await resolvePreviewUriForCurrentContext();
+  if (!uri) return;
+
+  if (isMarkdownFileUri(uri)) {
+    const document = await vscode.workspace.openTextDocument(uri);
+    await queuePreview(document, 'refresh');
+    return;
+  }
+
+  if (isHtmlFileUri(uri)) {
+    await previewHtmlFile(uri, true);
+    return;
+  }
+}
+
+async function resolvePreviewUriForCurrentContext(): Promise<vscode.Uri | null> {
+  const active = vscode.window.activeTextEditor?.document;
+  if (active && !active.isUntitled && isPreviewableFileUri(active.uri)) {
+    return active.uri;
+  }
+
+  const activeTabUri = getActiveTabPreviewUri();
+  if (activeTabUri) return activeTabUri;
+
+  if (lastPreviewKey) {
+    try {
+      const uri = vscode.Uri.parse(lastPreviewKey);
+      if (isPreviewableFileUri(uri)) return uri;
+    } catch {
+      // Ignore and fall through to markdown source resolution.
+    }
+  }
+
+  const document = await resolveTargetDocument();
+  return document?.uri ?? null;
 }
 
 async function resolveTargetDocument(): Promise<vscode.TextDocument | null> {
@@ -373,6 +518,36 @@ async function resolveTargetDocument(): Promise<vscode.TextDocument | null> {
 
   void vscode.window.showErrorMessage('Open a markdown file and try again.');
   return null;
+}
+
+async function openPreviewSourceEditor(commandArg?: unknown): Promise<vscode.TextDocument | null> {
+  const commandUri = getUriFromCommandArg(commandArg);
+  if (commandUri) {
+    if (isPreviewableFileUri(commandUri)) return openPreviewUriInEditor(commandUri);
+    if (commandUri.scheme === 'file') {
+      void vscode.window.showErrorMessage('Select a local markdown or HTML file and try again.');
+      return null;
+    }
+  }
+
+  const active = vscode.window.activeTextEditor?.document;
+  if (active && !active.isUntitled && isPreviewableFileUri(active.uri)) {
+    return openPreviewUriInEditor(active.uri);
+  }
+
+  const activeTabUri = getActiveTabPreviewUri();
+  if (activeTabUri) return openPreviewUriInEditor(activeTabUri);
+
+  if (lastPreviewKey) {
+    try {
+      const uri = vscode.Uri.parse(lastPreviewKey);
+      if (isPreviewableFileUri(uri)) return openPreviewUriInEditor(uri);
+    } catch {
+      // Ignore and fall through to the markdown-specific source lookup.
+    }
+  }
+
+  return openMarkdownSourceEditor(undefined, true);
 }
 
 async function openMarkdownSourceEditor(commandArg?: unknown, showError = true): Promise<vscode.TextDocument | null> {
@@ -448,6 +623,16 @@ async function openUriInTextEditor(uri: vscode.Uri): Promise<void> {
   }
 }
 
+async function openPreviewUriInEditor(uri: vscode.Uri): Promise<vscode.TextDocument | null> {
+  if (!isPreviewableFileUri(uri)) return null;
+  const document = await vscode.workspace.openTextDocument(uri);
+  const editor = await vscode.window.showTextDocument(document, { preview: false, preserveFocus: false });
+  if (isMarkdownFile(document)) {
+    cacheCursorLineFromEditor(editor);
+  }
+  return document;
+}
+
 async function openMarkdownUriInEditor(uri: vscode.Uri): Promise<vscode.TextDocument | null> {
   const document = await vscode.workspace.openTextDocument(uri);
   if (!isMarkdownFile(document)) return null;
@@ -460,6 +645,13 @@ function getActiveTabMarkdownUri(): vscode.Uri | null {
   const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
   if (input instanceof vscode.TabInputText && isMarkdownFileUri(input.uri)) return input.uri;
   if (input instanceof vscode.TabInputTextDiff && isMarkdownFileUri(input.modified)) return input.modified;
+  return null;
+}
+
+function getActiveTabPreviewUri(): vscode.Uri | null {
+  const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+  if (input instanceof vscode.TabInputText && isPreviewableFileUri(input.uri)) return input.uri;
+  if (input instanceof vscode.TabInputTextDiff && isPreviewableFileUri(input.modified)) return input.modified;
   return null;
 }
 
@@ -509,7 +701,7 @@ async function previewDocument(document: vscode.TextDocument, reason: PreviewRea
   }
   const syncTargetSectionId = reason === 'save' ? await resolveCursorSectionIdForSave(document) : null;
 
-  const session = ensureSession(document, reason !== 'save');
+  const session = ensureSessionForUri(document.uri, reason !== 'save');
   setPanelStatus(session.panel, `Rendering (${reason})...`);
 
   try {
@@ -560,8 +752,52 @@ async function previewDocument(document: vscode.TextDocument, reason: PreviewRea
   }
 }
 
-function ensureSession(document: vscode.TextDocument, reveal: boolean): PreviewSession {
-  const key = document.uri.toString();
+async function previewHtmlFile(uri: vscode.Uri, reveal: boolean): Promise<void> {
+  const config = readConfig();
+  const key = uri.toString();
+  const session = ensureSessionForUri(uri, reveal);
+  setPanelStatus(session.panel, 'Opening HTML...');
+
+  try {
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri) ?? null;
+    const inputDir = path.dirname(uri.fsPath);
+    const roots = [
+      ...(workspaceFolder ? [workspaceFolder.uri] : []),
+      vscode.Uri.file(inputDir),
+    ];
+    session.panel.webview.options = {
+      enableScripts: true,
+      localResourceRoots: roots,
+    };
+
+    const rawHtml = await fs.readFile(uri.fsPath, 'utf8');
+    const htmlDocument = normalizeHtmlForWebview(rawHtml, path.basename(uri.fsPath));
+    const html = injectPreviewEnhancements(
+      rewriteLocalFileUris(htmlDocument, session.panel.webview),
+      {
+        preferredViewMode: config.preferredViewMode,
+        outlineCollapsed: session.outlineCollapsed,
+        appearance: loadAppearanceState(),
+      },
+    );
+
+    session.lastSyncedSectionId = null;
+    session.isBridgeReady = false;
+    session.pendingSyncSectionId = null;
+    session.panel.webview.html = html;
+    session.panel.title = `MPS Preview: ${path.basename(uri.fsPath)}`;
+    lastPreviewKey = key;
+    fileBrowserController?.recordRecent(uri);
+    fileBrowserController?.reveal(uri);
+  } catch (error) {
+    const details = errorToMessage(error);
+    session.panel.webview.html = renderErrorHtml(details);
+    void vscode.window.showErrorMessage(`Markdown Studio HTML preview failed: ${details}`);
+  }
+}
+
+function ensureSessionForUri(uri: vscode.Uri, reveal: boolean): PreviewSession {
+  const key = uri.toString();
   const existing = sessions.get(key);
   if (existing) {
     if (reveal) {
@@ -572,7 +808,7 @@ function ensureSession(document: vscode.TextDocument, reveal: boolean): PreviewS
 
   const panel = vscode.window.createWebviewPanel(
     'mdStudioPreview',
-    `MPS Preview: ${path.basename(document.uri.fsPath)}`,
+    `MPS Preview: ${path.basename(uri.fsPath)}`,
     {
       viewColumn: vscode.ViewColumn.Beside,
       preserveFocus: !reveal,
@@ -616,12 +852,35 @@ function ensureSession(document: vscode.TextDocument, reveal: boolean): PreviewS
     void persistOutlineCollapsedState(session.key, payload.collapsed);
   });
 
+  panel.onDidChangeViewState((event) => {
+    if (event.webviewPanel.active) {
+      lastPreviewKey = key;
+    }
+  });
+
   panel.onDidDispose(() => {
     sessions.delete(key);
     void cleanupTempFile(session.tempOutputPath);
   });
 
   return session;
+}
+
+function normalizeHtmlForWebview(rawHtml: string, title: string): string {
+  if (/<html[\s>]/i.test(rawHtml)) return rawHtml;
+  return [
+    '<!DOCTYPE html>',
+    '<html lang="en">',
+    '<head>',
+    '  <meta charset="UTF-8">',
+    '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+    `  <title>${escapeHtmlAttribute(title)}</title>`,
+    '</head>',
+    '<body>',
+    rawHtml,
+    '</body>',
+    '</html>',
+  ].join('\n');
 }
 
 async function runCliRenderer(document: vscode.TextDocument): Promise<RenderOutput> {
@@ -682,6 +941,10 @@ async function runCliRendererForPath(inputPath: string, options: RunCliRendererO
   if (config.stripEmailDisclaimer && !extraArgs.includes('--strip-email-disclaimer')) {
     extraArgs.push('--strip-email-disclaimer');
   }
+  if (options.exportTarget && options.exportTarget !== 'standalone') {
+    removeOptionWithValue(extraArgs, '--export-target');
+    extraArgs.push('--export-target', options.exportTarget);
+  }
   extraArgs.push(...buildAppearanceCliArgs(loadAppearanceState()));
   const args = [scriptPath, inputPath, '--out', outputPath, '--base-dir', inputDir, ...extraArgs];
   await spawnProcess(config.nodePath, args, cwd);
@@ -698,6 +961,13 @@ function normalizeRendererExtraArgs(extraArgs: string[], forceStandalone: boolea
     normalized.push('--standalone');
   }
   return normalized;
+}
+
+function removeOptionWithValue(args: string[], optionName: string): void {
+  for (let index = args.length - 1; index >= 0; index -= 1) {
+    if (args[index] !== optionName) continue;
+    args.splice(index, index + 1 < args.length ? 2 : 1);
+  }
 }
 
 function resolveCliScriptPath(workspaceFolder: vscode.WorkspaceFolder, rawValue: string): string {

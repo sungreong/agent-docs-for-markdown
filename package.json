@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "md2html": "node scripts/md-to-html.mjs",
+    "test:blog-embed": "node test/blog-embed-export-guard.mjs",
+    "test:document-advisor": "node test/document-production-advisor-render.mjs",
     "test:embed-images": "node test/embed-local-images.mjs",
     "test:brand-designs": "node test/brand-design-integration.mjs",
     "design:collect": "node scripts/collect-design-md.mjs",

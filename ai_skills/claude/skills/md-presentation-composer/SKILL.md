@@ -20,6 +20,7 @@ Before writing a single line of output, work through four phases:
 Read the entire source before choosing templates or rewriting sections. Do not design slide-by-slide while still discovering the content.
 
 Before the transformation plan, create a compact document map:
+- Request contract: user goal, output format, language, target audience, must-include items, constraints, and visible acceptance criteria.
 - Purpose and audience: report, pitch, technical review, tutorial, narrative, or reference.
 - Narrative spine: 3-6 beats that the document should follow from opening to close.
 - Content families: claims, KPIs, evidence tables, code, diagrams, quotes, risks, decisions, appendices.
@@ -29,12 +30,14 @@ Before the transformation plan, create a compact document map:
 Then define a component system for the whole document:
 - Choose one primary evidence treatment (`.table-fit`, code block, diagram, or `.compare`) and reuse it.
 - Choose one KPI treatment (`.stats`) only if the content has true top-line metrics.
+- Choose at most one primary expression treatment from `.safe-zone`, `.problem-statement`, `.big-number-hero`, `.feature-grid`, `.metrics-dashboard`, or `.contrast-pair`.
 - Use at most 1-2 expressive templates (`.dark`, `.half-bleed`, `.quote-slide`) in a normal technical/report deck.
 - Avoid making every section a card grid. Repetition is acceptable for a family of evidence slides, but not as a default decoration.
 - When content is technical, prioritize exactness and scanability over visual spectacle.
 
 **Phase 1 — Audit**: Classify content AND assess density.
 - Read the whole document end-to-end before making section-level edits.
+- Compile the user's request into acceptance criteria before proposing a design.
 - What is the primary content? text-heavy / data-heavy / visual-heavy / mixed
 - Who is the reader? executive / technical / general / student
 - What action should they take after reading?
@@ -49,6 +52,11 @@ Then define a component system for the whole document:
 - Side-by-side exactly 2 → `.compare` or `.two-column`
 - Exactly 3 symmetric items → `.three-column` (never `.compare` for 3 items)
 - Feature list with icons → `.icon-list` (4–5 items optimal; 3 items fills only half the slide)
+- Feature/capability bullets without icons → `.feature-grid` (3–6 peer items)
+- Single memorable metric/claim → `.big-number-hero` (must include one supporting sentence)
+- Pain-point framing → `.problem-statement`
+- Before/after or old/new pairs → `.contrast-pair`
+- Blog/hero/banner-like sections → `.safe-zone`
 - Sequential stages → `.timeline` (3–5 stages; more than 5 may overflow)
 - Image-dominant → `.half-bleed` (always full-canvas; use when content is otherwise thin)
 - Conclusion/CTA → `.dark` (always full-canvas)
@@ -65,6 +73,8 @@ Then define a component system for the whole document:
 **Phase 4 — Verify**: Run the visual QA checklist before declaring done (see `references/validation-rules.md`).
 - For each slide: would a reader see this and think "this slide is full"? If not, add content or switch to a denser template.
 - Check template pairing: no same template used 3+ slides in a row; alternate heavy and light templates.
+- Check the output against the request contract: every must-include requirement is present, every constraint is honored, and unsupported ideas are removed instead of kept as broken decoration.
+- When rendering is possible, verify the actual HTML at desktop and narrow widths before finalizing.
 
 ## Execution Rules
 
@@ -72,8 +82,9 @@ Then define a component system for the whole document:
 2. Present the full transformation plan. Do not modify the original at this stage.
 3. The plan must include: change summary, document map, component system, auto-insert candidates, layout decisions, palette recommendation, `intent:` value, aspect ratio.
 4. If a brand/archetype is used, include the DESIGN.md insight source and how it maps to PPT Markdown templates.
-5. Get user approval, then emit `[FINAL OUTPUT]`.
-6. When in doubt: fewer decorations, clearer structure.
+5. Include a request-to-section trace: each planned section must map to a user requirement, reader need, or evidence need.
+6. Get user approval, then emit `[FINAL OUTPUT]`.
+7. When in doubt: fewer decorations, clearer structure.
 
 ## Input Rules
 
@@ -169,6 +180,22 @@ Do not load all 70 raw DESIGN.md files into context. Use the synthesis and manif
 | `.half-bleed` | Half-Bleed | `## Title {: .half-bleed side="right"}` + image first | Image fills one half, text fills the other |
 | `.icon-list` | Icon List | `## Title {: .icon-list}` + `- 🚀 \| Header \| Description` | Feature list with icon circles |
 
+### Expression Utilities
+
+These are supported by the renderer as regular section/block classes:
+
+| Markdown Class | Best for |
+|---------------|----------|
+| `.safe-zone` | Keeping important content inside the central reading area |
+| `.problem-statement` | Problem/pain framing sections |
+| `.big-number-hero` | One strong metric or claim |
+| `.feature-grid` | 3–6 independent feature bullets |
+| `.metrics-dashboard` | KPI-like bullets rendered as compact cards |
+| `.contrast-pair` | Before/after, old/new, risk/response comparisons |
+| `.gradient-number` | Accent treatment for a number paragraph or list emphasis |
+| `.oversized` | One large typographic statement |
+| `.screenshot-shadow` | Product/result screenshot images |
+
 ### Sandwich Structure Pattern (PPTX skill concept)
 
 Dark title slide → light content slides → dark conclusion slide.
@@ -213,15 +240,17 @@ The image fills the right half. This text appears on the left with generous padd
 ## Output Sequence
 
 1. `[DOCUMENT PLAN]` — original diagnosis, document purpose, audience, first-page role
-2. `[DOCUMENT MAP]` — narrative spine, content families, exact artifacts to preserve
-3. `[COMPONENT SYSTEM]` — chosen templates, evidence treatment, KPI treatment, restraint rules
-4. `[PALETTE & INTENT]` — recommended theme + intent + font pairing rationale
-5. `[DESIGN DIRECTION]` — selected DESIGN.md brand/archetype, why it fits, and what NOT to copy
-6. `[SECTION BREAKDOWN]` — section reorder and page-break plan, one layout per slide
-7. `[DESIGN DECISIONS]` — why each template was chosen, what visual element each slide gets
-8. `[RISK CHECK]` — meaning preservation risk, aspect ratio recommendation with rationale
-9. User approval
-10. `[FINAL OUTPUT]` — final Markdown
+2. `[REQUEST CONTRACT]` — explicit user requirements, constraints, acceptance criteria, and feasible verification method
+3. `[DOCUMENT MAP]` — narrative spine, content families, exact artifacts to preserve
+4. `[COMPONENT SYSTEM]` — chosen templates, evidence treatment, KPI treatment, restraint rules
+5. `[PALETTE & INTENT]` — recommended theme + intent + font pairing rationale
+6. `[DESIGN DIRECTION]` — selected DESIGN.md brand/archetype, why it fits, and what NOT to copy
+7. `[SECTION BREAKDOWN]` — section reorder and page-break plan, one layout per slide
+8. `[REQUEST TRACE]` — which user requirement each section satisfies; remove sections with no trace
+9. `[DESIGN DECISIONS]` — why each template was chosen, what visual element each slide gets
+10. `[RISK CHECK]` — meaning preservation risk, aspect ratio recommendation, unsupported or intentionally skipped ideas
+11. User approval
+12. `[FINAL OUTPUT]` — final Markdown
 
 ## Design Anti-Patterns to Avoid
 
@@ -241,8 +270,23 @@ These are structurally prevented by the engine, but avoid introducing them in co
 - Web preview uses `contain` responsive scale.
 - Saved HTML / print uses fixed page size.
 
+## DOCX Handoff Policy
+
+If the user mentions Word, DOCX, memo, report handoff, or later document conversion:
+
+- Keep heading levels semantic and sequential so they can become a useful Word outline/TOC.
+- Use real Markdown lists, not typed bullet symbols.
+- Put page-break markers only between sections.
+- Add captions to tables and evidence images.
+- Keep wide tables as `.table-fit`, split them, or mark them as landscape candidates.
+- Do not rely on hover, collapsible UI, or fixed viewer controls for essential information.
+- Preserve code, links, numbers, identifiers, and source notes exactly.
+
 ## Quality Gates
 
+- The output satisfies the request contract, not just generic design quality. Treat the request contract as a validation harness for the user's requested outcome, not as a document topic to insert.
+- Each section traces to a user requirement, reader need, or evidence need.
+- Unsupported, impossible, or visually brittle ideas are removed or replaced with supported Markdown Pattern Studio classes.
 - No consecutive `page-break` tokens; no trailing `page-break`.
 - No blank pages (section with no meaningful content).
 - Dense tables/images/code → prioritize page separation.
@@ -251,6 +295,8 @@ These are structurally prevented by the engine, but avoid introducing them in co
 - UTF-8 encoding — detect and recover garbled characters.
 - Heading hierarchy must not skip levels or have empty headings.
 - Images should have `alt` / `caption`; tables should have `caption`; code blocks should have a language tag.
+- If DOCX handoff is likely, headings, lists, page breaks, image captions, and table captions must remain structurally clean.
+- If PPTX-like delivery is likely, verify one main message per page, readable title scale, no unintended overlap, and no dense wall-of-text slide before finalizing.
 
 ## Syntax Preservation Checklist
 
@@ -264,6 +310,7 @@ Do not damage these during transformation:
 
 ## Export Quality Checklist
 
+- Render the actual generated HTML when possible; do not rely only on source inspection.
 - Relative-path images → verify Base64 embedding in standalone CLI output
 - Missing local images → conversion continues, original `src` preserved + fallback region shown
 - Mermaid → render attempt first, fallback to source on failure
@@ -273,14 +320,16 @@ Do not damage these during transformation:
 
 ## Self-Check Before Final Output
 
-1. Does the first page communicate the core message within 3 seconds?
-2. Is the chosen palette dominant (one color at 60–70% weight)?
-3. Does every slide have at least one non-text visual element?
-4. Does the layout vary — no same template used 3+ times in a row?
-5. Are the `intent:` and `theme:` set in frontmatter?
-6. If `design:` is set, does it match a valid manifest slug and an appropriate archetype?
-7. Is the sandwich structure applied (dark cover + dark conclusion)?
-8. Is original meaning, code, tables, links, and image syntax fully preserved?
+1. Does the output satisfy the user's explicit request and constraints?
+2. Does the first page communicate the core message within 3 seconds?
+3. Is the chosen palette dominant (one color at 60–70% weight)?
+4. Does every slide have at least one non-text visual element?
+5. Does the layout vary — no same template used 3+ times in a row?
+6. Are the `intent:` and `theme:` set in frontmatter?
+7. If `design:` is set, does it match a valid manifest slug and an appropriate archetype?
+8. Is the sandwich structure applied when appropriate, not forced?
+9. Is original meaning, code, tables, links, and image syntax fully preserved?
+10. Was the rendered output checked for overflow, clipping, overlap, broken images, and mobile/narrow layout failures?
 
 ## Reference Documents
 
@@ -291,4 +340,5 @@ Do not damage these during transformation:
 - Quick insert catalog: `references/quick-insert-catalog.md`
 - Layout orientation rules: `references/layout-orientation-rules.md`
 - Validation and QA rules: `references/validation-rules.md`
+- Downloadable production advisor skill: `../document-production-advisor/SKILL.md`
 - DESIGN.md insight library: `references/design-md/design-md-insights.md`, `references/design-md/design-md-archetypes.md`, `references/design-md/design-md-decision-framework.md`, `references/design-md/design-md-to-ppt-rules.md`, `references/design-md/manifest.json`

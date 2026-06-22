@@ -7,9 +7,11 @@ import {
   buildExtensionGlob,
   getBrowserFileExtensions,
   isMarkdownFileUri,
+  isPreviewableFileUri,
   normalizeExtraFileExtensions,
   readExtraFileExtensions,
 } from '../utils/markdownFiles.js';
+import { pickLocalized, readMdStudioLanguage, type MdStudioLanguage } from '../utils/localization.js';
 
 export type FileBrowserSortOrder = 'nameAsc' | 'nameDesc' | 'modifiedDesc' | 'modifiedAsc' | 'createdDesc' | 'createdAsc' | 'sizeDesc' | 'sizeAsc' | 'lengthDesc' | 'lengthAsc';
 
@@ -39,26 +41,50 @@ const FILTER_RESULT_LIMIT = 20;
 const RECENT_FOLDER_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 const STALE_FILE_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000;
 
-const SORT_DESCRIPTIONS: Record<FileBrowserSortOrder, string> = {
-  nameAsc: '이름 A-Z',
-  nameDesc: '이름 Z-A',
-  modifiedDesc: '최근 수정',
-  modifiedAsc: '오래 안 고침',
-  createdDesc: '최근 생성',
-  createdAsc: '오래된 생성',
-  sizeDesc: '큰 파일',
-  sizeAsc: '작은 파일',
-  lengthDesc: '긴 문서',
-  lengthAsc: '짧은 문서',
+const SORT_DESCRIPTIONS: Record<MdStudioLanguage, Record<FileBrowserSortOrder, string>> = {
+  en: {
+    nameAsc: 'Name A-Z',
+    nameDesc: 'Name Z-A',
+    modifiedDesc: 'Recently modified',
+    modifiedAsc: 'Least recently modified',
+    createdDesc: 'Recently created',
+    createdAsc: 'Oldest created',
+    sizeDesc: 'Largest files',
+    sizeAsc: 'Smallest files',
+    lengthDesc: 'Longest documents',
+    lengthAsc: 'Shortest documents',
+  },
+  ko: {
+    nameAsc: '이름 A-Z',
+    nameDesc: '이름 Z-A',
+    modifiedDesc: '최근 수정',
+    modifiedAsc: '오래 안 고침',
+    createdDesc: '최근 생성',
+    createdAsc: '오래된 생성',
+    sizeDesc: '큰 파일',
+    sizeAsc: '작은 파일',
+    lengthDesc: '긴 문서',
+    lengthAsc: '짧은 문서',
+  },
 };
 
-const FILTER_DESCRIPTIONS: Record<FileBrowserFilterMode, string> = {
-  all: '전체',
-  pinned: 'Pinned',
-  recent: 'Recent',
-  stale: '오래 안 고침',
-  long: '긴 문서',
-  large: '큰 파일',
+const FILTER_DESCRIPTIONS: Record<MdStudioLanguage, Record<FileBrowserFilterMode, string>> = {
+  en: {
+    all: 'All',
+    pinned: 'Pinned',
+    recent: 'Recent',
+    stale: 'Stale',
+    long: 'Long documents',
+    large: 'Large files',
+  },
+  ko: {
+    all: '전체',
+    pinned: 'Pinned',
+    recent: 'Recent',
+    stale: '오래 안 고침',
+    long: '긴 문서',
+    large: '큰 파일',
+  },
 };
 
 interface MarkdownFileMetadata {
@@ -111,6 +137,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   private visibleUris: vscode.Uri[] = [];
   private refreshRun = 0;
   private initialized = false;
+  private language: MdStudioLanguage = readMdStudioLanguage();
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.sortOrder = readSortOrder(context);
@@ -122,6 +149,13 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     this.focusRootPath = readFocusRootPath(context);
     context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration('mdStudioPreview.language')) {
+          const nextLanguage = readMdStudioLanguage();
+          if (nextLanguage !== this.language) {
+            this.language = nextLanguage;
+            if (this.initialized) this.scheduleRefresh();
+          }
+        }
         if (!event.affectsConfiguration('mdStudioFileBrowser.extraExtensions')) return;
         const nextExtraExtensions = readExtraFileExtensions();
         if (sameExtensionArray(this.extraExtensions, nextExtraExtensions)) return;
@@ -212,7 +246,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   }
 
   getSortDescription(): string {
-    const parts = [SORT_DESCRIPTIONS[this.sortOrder], FILTER_DESCRIPTIONS[this.filterMode]];
+    const parts = [SORT_DESCRIPTIONS[this.language][this.sortOrder], FILTER_DESCRIPTIONS[this.language][this.filterMode]];
     if (this.extraExtensions.length) parts.push(this.extraExtensions.join(', '));
     if (this.focusRootPath) parts.push('FOCUS');
     return parts.join(' · ');
@@ -238,7 +272,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   }
 
   getExtensionDescription(): string {
-    const extra = this.extraExtensions.length ? this.extraExtensions.join(', ') : '추가 없음';
+    const extra = this.extraExtensions.length ? this.extraExtensions.join(', ') : pickLocalized(this.language, { en: 'none', ko: '추가 없음' });
     return `Markdown + ${extra}`;
   }
 
@@ -565,37 +599,40 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
       : isMarkdown
         ? 'mdFile'
         : 'mdExtraFile';
-    item.description = formatMetadataDescription(metadata, this.sortOrder);
-    item.tooltip = buildMetadataTooltip(item.resourceUri.fsPath, metadata);
+    item.description = formatMetadataDescription(metadata, this.sortOrder, this.language);
+    item.tooltip = buildMetadataTooltip(item.resourceUri.fsPath, metadata, false, this.language);
+    applyFileOpenCommand(item);
   }
 
   private decoratePinnedFileItem(item: MarkdownFileItem): void {
     const metadata = this.metadataByPath.get(item.resourceUri.fsPath);
     item.contextValue = isMarkdownFileUri(item.resourceUri) ? 'mdPinnedFile' : 'mdExtraPinnedFile';
-    item.description = formatMetadataDescription(metadata, this.sortOrder);
-    item.tooltip = buildMetadataTooltip(item.resourceUri.fsPath, metadata, true);
+    item.description = formatMetadataDescription(metadata, this.sortOrder, this.language);
+    item.tooltip = buildMetadataTooltip(item.resourceUri.fsPath, metadata, true, this.language);
+    applyFileOpenCommand(item);
   }
 
   private decorateVirtualFileItem(item: MarkdownFileItem, contextValue: string): void {
     const metadata = this.metadataByPath.get(item.resourceUri.fsPath);
     item.contextValue = contextValue;
-    item.description = formatMetadataDescription(metadata, this.sortOrder);
-    item.tooltip = buildMetadataTooltip(item.resourceUri.fsPath, metadata, true);
+    item.description = formatMetadataDescription(metadata, this.sortOrder, this.language);
+    item.tooltip = buildMetadataTooltip(item.resourceUri.fsPath, metadata, true, this.language);
+    applyFileOpenCommand(item);
   }
 
   private decorateFolderItem(item: MarkdownFileItem, dir: string): void {
     const summary = this.folderSummaryByPath.get(normalizeFsPath(dir)) ?? { total: 0, recent: 0, stale: 0 };
     if (!summary.total) return;
 
-    const parts = [`${summary.total.toLocaleString()}파일`];
-    if (summary.recent > 0) parts.push(`${summary.recent.toLocaleString()}개 최근`);
-    if (summary.stale > 0) parts.push(`${summary.stale.toLocaleString()}개 오래됨`);
+    const parts = [pickLocalized(this.language, { en: `${summary.total.toLocaleString()} files`, ko: `${summary.total.toLocaleString()}파일` })];
+    if (summary.recent > 0) parts.push(pickLocalized(this.language, { en: `${summary.recent.toLocaleString()} recent`, ko: `${summary.recent.toLocaleString()}개 최근` }));
+    if (summary.stale > 0) parts.push(pickLocalized(this.language, { en: `${summary.stale.toLocaleString()} stale`, ko: `${summary.stale.toLocaleString()}개 오래됨` }));
     item.description = parts.join(' · ');
     item.tooltip = [
       dir,
-      `파일: ${summary.total.toLocaleString()}개`,
-      `최근 24시간: ${summary.recent.toLocaleString()}개`,
-      `30일+ 미수정: ${summary.stale.toLocaleString()}개`,
+      pickLocalized(this.language, { en: `Files: ${summary.total.toLocaleString()}`, ko: `파일: ${summary.total.toLocaleString()}개` }),
+      pickLocalized(this.language, { en: `Last 24 hours: ${summary.recent.toLocaleString()}`, ko: `최근 24시간: ${summary.recent.toLocaleString()}개` }),
+      pickLocalized(this.language, { en: `Not modified for 30+ days: ${summary.stale.toLocaleString()}`, ko: `30일+ 미수정: ${summary.stale.toLocaleString()}개` }),
     ].join('\n');
   }
 
@@ -613,11 +650,15 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
 
     if (!pinnedUris.length) return;
 
-    const pinnedRoot = new MarkdownFileItem(vscode.Uri.parse('md-studio-file-browser:/pinned'), true, 'Pinned');
+    const pinnedRoot = new MarkdownFileItem(
+      vscode.Uri.parse('md-studio-file-browser:/pinned'),
+      true,
+      pickLocalized(this.language, { en: 'Pinned', ko: '고정' }),
+    );
     pinnedRoot.contextValue = 'mdPinnedRoot';
     pinnedRoot.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
     pinnedRoot.iconPath = new vscode.ThemeIcon('pinned');
-    pinnedRoot.tooltip = 'Pinned MD Studio files';
+    pinnedRoot.tooltip = pickLocalized(this.language, { en: 'Pinned MD Studio files', ko: '고정한 MD Studio 파일' });
 
     const pinnedItems = pinnedUris.map((uri) => {
       const item = new MarkdownFileItem(uri, false);
@@ -644,11 +685,15 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
 
     if (!recentUris.length) return;
 
-    const recentRoot = new MarkdownFileItem(vscode.Uri.parse('md-studio-file-browser:/recent'), true, 'Recent');
+    const recentRoot = new MarkdownFileItem(
+      vscode.Uri.parse('md-studio-file-browser:/recent'),
+      true,
+      pickLocalized(this.language, { en: 'Recent', ko: '최근' }),
+    );
     recentRoot.contextValue = 'mdRecentRoot';
     recentRoot.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
     recentRoot.iconPath = new vscode.ThemeIcon('history');
-    recentRoot.tooltip = 'Recently opened MD Studio files';
+    recentRoot.tooltip = pickLocalized(this.language, { en: 'Recently opened MD Studio files', ko: '최근 열어본 MD Studio 파일' });
 
     const recentItems = recentUris.map((uri) => {
       const item = new MarkdownFileItem(uri, false);
@@ -669,12 +714,15 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     const filterRoot = new MarkdownFileItem(
       vscode.Uri.parse(`md-studio-file-browser:/filter/${this.filterMode}`),
       true,
-      FILTER_DESCRIPTIONS[this.filterMode],
+      FILTER_DESCRIPTIONS[this.language][this.filterMode],
     );
     filterRoot.contextValue = 'mdFilterRoot';
     filterRoot.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
     filterRoot.iconPath = new vscode.ThemeIcon('filter');
-    filterRoot.tooltip = `${FILTER_DESCRIPTIONS[this.filterMode]} MD Studio files`;
+    filterRoot.tooltip = pickLocalized(this.language, {
+      en: `${FILTER_DESCRIPTIONS.en[this.filterMode]} MD Studio files`,
+      ko: `${FILTER_DESCRIPTIONS.ko[this.filterMode]} MD Studio 파일`,
+    });
 
     const filterItems = candidates.map((uri) => {
       const item = new MarkdownFileItem(uri, false);
@@ -867,12 +915,22 @@ function compareUriName(a: vscode.Uri, b: vscode.Uri): number {
   return a.fsPath.localeCompare(b.fsPath, undefined, { sensitivity: 'base' });
 }
 
+function applyFileOpenCommand(item: MarkdownFileItem): void {
+  const previewable = isPreviewableFileUri(item.resourceUri);
+  item.command = {
+    command: previewable ? 'mdStudioPreview.openFileInViewer' : 'mdStudioFileBrowser.openInEditor',
+    title: previewable ? 'Open in Viewer' : 'Open in Editor',
+    arguments: [item.resourceUri],
+  };
+}
+
 function formatMetadataDescription(
   metadata: MarkdownFileMetadata | undefined,
   sortOrder: FileBrowserSortOrder,
+  language: MdStudioLanguage,
 ): string | undefined {
   if (!metadata) return undefined;
-  const value = formatMetadataValue(metadata, sortOrder);
+  const value = formatMetadataValue(metadata, sortOrder, language);
   const parts = [metadata.gitStatus, value].filter((part): part is string => Boolean(part));
   return parts.length ? parts.join(' ') : undefined;
 }
@@ -880,20 +938,21 @@ function formatMetadataDescription(
 function formatMetadataValue(
   metadata: MarkdownFileMetadata,
   sortOrder: FileBrowserSortOrder,
+  language: MdStudioLanguage,
 ): string | undefined {
   switch (sortOrder) {
     case 'modifiedAsc':
     case 'modifiedDesc':
-      return metadata.mtime === undefined ? undefined : formatRelativeAge(metadata.mtime);
+      return metadata.mtime === undefined ? undefined : formatRelativeAge(metadata.mtime, language);
     case 'createdAsc':
     case 'createdDesc':
-      return metadata.ctime === undefined ? undefined : formatRelativeAge(metadata.ctime);
+      return metadata.ctime === undefined ? undefined : formatRelativeAge(metadata.ctime, language);
     case 'sizeAsc':
     case 'sizeDesc':
       return metadata.size === undefined ? undefined : formatFileSize(metadata.size);
     case 'lengthAsc':
     case 'lengthDesc':
-      return metadata.lineCount === undefined ? undefined : `${metadata.lineCount.toLocaleString()}줄`;
+      return metadata.lineCount === undefined ? undefined : pickLocalized(language, { en: `${metadata.lineCount.toLocaleString()} lines`, ko: `${metadata.lineCount.toLocaleString()}줄` });
     case 'nameAsc':
     case 'nameDesc':
       return metadata.size === undefined ? undefined : formatFileSize(metadata.size);
@@ -904,37 +963,38 @@ function buildMetadataTooltip(
   fsPath: string,
   metadata: MarkdownFileMetadata | undefined,
   includeLocation = false,
+  language: MdStudioLanguage = 'en',
 ): string {
   const details = [fsPath];
-  if (includeLocation) details.push(`위치: ${formatRelativeParentPath(fsPath)}`);
+  if (includeLocation) details.push(pickLocalized(language, { en: `Location: ${formatRelativeParentPath(fsPath)}`, ko: `위치: ${formatRelativeParentPath(fsPath)}` }));
   if (!metadata) return details.join('\n');
-  if (metadata.title) details.push(`제목: ${metadata.title}`);
+  if (metadata.title) details.push(pickLocalized(language, { en: `Title: ${metadata.title}`, ko: `제목: ${metadata.title}` }));
   if (metadata.gitStatus) details.push(`Git: ${metadata.gitStatus}`);
   if (metadata.mtime !== undefined) {
-    details.push(`수정: ${formatFullDate(metadata.mtime)}`);
-    details.push(`업데이트 안 한 지: ${formatDaysSince(metadata.mtime)}`);
+    details.push(pickLocalized(language, { en: `Modified: ${formatFullDate(metadata.mtime)}`, ko: `수정: ${formatFullDate(metadata.mtime)}` }));
+    details.push(pickLocalized(language, { en: `Age: ${formatDaysSince(metadata.mtime, language)}`, ko: `업데이트 안 한 지: ${formatDaysSince(metadata.mtime, language)}` }));
   }
-  if (metadata.ctime !== undefined) details.push(`생성: ${formatFullDate(metadata.ctime)}`);
+  if (metadata.ctime !== undefined) details.push(pickLocalized(language, { en: `Created: ${formatFullDate(metadata.ctime)}`, ko: `생성: ${formatFullDate(metadata.ctime)}` }));
   if (metadata.size !== undefined) {
-    details.push(`크기: ${formatFileSize(metadata.size)} (${metadata.size.toLocaleString()} bytes)`);
+    details.push(pickLocalized(language, { en: `Size: ${formatFileSize(metadata.size)} (${metadata.size.toLocaleString()} bytes)`, ko: `크기: ${formatFileSize(metadata.size)} (${metadata.size.toLocaleString()} bytes)` }));
   }
-  if (metadata.lineCount !== undefined) details.push(`길이: ${metadata.lineCount.toLocaleString()}줄`);
+  if (metadata.lineCount !== undefined) details.push(pickLocalized(language, { en: `Length: ${metadata.lineCount.toLocaleString()} lines`, ko: `길이: ${metadata.lineCount.toLocaleString()}줄` }));
   return details.join('\n');
 }
 
-function formatRelativeAge(timestamp: number): string {
+function formatRelativeAge(timestamp: number, language: MdStudioLanguage): string {
   const elapsedMs = Date.now() - timestamp;
-  if (!Number.isFinite(elapsedMs) || elapsedMs < 0) return '방금';
+  if (!Number.isFinite(elapsedMs) || elapsedMs < 0) return pickLocalized(language, { en: 'just now', ko: '방금' });
   const elapsedMinutes = Math.floor(elapsedMs / 60000);
-  if (elapsedMinutes < 1) return '방금';
-  if (elapsedMinutes < 60) return `${elapsedMinutes}분전`;
+  if (elapsedMinutes < 1) return pickLocalized(language, { en: 'just now', ko: '방금' });
+  if (elapsedMinutes < 60) return pickLocalized(language, { en: `${elapsedMinutes}m ago`, ko: `${elapsedMinutes}분전` });
   const elapsedHours = Math.floor(elapsedMinutes / 60);
-  if (elapsedHours < 24) return `${elapsedHours}시간전`;
+  if (elapsedHours < 24) return pickLocalized(language, { en: `${elapsedHours}h ago`, ko: `${elapsedHours}시간전` });
   const elapsedDays = Math.floor(elapsedHours / 24);
-  if (elapsedDays < 2) return '어제';
-  if (elapsedDays < 14) return `${elapsedDays}일전`;
+  if (elapsedDays < 2) return pickLocalized(language, { en: 'yesterday', ko: '어제' });
+  if (elapsedDays < 14) return pickLocalized(language, { en: `${elapsedDays}d ago`, ko: `${elapsedDays}일전` });
   const elapsedWeeks = Math.floor(elapsedDays / 7);
-  if (elapsedWeeks < 8) return `${elapsedWeeks}주전`;
+  if (elapsedWeeks < 8) return pickLocalized(language, { en: `${elapsedWeeks}w ago`, ko: `${elapsedWeeks}주전` });
   return formatShortDate(timestamp);
 }
 
@@ -957,12 +1017,12 @@ function formatShortDate(timestamp: number): string {
   return `${year}.${month}.${day}`;
 }
 
-function formatDaysSince(timestamp: number): string {
+function formatDaysSince(timestamp: number, language: MdStudioLanguage): string {
   const elapsedMs = Date.now() - timestamp;
-  if (!Number.isFinite(elapsedMs) || elapsedMs < 0) return '오늘';
+  if (!Number.isFinite(elapsedMs) || elapsedMs < 0) return pickLocalized(language, { en: 'today', ko: '오늘' });
   const elapsedDays = Math.floor(elapsedMs / 86400000);
-  if (elapsedDays < 1) return '오늘';
-  return `${elapsedDays.toLocaleString()}일`;
+  if (elapsedDays < 1) return pickLocalized(language, { en: 'today', ko: '오늘' });
+  return pickLocalized(language, { en: `${elapsedDays.toLocaleString()} days`, ko: `${elapsedDays.toLocaleString()}일` });
 }
 
 function formatRelativeParentPath(fsPath: string): string {

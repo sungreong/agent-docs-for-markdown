@@ -2,7 +2,7 @@
   "name": "markdown-pattern-studio-preview",
   "displayName": "Markdown Pattern Studio Preview",
   "description": "Preview Markdown Pattern Studio CLI output in a VS Code webview.",
-  "version": "0.1.31",
+  "version": "0.1.32",
   "publisher": "datanewbie-labs",
   "license": "MIT",
   "icon": "assets/icon.png",
@@ -116,7 +116,7 @@
       },
       {
         "command": "mdStudioPreview.clearFolderFocus",
-        "title": "FOCUS 해제",
+        "title": "Clear Focus",
         "icon": "$(eye)"
       },
       {
@@ -232,6 +232,15 @@
           ],
           "default": "stack",
           "description": "Preferred presentation mode in preview webview. stack matches the web editor view by default."
+        },
+        "mdStudioPreview.language": {
+          "type": "string",
+          "enum": [
+            "en",
+            "ko"
+          ],
+          "default": "en",
+          "description": "Language for MD Studio extension prompts, file browser labels, metadata, and quick pick items."
         },
         "mdStudioPreview.extraArgs": {
           "type": "array",

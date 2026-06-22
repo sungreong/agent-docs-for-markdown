@@ -18,7 +18,7 @@ export interface TemplateBlock {
  *
  * ```yaml
  * ---
- * title: "새 문서"
+ * title: "New Document"
  * md-studio:
  *   skills: ["clarify", "audit"]
  * ---
@@ -64,7 +64,7 @@ function buildFrontmatter(skillIds: string[]): string {
 
   return [
     '---',
-    `title: "새 문서 (${dateStr})"`,
+    `title: "New Document (${dateStr})"`,
     'md-studio:',
     `  skills: [${skillList}]`,
     '---',
@@ -76,10 +76,10 @@ function buildSection(skill: SkillMeta): string {
 
   const commentLines: string[] = [];
   if (skill.description) {
-    commentLines.push(`  목적: ${skill.description.slice(0, 100)}`);
+    commentLines.push(`  Purpose: ${skill.description.slice(0, 100)}`);
   }
   if (skill.templateHint) {
-    commentLines.push(`  가이드: ${skill.templateHint.slice(0, 100)}`);
+    commentLines.push(`  Guide: ${skill.templateHint.slice(0, 100)}`);
   }
 
   const comment =
@@ -87,7 +87,7 @@ function buildSection(skill: SkillMeta): string {
       ? `<!--\n${commentLines.join('\n')}\n-->`
       : '';
 
-  const placeholder = '(여기에 내용을 작성하세요)';
+  const placeholder = '(Write your content here)';
 
   const parts = [heading, ''];
   if (comment) parts.push(comment, '');
@@ -99,14 +99,14 @@ function buildSection(skill: SkillMeta): string {
 function buildEmptyTemplate(): string {
   return [
     '---',
-    'title: "새 문서"',
+    'title: "New Document"',
     'md-studio:',
     '  skills: []',
     '---',
     '',
-    '# 제목',
+    '# Title',
     '',
-    '(Canvas에서 스킬을 추가하면 섹션이 자동으로 생성됩니다)',
+    '(Add skills in Canvas to generate sections automatically)',
     '',
   ].join('\n');
 }

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.32 - 2026-06-22
+
+- Added HTML export target selection for Standalone HTML, Blog Embed HTML, and Content Fragment.
+- Added Blog Embed output for existing site editors with scoped CSS, no fixed viewer chrome, and stack-first paginated content.
+- Added CLI support for `--export-target standalone|blog-embed|fragment`.
+- Changed MD Studio File Browser prompts, sort/filter labels, folder summaries, and generated template defaults to English by default.
+- Added `mdStudioPreview.language` so Korean extension labels can be enabled explicitly with `"ko"`.
+- Open exported `.html` and `.htm` files directly in the MD Studio Viewer from the File Browser.
+- Keep Edit Source, Refresh, and save-triggered preview updates available for HTML Viewer sessions.
+- Fixed Edit Source fallback from Webview toolbar buttons so the current Markdown/HTML preview opens its original source file.
+- Added document expression utilities: safe zone, problem statement, big-number hero, feature grid, metrics dashboard, contrast pair, gradient numbers, oversized text, and screenshot shadows.
+- Added bundled `document-production-advisor` skill for request-contract tracing, render UX verification, HTML/blog/DOCX/PPTX-style handoff planning, and an in-extension render smoke-test example; updated `md-presentation-composer` with request tracing, expression utility, and DOCX handoff rules.
+- Enhanced `MD Studio: Download Skill Folder` so it can either save a selected skill as ZIP or update selected/all skills into the workspace root that matches the chosen source: Claude -> `.claude/skills`, Agents -> `.agents/skills`, Codex -> `.codex/skills`, workspace source -> `mdStudioPreview.skillsDir`.
+
 ## 0.1.31 - 2026-06-20
 
 - Added a Marketplace icon to the extension manifest.

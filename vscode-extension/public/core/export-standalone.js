@@ -12,6 +12,109 @@ import {
 const DEFAULT_PAGE_WIDTH = '1120px';
 const DEFAULT_PAGE_HEIGHT = '720px';
 
+function findMatchingBrace(source = '', openIndex = 0) {
+  let depth = 0;
+  let quote = '';
+  for (let index = openIndex; index < source.length; index += 1) {
+    const char = source[index];
+    const prev = source[index - 1];
+    if (quote) {
+      if (char === quote && prev !== '\\') quote = '';
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+    if (char === '{') depth += 1;
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) return index;
+    }
+  }
+  return -1;
+}
+
+function splitSelectors(selectorText = '') {
+  const selectors = [];
+  let current = '';
+  let depth = 0;
+  let quote = '';
+  for (const char of String(selectorText || '')) {
+    if (quote) {
+      current += char;
+      if (char === quote) quote = '';
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      current += char;
+      continue;
+    }
+    if (char === '(' || char === '[') depth += 1;
+    if (char === ')' || char === ']') depth = Math.max(0, depth - 1);
+    if (char === ',' && depth === 0) {
+      selectors.push(current);
+      current = '';
+      continue;
+    }
+    current += char;
+  }
+  if (current.trim()) selectors.push(current);
+  return selectors;
+}
+
+function scopeOneSelector(selector = '', rootSelector = '.mps-embed-root') {
+  const trimmed = String(selector || '').trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.includes(rootSelector)) return trimmed;
+  if (trimmed === 'html' || trimmed === 'body' || trimmed === ':root') return rootSelector;
+  if (trimmed.startsWith('html ') || trimmed.startsWith('body ')) {
+    return `${rootSelector} ${trimmed.replace(/^(html|body)\s+/, '')}`;
+  }
+  if (/^(html|body)(?=[.#:[\s]|$)/.test(trimmed)) {
+    return trimmed.replace(/^(html|body)/, rootSelector);
+  }
+  return `${rootSelector} ${trimmed}`;
+}
+
+function scopeCssText(cssText = '', rootSelector = '.mps-embed-root') {
+  const source = String(cssText || '');
+  let output = '';
+  let cursor = 0;
+
+  while (cursor < source.length) {
+    const openIndex = source.indexOf('{', cursor);
+    if (openIndex === -1) {
+      output += source.slice(cursor);
+      break;
+    }
+
+    const selector = source.slice(cursor, openIndex);
+    const closeIndex = findMatchingBrace(source, openIndex);
+    if (closeIndex === -1) {
+      output += source.slice(cursor);
+      break;
+    }
+
+    const block = source.slice(openIndex + 1, closeIndex);
+    const trimmedSelector = selector.trim();
+    if (/^@(media|supports|container)\b/i.test(trimmedSelector)) {
+      output += `${selector}{${scopeCssText(block, rootSelector)}}`;
+    } else if (/^@(font-face|keyframes|[-\w]+keyframes|page|property)\b/i.test(trimmedSelector)) {
+      output += `${selector}{${block}}`;
+    } else {
+      const scopedSelector = splitSelectors(selector)
+        .map((item) => scopeOneSelector(item, rootSelector))
+        .join(', ');
+      output += `${scopedSelector}{${block}}`;
+    }
+    cursor = closeIndex + 1;
+  }
+
+  return output;
+}
+
 function normalizeOutlineItems(items = []) {
   const seen = new Set();
   return (items || [])
@@ -66,6 +169,256 @@ function buildStyleMenuHtml(appearanceOptions = {}) {
     ${select('viewerChrome', 'Chrome', VIEWER_CHROME_OPTIONS, normalized.viewerChrome)}
   </div>
 </details>`;
+}
+
+function buildEmbedEnhancementScript({ mermaid = true } = {}) {
+  return `
+(function () {
+  const script = document.currentScript;
+  const root = script ? script.previousElementSibling : null;
+  if (!root || !root.classList || !root.classList.contains('mps-embed-root')) return;
+
+  const copyTextWithFallback = async (text) => {
+    const value = String(text || '');
+    if (!value) return false;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(value);
+        return true;
+      } catch (_) {
+        // fallback below
+      }
+    }
+    try {
+      const area = document.createElement('textarea');
+      area.value = value;
+      area.setAttribute('readonly', '');
+      area.style.position = 'absolute';
+      area.style.left = '-9999px';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.focus();
+      area.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(area);
+      return Boolean(ok);
+    } catch (_) {
+      return false;
+    }
+  };
+
+  root.addEventListener('click', async (event) => {
+    const button = event.target && event.target.closest ? event.target.closest('[data-copy-code]') : null;
+    if (!button || !root.contains(button)) return;
+    event.preventDefault();
+    const codeRoot = button.closest('.md-code');
+    const source = codeRoot ? codeRoot.querySelector('.mermaid-source') : null;
+    const code = codeRoot ? codeRoot.querySelector('pre code') : null;
+    const text = (source && source.textContent) || (code && code.textContent) || '';
+    const originalLabel = button.textContent || '복사';
+    const ok = await copyTextWithFallback(text);
+    button.textContent = ok ? '복사됨' : '복사 실패';
+    window.setTimeout(() => {
+      button.textContent = originalLabel;
+    }, 1200);
+  });
+
+  if (!${mermaid ? 'true' : 'false'}) return;
+  const blocks = Array.from(root.querySelectorAll('.mermaid-block'));
+  if (!blocks.length) return;
+  const showFallback = (block) => {
+    const fallback = block.querySelector('.mermaid-fallback');
+    if (fallback) fallback.hidden = false;
+    block.classList.remove('is-mermaid-ready');
+  };
+  const hideFallback = (block) => {
+    const fallback = block.querySelector('.mermaid-fallback');
+    if (fallback) fallback.hidden = true;
+    block.classList.add('is-mermaid-ready');
+  };
+  const loadMermaid = () =>
+    new Promise((resolve, reject) => {
+      if (window.mermaid) {
+        resolve(window.mermaid);
+        return;
+      }
+      const loader = document.createElement('script');
+      loader.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+      loader.async = true;
+      loader.onload = () => resolve(window.mermaid || null);
+      loader.onerror = () => reject(new Error('mermaid-load-failed'));
+      document.head.appendChild(loader);
+    });
+
+  loadMermaid()
+    .then((mermaid) => {
+      if (!mermaid || typeof mermaid.initialize !== 'function' || typeof mermaid.render !== 'function') {
+        blocks.forEach(showFallback);
+        return;
+      }
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+      return Promise.all(
+        blocks.map(async (block, idx) => {
+          const source = block.querySelector('.mermaid-source');
+          const target = block.querySelector('.mermaid-render');
+          if (!source || !target) {
+            showFallback(block);
+            return;
+          }
+          try {
+            const renderId = 'mps-embed-mmd-' + idx + '-' + Date.now();
+            const result = await mermaid.render(renderId, source.textContent || '');
+            target.innerHTML = result.svg || '';
+            hideFallback(block);
+          } catch (error) {
+            console.warn('[mps-embed-mermaid-render-failed]', error);
+            showFallback(block);
+          }
+        }),
+      );
+    })
+    .catch((error) => {
+      console.warn('[mps-embed-mermaid-unavailable]', error);
+      blocks.forEach(showFallback);
+    });
+})();
+`;
+}
+
+export function buildEmbeddableHtmlFragment({
+  renderedHtml = '',
+  cssText = '',
+  exportTarget = 'blog-embed',
+  enableMermaid = true,
+  exportWarnings = [],
+} = {}) {
+  const normalizedTarget = exportTarget === 'fragment' ? 'fragment' : 'blog-embed';
+  const rootClass = normalizedTarget === 'fragment' ? 'mps-embed-root mps-content-fragment' : 'mps-embed-root mps-blog-embed';
+  const warningItems = Array.isArray(exportWarnings) ? exportWarnings.filter(Boolean) : [];
+  const warningHtml = warningItems.length
+    ? `
+  <aside class="mps-embed-warning" role="status">
+    <strong>Conversion notes</strong>
+    <ul>${warningItems.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+  </aside>`
+    : '';
+  const scopedCss = scopeCssText(cssText, '.mps-embed-root');
+  const forceStackCss =
+    normalizedTarget === 'blog-embed'
+      ? `
+.mps-embed-root.mps-blog-embed .studio-document {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.mps-embed-root.mps-blog-embed .document-shell,
+.mps-embed-root.mps-blog-embed .document-shell.is-paginated {
+  display: grid;
+  width: 100%;
+  max-width: min(980px, 100%);
+  min-width: 0;
+  height: auto;
+  gap: 20px;
+  justify-items: stretch;
+}
+.mps-embed-root.mps-blog-embed .document-shell.is-paginated .doc-page {
+  display: grid;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  grid-template-rows: auto;
+}
+.mps-embed-root.mps-blog-embed .document-shell.is-paginated .doc-page-inner {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+.mps-embed-root.mps-blog-embed .section-heading {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.mps-embed-root.mps-blog-embed .template-cover.section-dark {
+  min-width: 0;
+}
+.mps-embed-root.mps-blog-embed .template-cover .section-heading.level-1 {
+  font-size: clamp(2rem, 9vw, 3.5rem);
+}
+.mps-embed-root.mps-blog-embed .document-shell.is-paginated .doc-page-footer {
+  display: none;
+}
+@container mps-embed (max-width: 820px) {
+  .mps-embed-root.mps-blog-embed .template-columns .multi-column-grid,
+  .mps-embed-root.mps-blog-embed .half-bleed-grid {
+    grid-template-columns: 1fr;
+  }
+  .mps-embed-root.mps-blog-embed .template-cover.section-dark {
+    padding: clamp(1.25rem, 6vw, 2rem) !important;
+  }
+  .mps-embed-root.mps-blog-embed .template-cover .section-heading.level-1,
+  .mps-embed-root.mps-blog-embed .document-shell.is-paginated .section-heading.level-1 {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+  .mps-embed-root.mps-blog-embed .cover-eyebrow {
+    width: fit-content;
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+`
+      : '';
+
+  return `<meta charset="UTF-8">
+<style data-md-studio-export-target="${escapeHtml(normalizedTarget)}">
+.mps-embed-root {
+  box-sizing: border-box;
+  container: mps-embed / inline-size;
+  max-width: 100%;
+  min-width: 0;
+  color: inherit;
+}
+.mps-embed-root *,
+.mps-embed-root *::before,
+.mps-embed-root *::after {
+  box-sizing: border-box;
+}
+.mps-embed-root img,
+.mps-embed-root svg,
+.mps-embed-root video,
+.mps-embed-root canvas {
+  max-width: 100%;
+}
+.mps-embed-root .mps-embed-warning {
+  margin: 0 0 16px;
+  border: 1px solid rgba(253, 186, 116, 0.55);
+  background: rgba(255, 247, 237, 0.95);
+  color: #7c2d12;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.mps-embed-root .mps-embed-warning ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+${scopedCss}
+${forceStackCss}
+</style>
+<div class="${rootClass}" data-md-studio-export-target="${escapeHtml(normalizedTarget)}">
+${warningHtml}
+${renderedHtml}
+</div>${normalizedTarget === 'blog-embed' ? `\n<script>\n${buildEmbedEnhancementScript({ mermaid: enableMermaid })}\n</script>` : ''}`;
 }
 
 function buildEnhancementScript({ mermaid = true, appearanceOptions = {} } = {}) {
@@ -529,6 +882,17 @@ function buildEnhancementScript({ mermaid = true, appearanceOptions = {} } = {})
       }
     }
 
+    function shouldUseStackForViewport() {
+      return window.matchMedia && window.matchMedia('(max-width: 680px)').matches;
+    }
+
+    function adaptModeToViewport() {
+      if (pages.length < 2) return;
+      if (shouldUseStackForViewport() && !document.body.classList.contains('export-stacked')) {
+        switchMode(true);
+      }
+    }
+
     nav = document.createElement('div');
     nav.className = 'export-slide-nav';
     nav.innerHTML =
@@ -567,7 +931,7 @@ function buildEnhancementScript({ mermaid = true, appearanceOptions = {} } = {})
 
     if (pages.length >= 2) {
       document.body.classList.add('has-js-slides');
-      switchMode(false);
+      switchMode(shouldUseStackForViewport());
       if (outline) {
         outline.classList.add('is-collapsed');
         if (outlineToggle) outlineToggle.textContent = 'Show';
@@ -699,6 +1063,7 @@ function buildEnhancementScript({ mermaid = true, appearanceOptions = {} } = {})
       }
     });
     window.addEventListener('resize', () => {
+      adaptModeToViewport();
       updateScale();
     });
 
@@ -1189,6 +1554,9 @@ export function buildStandaloneHtmlDocument({
       min-height: 0;
       overflow: visible;
     }
+    body.export-stacked .document-shell.is-paginated .doc-page-inner:has(> .template-cover.section-dark) {
+      overflow: visible;
+    }
     body.export-stacked .doc-page-footer {
       display: none;
     }
@@ -1244,12 +1612,15 @@ export function buildStandaloneHtmlDocument({
         padding: 4px 6px;
       }
       .export-slide-nav {
+        left: 8px;
         right: 8px;
         bottom: 8px;
+        width: auto;
         padding: 6px 8px;
         gap: 6px;
         max-width: calc(100vw - 16px);
         overflow-x: auto;
+        justify-content: flex-start;
       }
       .export-slide-nav button {
         padding: 5px 8px;

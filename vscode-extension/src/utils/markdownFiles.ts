@@ -2,9 +2,11 @@ import * as vscode from 'vscode';
 import * as path from 'node:path';
 
 export const MARKDOWN_EXTENSIONS = ['.md', '.mdx', '.markdown', '.mdown', '.mkd', '.mkdn'] as const;
+export const HTML_EXTENSIONS = ['.html', '.htm'] as const;
 export const DEFAULT_FILE_BROWSER_EXCLUDE_GLOB = '{**/node_modules/**,**/.git/**,**/dist/**,**/.next/**}';
 
 const MARKDOWN_EXTENSION_SET = new Set<string>(MARKDOWN_EXTENSIONS);
+const HTML_EXTENSION_SET = new Set<string>(HTML_EXTENSIONS);
 const MARKDOWN_LANGUAGE_IDS = new Set(['markdown', 'mdx']);
 const EXTENSION_TOKEN_RE = /^[a-z0-9][a-z0-9_-]*$/;
 
@@ -19,9 +21,23 @@ export function isMarkdownFileUri(uri: vscode.Uri): boolean {
   return isMarkdownPath(uri.fsPath);
 }
 
+export function isHtmlFileUri(uri: vscode.Uri): boolean {
+  if (uri.scheme !== 'file') return false;
+  return isHtmlPath(uri.fsPath);
+}
+
+export function isPreviewableFileUri(uri: vscode.Uri): boolean {
+  return isMarkdownFileUri(uri) || isHtmlFileUri(uri);
+}
+
 export function isMarkdownPath(filePath: string): boolean {
   const ext = path.extname(filePath).toLowerCase();
   return MARKDOWN_EXTENSION_SET.has(ext);
+}
+
+export function isHtmlPath(filePath: string): boolean {
+  const ext = path.extname(filePath).toLowerCase();
+  return HTML_EXTENSION_SET.has(ext);
 }
 
 export function normalizeFileExtension(value: unknown): string | null {

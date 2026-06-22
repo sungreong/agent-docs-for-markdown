@@ -5,11 +5,20 @@
 - 깨진 문자/깨진 구문/빈 페이지를 사전에 제거합니다.
 
 ## 검증 순서
-1. 인코딩 검증(UTF-8 기준)
-2. Markdown 구문 검증(heading, table, code fence, frontmatter)
-3. `page-break` 정규화
-4. 페이지 의미성 검증(빈 페이지 제거)
-5. 저장 HTML 재검증(스크립트/네비게이션)
+1. 요청 계약 검증: 사용자 요구사항, 제약, 필수 포함 항목, acceptance criteria를 명시한다.
+2. 인코딩 검증(UTF-8 기준)
+3. Markdown 구문 검증(heading, table, code fence, frontmatter)
+4. `page-break` 정규화
+5. 페이지 의미성 검증(빈 페이지 제거)
+6. 저장 HTML 재검증(스크립트/네비게이션)
+7. 실제 렌더 UX 검증: desktop/narrow 화면에서 overflow, clipping, overlap, broken image, unreadable table을 확인한다.
+
+## 요청 계약 검증
+- 최종 문서의 모든 주요 섹션은 사용자 요구, 독자 필요, 또는 근거 필요 중 하나에 연결되어야 한다.
+- 사용자가 요구한 언어, 형식, 대상 독자, export target, 모바일/블로그 조건을 만족해야 한다.
+- 필수 포함 항목이 빠졌으면 최종 완료로 보지 않는다.
+- 불가능하거나 현재 renderer에서 깨지는 표현은 제거하거나 지원되는 class/template으로 대체한다.
+- 최종 보고에는 수행한 검증과 수행하지 못한 검증을 분리해서 쓴다.
 
 ## 인코딩 규칙
 - UTF-8 기준으로 읽고 쓴다.
@@ -52,6 +61,9 @@
 - Prev/Next/키보드 이동이 정상 동작하는가
 - Stack/Slides 전환 시 콘텐츠 누락이 없는가
 - 저장 HTML을 외부로 옮겨도 fallback 이동이 가능한가
+- 실제 브라우저에서 desktop 폭과 narrow/mobile 폭을 확인했는가
+- 화면에서 제목/본문/표/이미지가 잘리거나 서로 겹치지 않는가
+- 블로그 embed에서는 fixed viewer UI가 남아 기존 사이트 UI와 충돌하지 않는가
 
 ## Visual QA Checklist (PPTX-skill grade)
 

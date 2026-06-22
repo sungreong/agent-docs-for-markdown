@@ -12,7 +12,7 @@ import {
   splitSourceByPageBreak,
 } from '../public/core/engine.js';
 import { TemplateRegistry } from '../public/core/registry.js';
-import { buildStandaloneHtmlDocument } from '../public/core/export-standalone.js';
+import { buildEmbeddableHtmlFragment, buildStandaloneHtmlDocument } from '../public/core/export-standalone.js';
 import { buildAppearanceRootAttributes, normalizeAppearanceOptions } from '../public/core/appearance.js';
 import { buildBrandDesignStyle, getBrandDesign, normalizeBrandDesignSlug } from '../public/core/brand-designs.js';
 
@@ -30,12 +30,13 @@ const EMAIL_DISCLAIMER_CONFIRM_RE =
 
 function printUsage() {
   console.log(`Usage:
-  node scripts/md-to-html.mjs <input.md> [--out output.html] [--theme report] [--design vercel] [--appearance clean] [--appearance-background plain] [--appearance-radius none] [--appearance-frame lines] [--viewer-chrome minimal] [--mode web] [--standalone] [--base-dir path] [--embed-local-images|--no-embed-local-images] [--strip-email-disclaimer] [--mermaid|--no-mermaid]
+  node scripts/md-to-html.mjs <input.md> [--out output.html] [--theme report] [--design vercel] [--appearance clean] [--appearance-background plain] [--appearance-radius none] [--appearance-frame lines] [--viewer-chrome minimal] [--mode web] [--export-target standalone|blog-embed|fragment] [--standalone] [--base-dir path] [--embed-local-images|--no-embed-local-images] [--strip-email-disclaimer] [--mermaid|--no-mermaid]
 
 Examples:
   node scripts/md-to-html.mjs test/notes.md
   node scripts/md-to-html.mjs test/notes.md --out test/notes.html --theme slate --standalone
   node scripts/md-to-html.mjs test/notes.md --design vercel --intent pitch --standalone
+  node scripts/md-to-html.mjs test/notes.md --export-target blog-embed --out test/notes.blog.html
 `);
 }
 
@@ -52,6 +53,7 @@ function parseArgs(argv) {
     appearanceRadius: '',
     appearanceFrame: '',
     viewerChrome: '',
+    exportTarget: 'standalone',
     standalone: true,
     baseDir: '',
     mermaid: null,
@@ -107,6 +109,18 @@ function parseArgs(argv) {
       result.viewerChrome = args.shift() || '';
       continue;
     }
+    if (token === '--export-target') {
+      result.exportTarget = args.shift() || 'standalone';
+      continue;
+    }
+    if (token === '--blog-embed') {
+      result.exportTarget = 'blog-embed';
+      continue;
+    }
+    if (token === '--fragment') {
+      result.exportTarget = 'fragment';
+      continue;
+    }
     if (token === '--standalone') {
       result.standalone = true;
       continue;
@@ -158,6 +172,12 @@ function parseArgs(argv) {
   }
 
   return result;
+}
+
+function normalizeExportTarget(value = '') {
+  const target = String(value || '').trim().toLowerCase();
+  if (target === 'standalone' || target === 'blog-embed' || target === 'fragment') return target;
+  throw new Error(`Unknown export target: ${value}`);
 }
 
 function countMatches(text = '', pattern) {
@@ -620,12 +640,14 @@ function buildStandaloneHtml(rendered, model, cssText, options = {}) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  const exportTarget = normalizeExportTarget(args.exportTarget);
   const inputPath = path.resolve(process.cwd(), args.input);
   const outPath = path.resolve(process.cwd(), args.out);
   const sourceBaseDir = args.baseDir ? path.resolve(process.cwd(), args.baseDir) : path.dirname(inputPath);
-  const enableMermaid = args.mermaid == null ? Boolean(args.standalone) : Boolean(args.mermaid);
-  const enableCodeCopy = Boolean(args.standalone);
-  const embedLocalImages = args.embedLocalImages == null ? Boolean(args.standalone) : Boolean(args.embedLocalImages);
+  const isInteractiveExport = exportTarget === 'standalone' ? Boolean(args.standalone) : exportTarget === 'blog-embed';
+  const enableMermaid = args.mermaid == null ? isInteractiveExport : Boolean(args.mermaid);
+  const enableCodeCopy = isInteractiveExport;
+  const embedLocalImages = args.embedLocalImages == null ? isInteractiveExport : Boolean(args.embedLocalImages);
 
   const readResult = await readInputMarkdown(inputPath);
   const prepared = prepareSourceForRender(readResult.source, {
@@ -666,10 +688,20 @@ async function main() {
   exportWarnings.push(...inlined.warnings);
 
   let output = html;
-  if (args.standalone) {
+  if (exportTarget === 'standalone' && args.standalone) {
     const cssPath = path.join(rootDir, 'public', 'document.css');
     const css = await fs.readFile(cssPath, 'utf8');
     output = buildStandaloneHtml(html, model, css, { enableMermaid, exportWarnings, appearance });
+  } else if (exportTarget === 'blog-embed' || exportTarget === 'fragment') {
+    const cssPath = path.join(rootDir, 'public', 'document.css');
+    const css = await fs.readFile(cssPath, 'utf8');
+    output = buildEmbeddableHtmlFragment({
+      renderedHtml: html,
+      cssText: css,
+      exportTarget,
+      enableMermaid,
+      exportWarnings,
+    });
   }
 
   await fs.mkdir(path.dirname(outPath), { recursive: true });

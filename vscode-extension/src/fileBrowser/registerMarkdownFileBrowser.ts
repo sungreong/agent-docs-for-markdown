@@ -8,7 +8,8 @@ import {
 } from '../providers/markdownFileTreeProvider.js';
 import { MarkdownFileItem } from '../providers/markdownFileItem.js';
 import { registerFolderFocusCommands } from '../commands/focusFolder.js';
-import { isMarkdownFileUri, normalizeFileExtension } from '../utils/markdownFiles.js';
+import { isMarkdownFileUri, isPreviewableFileUri, normalizeFileExtension } from '../utils/markdownFiles.js';
+import { pickLocalized, readMdStudioLanguage, type MdStudioLanguage } from '../utils/localization.js';
 
 interface FileBrowserSortQuickPickItem extends vscode.QuickPickItem {
   order: FileBrowserSortOrder;
@@ -38,29 +39,34 @@ interface RegisterMarkdownFileBrowserOptions {
   openInViewer(uri: vscode.Uri): Promise<void>;
   openInNewPanel(uri: vscode.Uri): Promise<void>;
   resolveMarkdownUri(commandArg?: unknown): Promise<vscode.Uri | null>;
+  resolvePreviewUri(commandArg?: unknown): Promise<vscode.Uri | null>;
 }
 
-const fileBrowserSortItems: readonly FileBrowserSortQuickPickItem[] = [
-  { label: '이름 A-Z', description: '폴더/파일 이름순', order: 'nameAsc' },
-  { label: '이름 Z-A', description: '폴더/파일 이름 역순', order: 'nameDesc' },
-  { label: '최근 수정', description: '방금 고친 문서 먼저', order: 'modifiedDesc' },
-  { label: '오래 안 고침', description: '오래된 수정 문서 먼저', order: 'modifiedAsc' },
-  { label: '최근 생성', description: '새로 만든 문서 먼저', order: 'createdDesc' },
-  { label: '오래된 생성', description: '오래전에 만든 문서 먼저', order: 'createdAsc' },
-  { label: '큰 파일', description: '용량 큰 문서 먼저', order: 'sizeDesc' },
-  { label: '작은 파일', description: '용량 작은 문서 먼저', order: 'sizeAsc' },
-  { label: '긴 문서', description: '줄 수 많은 문서 먼저', order: 'lengthDesc' },
-  { label: '짧은 문서', description: '줄 수 적은 문서 먼저', order: 'lengthAsc' },
-];
+function getFileBrowserSortItems(language: MdStudioLanguage): readonly FileBrowserSortQuickPickItem[] {
+  return [
+    { label: pickLocalized(language, { en: 'Name A-Z', ko: '이름 A-Z' }), description: pickLocalized(language, { en: 'Folders/files by name', ko: '폴더/파일 이름순' }), order: 'nameAsc' },
+    { label: pickLocalized(language, { en: 'Name Z-A', ko: '이름 Z-A' }), description: pickLocalized(language, { en: 'Folders/files by reverse name', ko: '폴더/파일 이름 역순' }), order: 'nameDesc' },
+    { label: pickLocalized(language, { en: 'Recently modified', ko: '최근 수정' }), description: pickLocalized(language, { en: 'Newest edited documents first', ko: '방금 고친 문서 먼저' }), order: 'modifiedDesc' },
+    { label: pickLocalized(language, { en: 'Least recently modified', ko: '오래 안 고침' }), description: pickLocalized(language, { en: 'Oldest edited documents first', ko: '오래된 수정 문서 먼저' }), order: 'modifiedAsc' },
+    { label: pickLocalized(language, { en: 'Recently created', ko: '최근 생성' }), description: pickLocalized(language, { en: 'Newest created documents first', ko: '새로 만든 문서 먼저' }), order: 'createdDesc' },
+    { label: pickLocalized(language, { en: 'Oldest created', ko: '오래된 생성' }), description: pickLocalized(language, { en: 'Oldest created documents first', ko: '오래전에 만든 문서 먼저' }), order: 'createdAsc' },
+    { label: pickLocalized(language, { en: 'Largest files', ko: '큰 파일' }), description: pickLocalized(language, { en: 'Largest documents first', ko: '용량 큰 문서 먼저' }), order: 'sizeDesc' },
+    { label: pickLocalized(language, { en: 'Smallest files', ko: '작은 파일' }), description: pickLocalized(language, { en: 'Smallest documents first', ko: '용량 작은 문서 먼저' }), order: 'sizeAsc' },
+    { label: pickLocalized(language, { en: 'Longest documents', ko: '긴 문서' }), description: pickLocalized(language, { en: 'Most lines first', ko: '줄 수 많은 문서 먼저' }), order: 'lengthDesc' },
+    { label: pickLocalized(language, { en: 'Shortest documents', ko: '짧은 문서' }), description: pickLocalized(language, { en: 'Fewest lines first', ko: '줄 수 적은 문서 먼저' }), order: 'lengthAsc' },
+  ];
+}
 
-const fileBrowserFilterItems: readonly FileBrowserFilterQuickPickItem[] = [
-  { label: '전체', description: '전체 폴더 트리', mode: 'all' },
-  { label: 'Pinned', description: '고정 문서만', mode: 'pinned' },
-  { label: 'Recent', description: '최근 열어본 문서', mode: 'recent' },
-  { label: '오래 안 고침', description: '30일 이상 미수정', mode: 'stale' },
-  { label: '긴 문서', description: '줄 수 상위 20개', mode: 'long' },
-  { label: '큰 파일', description: '용량 상위 20개', mode: 'large' },
-];
+function getFileBrowserFilterItems(language: MdStudioLanguage): readonly FileBrowserFilterQuickPickItem[] {
+  return [
+    { label: pickLocalized(language, { en: 'All', ko: '전체' }), description: pickLocalized(language, { en: 'Full folder tree', ko: '전체 폴더 트리' }), mode: 'all' },
+    { label: pickLocalized(language, { en: 'Pinned', ko: '고정' }), description: pickLocalized(language, { en: 'Pinned documents only', ko: '고정 문서만' }), mode: 'pinned' },
+    { label: pickLocalized(language, { en: 'Recent', ko: '최근' }), description: pickLocalized(language, { en: 'Recently opened documents', ko: '최근 열어본 문서' }), mode: 'recent' },
+    { label: pickLocalized(language, { en: 'Stale', ko: '오래 안 고침' }), description: pickLocalized(language, { en: 'Not modified for 30+ days', ko: '30일 이상 미수정' }), mode: 'stale' },
+    { label: pickLocalized(language, { en: 'Long documents', ko: '긴 문서' }), description: pickLocalized(language, { en: 'Top 20 by line count', ko: '줄 수 상위 20개' }), mode: 'long' },
+    { label: pickLocalized(language, { en: 'Large files', ko: '큰 파일' }), description: pickLocalized(language, { en: 'Top 20 by file size', ko: '용량 상위 20개' }), mode: 'large' },
+  ];
+}
 
 const suggestedExtraExtensions = [
   '.txt',
@@ -103,11 +109,14 @@ export function registerMarkdownFileBrowser(
 
   context.subscriptions.push(
     vscode.commands.registerCommand('mdStudioFileBrowser.sort', async () => {
+      const language = readMdStudioLanguage();
       const currentOrder = provider.getSortOrder();
       const picked = await vscode.window.showQuickPick(
-        fileBrowserSortItems.map((item) => ({
+        getFileBrowserSortItems(language).map((item) => ({
           ...item,
-          description: item.order === currentOrder ? `현재 | ${item.description ?? ''}` : item.description,
+          description: item.order === currentOrder
+            ? `${pickLocalized(language, { en: 'Current', ko: '현재' })} | ${item.description ?? ''}`
+            : item.description,
         })),
         { placeHolder: 'Markdown file sort...', matchOnDescription: true },
       );
@@ -119,11 +128,14 @@ export function registerMarkdownFileBrowser(
 
   context.subscriptions.push(
     vscode.commands.registerCommand('mdStudioFileBrowser.filter', async () => {
+      const language = readMdStudioLanguage();
       const currentMode = provider.getFilterMode();
       const picked = await vscode.window.showQuickPick(
-        fileBrowserFilterItems.map((item) => ({
+        getFileBrowserFilterItems(language).map((item) => ({
           ...item,
-          description: item.mode === currentMode ? `현재 | ${item.description ?? ''}` : item.description,
+          description: item.mode === currentMode
+            ? `${pickLocalized(language, { en: 'Current', ko: '현재' })} | ${item.description ?? ''}`
+            : item.description,
         })),
         { placeHolder: 'Markdown file filter...', matchOnDescription: true },
       );
@@ -167,7 +179,7 @@ export function registerMarkdownFileBrowser(
 
   context.subscriptions.push(
     vscode.commands.registerCommand('mdStudioPreview.openFileInViewer', async (commandArg?: unknown) => {
-      const uri = await options.resolveMarkdownUri(commandArg);
+      const uri = getResourceUri(commandArg) ?? (await options.resolvePreviewUri(commandArg));
       if (!uri) return;
       await options.openInViewer(uri);
     }),
@@ -175,7 +187,7 @@ export function registerMarkdownFileBrowser(
 
   context.subscriptions.push(
     vscode.commands.registerCommand('mdStudioPreview.openFileInNewPanel', async (commandArg?: unknown) => {
-      const uri = await options.resolveMarkdownUri(commandArg);
+      const uri = getResourceUri(commandArg) ?? (await options.resolvePreviewUri(commandArg));
       if (!uri) return;
       await options.openInNewPanel(uri);
     }),
@@ -212,7 +224,10 @@ export function registerMarkdownFileBrowser(
       if (!uri) return;
       await provider.hideItem(uri);
       updateDescription(treeView, provider);
-      void vscode.window.showInformationMessage(`숨김 처리했습니다: ${formatRelativePath(uri)}`);
+      const language = readMdStudioLanguage();
+      void vscode.window.showInformationMessage(
+        pickLocalized(language, { en: `Hidden from browser: ${formatRelativePath(uri)}`, ko: `숨김 처리했습니다: ${formatRelativePath(uri)}` }),
+      );
     }),
   );
 
@@ -226,7 +241,7 @@ export function registerMarkdownFileBrowser(
     vscode.commands.registerCommand('mdStudioFileBrowser.search', async () => {
       const picked = await pickBrowserFile(provider);
       if (!picked) return;
-      if (isMarkdownFileUri(picked)) {
+      if (isPreviewableFileUri(picked)) {
         await options.openInViewer(picked);
       } else {
         await options.openInEditor(picked);
@@ -258,37 +273,45 @@ async function manageHiddenItems(
   treeView: vscode.TreeView<MarkdownFileItem>,
 ): Promise<void> {
   const hiddenItems = provider.getHiddenItems();
+  const language = readMdStudioLanguage();
   if (!hiddenItems.length) {
-    void vscode.window.showInformationMessage('숨긴 파일이나 폴더가 없습니다.');
+    void vscode.window.showInformationMessage(pickLocalized(language, { en: 'No hidden files or folders.', ko: '숨긴 파일이나 폴더가 없습니다.' }));
     return;
   }
 
-  const picked = await vscode.window.showQuickPick(buildHiddenQuickPickItems(hiddenItems), {
-    placeHolder: '숨긴 파일/폴더 관리...',
+  const picked = await vscode.window.showQuickPick(buildHiddenQuickPickItems(hiddenItems, language), {
+    placeHolder: pickLocalized(language, { en: 'Manage hidden files/folders...', ko: '숨긴 파일/폴더 관리...' }),
     matchOnDescription: true,
   });
   if (!picked) return;
 
   if (picked.action === 'clear') {
-    const confirmed = await vscode.window.showWarningMessage('숨김 목록을 모두 해제할까요?', { modal: true }, '해제');
-    if (confirmed !== '해제') return;
+    const clearLabel = pickLocalized(language, { en: 'Clear', ko: '해제' });
+    const confirmed = await vscode.window.showWarningMessage(
+      pickLocalized(language, { en: 'Clear all hidden items?', ko: '숨김 목록을 모두 해제할까요?' }),
+      { modal: true },
+      clearLabel,
+    );
+    if (confirmed !== clearLabel) return;
     await provider.clearHiddenItems();
     updateDescription(treeView, provider);
-    void vscode.window.showInformationMessage('숨김 목록을 모두 해제했습니다.');
+    void vscode.window.showInformationMessage(pickLocalized(language, { en: 'Cleared all hidden items.', ko: '숨김 목록을 모두 해제했습니다.' }));
     return;
   }
 
   if (!picked.fsPath) return;
   await provider.unhideItem(picked.fsPath);
   updateDescription(treeView, provider);
-  void vscode.window.showInformationMessage(`다시 표시합니다: ${formatRelativePath(vscode.Uri.file(picked.fsPath))}`);
+  void vscode.window.showInformationMessage(
+    pickLocalized(language, { en: `Shown again: ${formatRelativePath(vscode.Uri.file(picked.fsPath))}`, ko: `다시 표시합니다: ${formatRelativePath(vscode.Uri.file(picked.fsPath))}` }),
+  );
 }
 
-function buildHiddenQuickPickItems(hiddenItems: FileBrowserHiddenItem[]): HiddenQuickPickItem[] {
+function buildHiddenQuickPickItems(hiddenItems: FileBrowserHiddenItem[], language: MdStudioLanguage): HiddenQuickPickItem[] {
   return [
     {
-      label: '$(clear-all) 숨김 모두 해제',
-      description: `${hiddenItems.length.toLocaleString()}개`,
+      label: pickLocalized(language, { en: '$(clear-all) Clear all hidden items', ko: '$(clear-all) 숨김 모두 해제' }),
+      description: pickLocalized(language, { en: `${hiddenItems.length.toLocaleString()} items`, ko: `${hiddenItems.length.toLocaleString()}개` }),
       action: 'clear',
       alwaysShow: true,
     },
@@ -307,26 +330,29 @@ async function configureExtraExtensions(
   treeView: vscode.TreeView<MarkdownFileItem>,
 ): Promise<void> {
   const current = provider.getExtraExtensions();
+  const language = readMdStudioLanguage();
   const candidateExtensions = [...current, ...suggestedExtraExtensions].filter(
     (extension, index, all) => all.indexOf(extension) === index,
   );
   const picked = await vscode.window.showQuickPick(
     [
       {
-        label: '$(add) 직접 추가...',
-        description: '예: txt, html, json',
+        label: pickLocalized(language, { en: '$(add) Add manually...', ko: '$(add) 직접 추가...' }),
+        description: pickLocalized(language, { en: 'Example: txt, html, json', ko: '예: txt, html, json' }),
         action: 'add' as const,
         alwaysShow: true,
       },
       {
-        label: '$(clear-all) 추가 확장자 모두 해제',
-        description: current.length ? current.join(', ') : '설정된 추가 확장자가 없습니다',
+        label: pickLocalized(language, { en: '$(clear-all) Clear all extra extensions', ko: '$(clear-all) 추가 확장자 모두 해제' }),
+        description: current.length ? current.join(', ') : pickLocalized(language, { en: 'No extra extensions configured', ko: '설정된 추가 확장자가 없습니다' }),
         action: 'clear' as const,
         alwaysShow: true,
       },
       ...candidateExtensions.map((extension) => ({
         label: extension,
-        description: current.includes(extension) ? '현재 표시 중' : '클릭해서 표시',
+        description: current.includes(extension)
+          ? pickLocalized(language, { en: 'Currently visible', ko: '현재 표시 중' })
+          : pickLocalized(language, { en: 'Click to show', ko: '클릭해서 표시' }),
         picked: current.includes(extension),
         extension,
       })),
@@ -334,7 +360,10 @@ async function configureExtraExtensions(
     {
       canPickMany: true,
       matchOnDescription: true,
-      placeHolder: 'MD Studio File Browser에 추가로 보여줄 확장자를 선택하세요. Markdown은 항상 표시됩니다.',
+      placeHolder: pickLocalized(language, {
+        en: 'Choose extra extensions to show in MD Studio File Browser. Markdown is always visible.',
+        ko: 'MD Studio File Browser에 추가로 보여줄 확장자를 선택하세요. Markdown은 항상 표시됩니다.',
+      }),
     },
   );
   if (!picked) return;
@@ -350,11 +379,13 @@ async function configureExtraExtensions(
 
   if (selected.some((item) => item.action === 'add')) {
     const input = await vscode.window.showInputBox({
-      title: '추가 확장자 입력',
-      prompt: '점은 있어도 없어도 됩니다. 예: txt, html, json',
+      title: pickLocalized(language, { en: 'Add extra extension', ko: '추가 확장자 입력' }),
+      prompt: pickLocalized(language, { en: 'A leading dot is optional. Example: txt, html, json', ko: '점은 있어도 없어도 됩니다. 예: txt, html, json' }),
       placeHolder: 'txt',
       validateInput(value) {
-        return normalizeFileExtension(value) ? null : '영문/숫자/하이픈/언더스코어 확장자만 사용할 수 있습니다.';
+        return normalizeFileExtension(value)
+          ? null
+          : pickLocalized(language, { en: 'Use only letters, numbers, hyphens, or underscores.', ko: '영문/숫자/하이픈/언더스코어 확장자만 사용할 수 있습니다.' });
       },
     });
     const customExtension = normalizeFileExtension(input);
@@ -368,8 +399,8 @@ async function configureExtraExtensions(
   const enabled = provider.getExtraExtensions();
   void vscode.window.showInformationMessage(
     enabled.length
-      ? `추가 확장자를 표시합니다: ${enabled.join(', ')}`
-      : '추가 확장자 표시를 해제했습니다. Markdown 파일은 계속 표시됩니다.',
+      ? pickLocalized(language, { en: `Showing extra extensions: ${enabled.join(', ')}`, ko: `추가 확장자를 표시합니다: ${enabled.join(', ')}` })
+      : pickLocalized(language, { en: 'Cleared extra extensions. Markdown files remain visible.', ko: '추가 확장자 표시를 해제했습니다. Markdown 파일은 계속 표시됩니다.' }),
   );
 }
 
@@ -382,7 +413,7 @@ async function pickBrowserFile(provider: MarkdownFileBrowserProvider): Promise<v
       return {
         label: path.basename(uri.fsPath),
         description: path.dirname(rel),
-        detail: isMarkdownFileUri(uri) ? 'Open in Viewer' : 'Open in Editor',
+        detail: isPreviewableFileUri(uri) ? 'Open in Viewer' : 'Open in Editor',
         uri,
       };
     })
