@@ -8,7 +8,7 @@ const repoRoot = path.resolve(extRoot, '..');
 
 const css = fs.readFileSync(path.join(repoRoot, 'public/document.css'), 'utf-8');
 // Escape for JS template literal
-const cssEsc = css.replace(/\/g, '\\').replace(/`/g, '\`').replace(/\$\{/g, '\${');
+const cssEsc = css.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
 
 const srcHtml = fs.readFileSync(path.join(repoRoot, 'public/template-builder.html'), 'utf-8');
 

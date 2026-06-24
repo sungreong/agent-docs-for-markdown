@@ -16,7 +16,7 @@ npm run package:vsix
 ### Install
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.31.vsix --force
+code --install-extension .\markdown-pattern-studio-preview-0.1.34.vsix --force
 ```
 
 ### Basic Usage
@@ -30,6 +30,8 @@ code --install-extension .\markdown-pattern-studio-preview-0.1.31.vsix --force
 7. Use `MD Studio: Download Skill Folder` to export bundled or workspace skills as ready-to-share ZIP folders.
 8. Right-click a folder in the MD Studio File Browser sidebar and choose `FOCUS` to narrow only that browser until `MD Studio: Clear Folder Focus` is run.
 9. Use the preview `Style` menu to switch document appearance; the selected style is reused for preview refresh and HTML transform.
+10. Use `MD Studio: Initialize Source Graph Workspace` once per workspace when you want a document graph DB at `.mps/source-graph.sqlite`.
+11. Use `MD Studio: Edit Source Ignore` when generated folders or low-signal documents should be excluded from both the graph and the MD Studio File Browser.
 
 ## 2) Cursor Sync on Save (Ctrl+S)
 
@@ -104,7 +106,68 @@ Outline state:
 
 Bundled skills are copied into the VSIX during `npm run build`, so installed users can export them without cloning the repository.
 
-## 5) Folder Focus
+## 5) Source Graph, MCP, And Workspace DB
+
+Source Graph is the document-link index for one VS Code workspace. It creates `.mps/source-graph.sqlite`, a local SQLite DB with document, heading, link, citation, search-index, node, and edge data.
+
+### First-time setup for normal users
+
+1. Install the VSIX.
+2. Open the folder that contains your Markdown documents in VS Code.
+3. Run `MD Studio: Initialize Source Graph Workspace`.
+4. Confirm `.mps/source-graph.sqlite` exists in that workspace.
+5. Run `MD Studio: Install Codex Source Graph MCP`.
+6. Choose `Workspace .codex/config.toml (Recommended)`.
+7. Run `MD Studio: Download Skill Folder`, choose `Bundled Codex`, then update `source-graph-search` into `.codex/skills` if it is missing.
+8. Restart Codex or start a new Codex session in this trusted workspace.
+9. Run `MD Studio: Check Codex Source Graph MCP Status` to verify Node, the bundled MCP script, graph DB, and config registration.
+
+This is the Source Graph equivalent of a project-local init step such as `codegraph init`: each workspace owns its own `.mps/source-graph.sqlite`.
+
+### Ignoring documents
+
+Run `MD Studio: Edit Source Ignore` to open the workspace `.mpsignore` file. The file uses gitignore-style glob lines and affects both Source Graph indexing and the MD Studio File Browser list.
+
+Example:
+
+```gitignore
+.agents/**
+.claude/**
+raw/**
+**/drafts/**
+*.draft.md
+```
+
+After editing `.mpsignore`, run `MD Studio: Update Source Graph Index` or reopen Source Graph. The file browser refreshes automatically when `.mpsignore` changes.
+
+### Updating behavior
+
+- `MD Studio: Open Source Graph` refreshes the DB before showing the graph.
+- `MD Studio: Update Source Graph Index` rebuilds the DB manually.
+- Saving an existing Markdown file updates that file's graph rows and recomputes resolved edges.
+- Creating or deleting a Markdown file triggers a full rebuild after a short debounce.
+- Creating, editing, or deleting `.mpsignore` triggers a full rebuild after a short debounce.
+- `MD Studio: Install Codex Source Graph MCP` also creates or updates the DB before writing the MCP config.
+
+### How to verify updates
+
+1. Create two files, `a.md` and `b.md`.
+2. Add `[B](b.md)` in `a.md`.
+3. Run `MD Studio: Initialize Source Graph Workspace`.
+4. Open Source Graph and select `a.md`; `b.md` should appear as an outbound linked file.
+5. Change the link to another Markdown file and save.
+6. Reopen or update Source Graph; the outbound edge should change.
+
+### MCP tools available to Codex after restart
+
+- `source_graph_update`: rebuilds `.mps/source-graph.sqlite`.
+- `source_graph_search`: searches indexed documents.
+- `source_graph_related`: finds related documents around a query or path.
+- `source_graph_neighbors`: returns inbound/outbound neighbors for a document.
+
+The bundled Codex skill `source-graph-search` tells Codex when to prefer these MCP tools for document discovery, backlink checks, related sources, and stale-index refreshes.
+
+## 6) Folder Focus
 
 `FOCUS` is available from folder items in the MD Studio File Browser sidebar.
 
@@ -116,7 +179,7 @@ Bundled skills are copied into the VSIX during `npm run build`, so installed use
 
 For a nested folder such as `docs/guides`, the MD Studio File Browser sidebar keeps the path to that folder visible and omits sibling branches from the MD Studio tree.
 
-## 6) Viewer Appearance
+## 7) Viewer Appearance
 
 Appearance is a presentation layer above `theme` and `design`.
 
@@ -128,7 +191,7 @@ Appearance is a presentation layer above `theme` and `design`.
 
 Detail controls override the preset: background (`default | plain | transparent`), corners (`default | soft | none`), frame (`default | lines | none`), and viewer chrome (`full | minimal | hidden`).
 
-## 7) Runtime Flow
+## 8) Runtime Flow
 
 1. Extension receives preview command or save event.
 2. Resolves CLI path in this order:
@@ -142,7 +205,7 @@ Detail controls override the preset: background (`default | plain | transparent`
 5. Rewrites `file://` asset URLs with `webview.asWebviewUri(...)`.
 6. Injects bridge script (cursor sync, preferred mode, outline state persistence).
 
-## 8) Troubleshooting
+## 9) Troubleshooting
 
 ### Preview does not open
 
@@ -178,14 +241,22 @@ Example (absolute path):
 - Run `npm run build` before testing from source so bundled `ai_skills` are copied into `vscode-extension/ai_skills`.
 - Confirm `mdStudioPreview.skillsDir` points to a directory whose children contain `SKILL.md`.
 
-## 9) Development Notes
+### Source Graph DB or MCP does not appear
+
+- Run `MD Studio: Check Codex Source Graph MCP Status`.
+- Confirm Node.js is installed and `mdStudioPreview.nodePath` points to a working `node` executable.
+- Confirm the workspace is trusted in Codex when using workspace `.codex/config.toml`.
+- Run `MD Studio: Initialize Source Graph Workspace` again if `.mps/source-graph.sqlite` is missing.
+- Restart Codex after installing or removing MCP config.
+
+## 10) Development Notes
 
 - Source: `vscode-extension/src/extension.ts`
 - Build: `npm run build`
 - Package: `npm run package:vsix`
-- Install test: `code --install-extension .\markdown-pattern-studio-preview-0.1.31.vsix --force`
+- Install test: `code --install-extension .\markdown-pattern-studio-preview-0.1.34.vsix --force`
 
-## 10) Uninstall / Cleanup Guide
+## 11) Uninstall / Cleanup Guide
 
 ### Uninstall extension
 
@@ -206,7 +277,7 @@ Find `datanewbie-labs.markdown-pattern-studio-preview@...` in the list.
 If you no longer need the package file, delete:
 
 ```text
-vscode-extension/markdown-pattern-studio-preview-0.1.31.vsix
+vscode-extension/markdown-pattern-studio-preview-0.1.34.vsix
 ```
 
 ### Optional: remove local extension folder manually
@@ -214,5 +285,5 @@ vscode-extension/markdown-pattern-studio-preview-0.1.31.vsix
 If needed, remove this folder:
 
 ```text
-%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-pattern-studio-preview-0.1.31
+%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-pattern-studio-preview-0.1.34
 ```

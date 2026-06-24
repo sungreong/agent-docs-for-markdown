@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.34 - 2026-06-24
+
+- Improved dark/accent slide contrast so body, muted, link, and inline-code text stay readable on dark backgrounds.
+- Added a post-render color/font contrast harness to bundled document-writing skills so weak text/background pairings are revised before delivery.
+- Added regression coverage for `.message .dark` and plain `.dark` slide rendering.
+
+## 0.1.33 - 2026-06-24
+
+- Improved card and feature-grid typography so long labels no longer render as oversized, awkwardly broken headings in VS Code webviews.
+- Made column/card grids responsive in the bundled preview and narrow-panel webview overrides.
+- Updated bundled document-writing skills to prefer compact card labels with body text and to avoid brittle heading-only cards.
+
 ## 0.1.32 - 2026-06-22
 
 - Added HTML export target selection for Standalone HTML, Blog Embed HTML, and Content Fragment.

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="MD Studio">
+  <path d="M3.5 4.25h5.2c1.8 0 3.3 1.5 3.3 3.3v12.2c-.8-1-2-1.5-3.3-1.5H3.5v-14Z" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/>
+  <path d="M20.5 4.25h-5.2c-1.8 0-3.3 1.5-3.3 3.3v12.2c.8-1 2-1.5 3.3-1.5h5.2v-14Z" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/>
+  <path d="M6.3 14v-5h1.15l1.25 1.95L9.95 9h1.15v5H9.95v-2.9l-.9 1.35h-.7l-.9-1.35V14H6.3Z" fill="currentColor"/>
+  <path d="M13.2 14V9h2.1c1.55 0 2.7 1.05 2.7 2.5S16.85 14 15.3 14h-2.1Zm1.2-1.08h.82c.9 0 1.53-.58 1.53-1.42s-.63-1.42-1.53-1.42h-.82v2.84Z" fill="currentColor"/>
+</svg>

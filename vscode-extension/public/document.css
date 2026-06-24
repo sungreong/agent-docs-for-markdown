@@ -8,8 +8,11 @@
   --doc-bg-strong: #eef3fb;
   --doc-accent: #4f74ff;
   --doc-accent-soft: rgba(79, 116, 255, 0.12);
-  --doc-inverse-bg: var(--doc-accent);
-  --doc-inverse-text: #ffffff;
+  --doc-inverse-bg: #111827;
+  --doc-inverse-text: #f8fafc;
+  --doc-inverse-muted: #dbe4f0;
+  --doc-inverse-subtle: #cbd5e1;
+  --doc-inverse-accent: color-mix(in srgb, var(--doc-accent) 46%, #f8fafc);
   --page-width: 1120px;
   --page-height: 720px;
   --code-max-height-default: 360px;
@@ -18,6 +21,8 @@
   --font-size-section: 1.45rem;
   --font-size-body: 1rem;
   --font-size-caption: 0.78rem;
+  --font-size-card-heading: clamp(1.05rem, 0.92rem + 0.55vw, 1.35rem);
+  --font-size-card-body: 0.95rem;
   /* Font pairings — overridden per theme */
   --font-heading: system-ui, -apple-system, sans-serif;
   --font-body: system-ui, -apple-system, sans-serif;
@@ -440,8 +445,11 @@
 .section-heading {
   margin: 0 0 16px;
   line-height: 1.25;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   font-family: var(--font-heading);
+  overflow-wrap: break-word;
+  word-break: keep-all;
+  hyphens: auto;
 }
 
 .md-paragraph,
@@ -481,7 +489,8 @@
   line-height: 1.85;
   font-size: 17px;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: keep-all;
 }
 
 .md-paragraph:first-child,
@@ -517,7 +526,8 @@
   padding-left: 22px;
   line-height: 1.8;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: keep-all;
 }
 
 .md-list li + li {
@@ -934,16 +944,36 @@
 
 .section-feature-grid > .md-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: clamp(12px, 1.5vw, 18px);
 }
 
 .section-feature-grid > .md-list > li {
   margin-top: 0;
-  padding: 16px;
+  padding: clamp(14px, 1.5vw, 18px);
   border: 1px solid var(--doc-line-soft);
   border-radius: 8px;
   background: var(--doc-bg-soft);
+  min-width: 0;
+  line-height: 1.55;
+  font-size: var(--font-size-card-body);
+  overflow-wrap: break-word;
+  word-break: keep-all;
+  hyphens: auto;
+}
+
+.section-feature-grid > .md-list > li > strong:first-child {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--doc-text);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-card-heading);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: 0;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+  hyphens: auto;
 }
 
 .section-metrics-dashboard > .md-list {
@@ -1034,6 +1064,90 @@
   box-shadow: 0 24px 72px rgba(15, 23, 42, 0.22);
 }
 
+.section-briefing-lead,
+.section-news-brief {
+  border-top: 5px solid var(--doc-text);
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, var(--doc-accent-soft), transparent 42%),
+    var(--doc-bg);
+}
+
+.section-briefing-lead > .section-heading,
+.section-news-brief > .section-heading {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(34px, 4.8vw, 58px);
+  line-height: 0.98;
+  letter-spacing: 0;
+  margin-bottom: 12px;
+}
+
+.section-briefing-lead .md-paragraph:first-of-type,
+.section-news-brief .md-paragraph:first-of-type {
+  max-width: 70ch;
+  color: var(--doc-text);
+  font-size: 1.08rem;
+  font-weight: 620;
+  line-height: 1.62;
+}
+
+.section-priority-strip,
+.section-headline-strip {
+  border-radius: 3px;
+}
+
+.section-priority-strip > .section-heading,
+.section-headline-strip > .section-heading {
+  border-bottom: 2px solid var(--doc-text);
+  padding-bottom: 8px;
+  letter-spacing: 0;
+}
+
+.section-priority-strip > .md-list,
+.section-headline-strip > .md-list {
+  display: grid;
+  gap: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.section-priority-strip > .md-list > li,
+.section-headline-strip > .md-list > li {
+  border-bottom: 1px solid var(--doc-line-soft);
+  padding: 10px 0;
+}
+
+.section-priority-strip > .md-list > li:first-child,
+.section-headline-strip > .md-list > li:first-child {
+  padding-top: 0;
+}
+
+.section-priority-strip > .md-list > li:last-child,
+.section-headline-strip > .md-list > li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.section-evidence-ledger,
+.section-source-ledger {
+  background: var(--doc-bg-soft);
+}
+
+.section-evidence-ledger > .section-heading,
+.section-source-ledger > .section-heading {
+  color: var(--doc-muted);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.section-evidence-ledger .md-list,
+.section-evidence-ledger .md-table,
+.section-source-ledger .md-list,
+.section-source-ledger .md-table {
+  font-size: 0.92rem;
+}
+
 .md-table.contrast-pair th:first-child,
 .md-table.contrast-pair td:first-child {
   background: var(--doc-bg-soft);
@@ -1106,7 +1220,8 @@
 }
 
 .template-cover.section-dark a,
-.template-dark-slide a {
+.template-dark-slide a,
+.section-dark a {
   color: color-mix(in srgb, var(--doc-inverse-text) 90%, #b8d6ff);
   background: rgba(255, 255, 255, 0.14);
   border-radius: 6px;
@@ -1121,7 +1236,8 @@
 }
 
 .template-cover.section-dark a:hover,
-.template-dark-slide a:hover {
+.template-dark-slide a:hover,
+.section-dark a:hover {
   background: rgba(255, 255, 255, 0.22);
   color: var(--doc-inverse-text);
 }
@@ -1133,8 +1249,8 @@
 
 .template-columns .multi-column-grid {
   display: grid;
-  grid-template-columns: repeat(var(--column-count, 2), minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: clamp(14px, 1.7vw, 20px);
   margin-top: 18px;
 }
 
@@ -1148,6 +1264,26 @@
   margin: 0;
   background: var(--doc-bg-soft);
   min-width: 0;
+  padding: clamp(14px, 1.5vw, 18px);
+  align-content: start;
+  gap: 10px;
+}
+
+.template-columns .column > .md-section .section-heading {
+  margin-bottom: 0.45rem;
+  font-size: var(--font-size-card-heading);
+  line-height: 1.18;
+  letter-spacing: 0;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+  hyphens: auto;
+}
+
+.template-columns .column > .md-section .md-paragraph,
+.template-columns .column > .md-section .md-list {
+  margin-top: 0.55rem;
+  font-size: var(--font-size-card-body);
+  line-height: 1.55;
 }
 
 .template-columns .column > * {
@@ -1177,6 +1313,59 @@
   line-height: 1.25;
   color: var(--doc-text);
   font-weight: 800;
+}
+
+.section-dark,
+.template-cover.section-dark,
+.template-dark-slide {
+  background: var(--doc-inverse-bg) !important;
+  color: var(--doc-inverse-text);
+}
+
+.section-dark .section-heading,
+.template-dark-slide .section-heading {
+  color: var(--doc-inverse-accent);
+}
+
+.section-dark .md-paragraph,
+.section-dark .md-list,
+.section-dark .md-blockquote,
+.section-dark .md-callout,
+.template-dark-slide .md-paragraph,
+.template-dark-slide .md-list,
+.template-dark-slide .md-blockquote,
+.template-dark-slide .md-callout {
+  color: var(--doc-inverse-muted);
+}
+
+.section-dark .md-paragraph.is-muted,
+.section-dark small,
+.template-dark-slide .md-paragraph.is-muted,
+.template-dark-slide small {
+  color: var(--doc-inverse-subtle);
+}
+
+.section-dark strong,
+.section-dark .md-list strong,
+.template-dark-slide strong,
+.template-dark-slide .md-list strong {
+  color: var(--doc-inverse-text);
+}
+
+.template-cover.section-dark .section-heading,
+.template-cover.section-dark .cover-body,
+.template-cover.section-dark .md-paragraph,
+.template-cover.section-dark .md-list,
+.template-message.section-dark .md-paragraph.is-lead,
+.template-message.section-dark .md-paragraph:first-child {
+  color: var(--doc-inverse-text);
+}
+
+.section-dark code,
+.template-dark-slide code {
+  background: rgba(248, 250, 252, 0.12);
+  border-color: rgba(248, 250, 252, 0.22);
+  color: var(--doc-inverse-text);
 }
 
 .template-timeline .md-list li {
@@ -1319,6 +1508,7 @@
 .document-shell.is-paginated .section-heading {
   border-bottom: none;
   padding-bottom: 0;
+  line-height: 1.18;
 }
 
 /* Anti-pattern: left-align body text (never center paragraphs or lists) */
@@ -1374,7 +1564,6 @@
 /* ─── Dark Slide Template ────────────────────────────────────────────────── */
 
 .template-dark-slide {
-  background: var(--doc-inverse-bg) !important;
   border-radius: 0;
   display: flex;
   flex-direction: column;
@@ -1390,19 +1579,6 @@
 .document-shell.is-paginated .template-dark-slide {
   align-self: stretch;
   padding: 3rem 3.5rem !important;
-}
-
-.template-dark-slide .section-heading {
-  color: var(--doc-inverse-text);
-}
-
-.template-dark-slide .md-paragraph,
-.template-dark-slide .md-list {
-  color: color-mix(in srgb, var(--doc-inverse-text) 88%, transparent);
-}
-
-.template-dark-slide .md-paragraph.is-muted {
-  color: color-mix(in srgb, var(--doc-inverse-text) 62%, transparent);
 }
 
 /* ─── Half-Bleed Layout Template ─────────────────────────────────────────── */

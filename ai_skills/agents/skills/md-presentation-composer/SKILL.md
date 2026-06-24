@@ -31,6 +31,7 @@ Then define a component system for the whole document:
 - Choose one primary evidence treatment (`.table-fit`, code block, diagram, or `.compare`) and reuse it.
 - Choose one KPI treatment (`.stats`) only if the content has true top-line metrics.
 - Choose at most one primary expression treatment from `.safe-zone`, `.problem-statement`, `.big-number-hero`, `.feature-grid`, `.metrics-dashboard`, or `.contrast-pair`.
+- For card-like treatments, keep card titles to 1-3 short words and put explanation in body text. Do not put large section headings inside cards just to create labels.
 - Use at most 1-2 expressive templates (`.dark`, `.half-bleed`, `.quote-slide`) in a normal technical/report deck.
 - Avoid making every section a card grid. Repetition is acceptable for a family of evidence slides, but not as a default decoration.
 - When content is technical, prioritize exactness and scanability over visual spectacle.
@@ -52,7 +53,7 @@ Then define a component system for the whole document:
 - Side-by-side exactly 2 → `.compare` or `.two-column`
 - Exactly 3 symmetric items → `.three-column` (never `.compare` for 3 items)
 - Feature list with icons → `.icon-list` (4–5 items optimal; 3 items fills only half the slide)
-- Feature/capability bullets without icons → `.feature-grid` (3–6 peer items)
+- Feature/capability bullets without icons → `.feature-grid` (3–6 peer items; use short bold labels plus concise body text, not long heading-only cards)
 - Single memorable metric/claim → `.big-number-hero` (must include one supporting sentence)
 - Pain-point framing → `.problem-statement`
 - Before/after or old/new pairs → `.contrast-pair`
@@ -73,6 +74,7 @@ Then define a component system for the whole document:
 **Phase 4 — Verify**: Run the visual QA checklist before declaring done (see `references/validation-rules.md`).
 - For each slide: would a reader see this and think "this slide is full"? If not, add content or switch to a denser template.
 - Check template pairing: no same template used 3+ slides in a row; alternate heavy and light templates.
+- Run the color/font contrast harness: identify every dark/accent surface, check heading/body/muted/link/code text against it, revise weak colors or font weights, then render again.
 - Check the output against the request contract: every must-include requirement is present, every constraint is honored, and unsupported ideas are removed instead of kept as broken decoration.
 - When rendering is possible, verify the actual HTML at desktop and narrow widths before finalizing.
 
@@ -189,7 +191,7 @@ These are supported by the renderer as regular section/block classes:
 | `.safe-zone` | Keeping important content inside the central reading area |
 | `.problem-statement` | Problem/pain framing sections |
 | `.big-number-hero` | One strong metric or claim |
-| `.feature-grid` | 3–6 independent feature bullets |
+| `.feature-grid` | 3–6 independent feature bullets with compact labels |
 | `.metrics-dashboard` | KPI-like bullets rendered as compact cards |
 | `.contrast-pair` | Before/after, old/new, risk/response comparisons |
 | `.gradient-number` | Accent treatment for a number paragraph or list emphasis |
@@ -297,6 +299,8 @@ If the user mentions Word, DOCX, memo, report handoff, or later document convers
 - Images should have `alt` / `caption`; tables should have `caption`; code blocks should have a language tag.
 - If DOCX handoff is likely, headings, lists, page breaks, image captions, and table captions must remain structurally clean.
 - If PPTX-like delivery is likely, verify one main message per page, readable title scale, no unintended overlap, and no dense wall-of-text slide before finalizing.
+- Card and grid titles must not split awkwardly across letters or single-word fragments at desktop or narrow preview widths. If they do, shorten labels, switch to `.timeline`/`.icon-list`, or collapse the content back to a regular list.
+- Dark/accent slides must pass a contrast pass before delivery. If muted text becomes hard to read, remove the muted styling, switch to a lighter inverse token, increase weight, or change the slide back to a light template.
 
 ## Syntax Preservation Checklist
 

@@ -1,0 +1,9 @@
+# Markdown Pattern Studio ignore rules
+# One glob per line. Uncomment examples when you want them hidden from Source Graph and MD Studio File Browser.
+#
+# .agents/**
+# .claude/**
+# .vscode-test/**
+# raw/**
+# **/drafts/**
+# *.draft.md

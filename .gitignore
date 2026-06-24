@@ -19,6 +19,7 @@ coverage/
 .cache/
 .tmp/
 tmp/
+.mps/
 vscode-extension/ai_skills/
 *.vsix
 
@@ -33,6 +34,7 @@ Thumbs.db
 # Local tooling / agent metadata
 .claude/
 .codex/
+.codegraph/
 .gemini
 .agents
 ai_docs

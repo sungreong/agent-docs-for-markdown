@@ -354,7 +354,19 @@ npm run test:embed-images
 
 이 화면은 VS Code에서 Markdown을 저장했을 때, 확장이 CLI 렌더링 결과를 Webview로 보여주고 Outline/페이지 네비게이션을 제공하는 상태입니다.
 
-### 최근 VS Code Extension 배포 준비 (0.1.32 — 2026-06-22)
+### 최근 VS Code Extension 배포 준비 (0.1.34 — 2026-06-24)
+
+- **다크/액센트 슬라이드 대비 개선**: 어두운 배경에서 본문, muted 문맥, 링크, inline code가 안 보이는 문제를 줄이도록 inverse 색상 토큰과 `.message .dark` 보정을 강화했습니다.
+- **색상/폰트 대비 하네스 추가**: 문서 작성 스킬이 렌더 후 dark/accent 표면의 heading/body/muted/link/code 대비를 점검하고, 실패하면 색상/폰트를 다시 수정하도록 검증 단계를 추가했습니다.
+- **회귀 테스트 추가**: `.message .dark`와 일반 `.dark` 슬라이드가 VS Code 번들에서도 읽기 가능한 대비를 유지하는지 확인합니다.
+
+### VS Code Extension 배포 준비 (0.1.33 — 2026-06-24)
+
+- **카드/feature-grid 타이포그래피 개선**: VS Code Webview에서도 긴 카드 제목이 과하게 커지거나 글자 단위로 쪼개지지 않도록 보정했습니다.
+- **반응형 카드 그리드 개선**: 좁은 preview panel에서는 카드/컬럼이 자연스럽게 1열로 쌓이고, 넓은 화면에서는 적절한 최소 폭을 유지합니다.
+- **번들 스킬 가이드 보강**: 카드형 문서 표현은 짧은 라벨과 본문 설명을 쓰도록 `md-presentation-composer`, `document-production-advisor` 지침을 보강했습니다.
+
+### VS Code Extension 배포 준비 (0.1.32 — 2026-06-22)
 
 - **Blog Embed export 추가**: Tistory/WordPress/Velog 같은 기존 사이트에 복붙할 때 fixed viewer chrome과 전역 CSS 충돌을 줄이는 scoped fragment를 지원합니다.
 - **HTML Viewer 개선**: `.html`/`.htm` 파일을 MD Studio Viewer에서 열고 Edit Source, Refresh, 저장 시 자동 갱신을 유지합니다.
@@ -412,6 +424,59 @@ npm run test:embed-images
 - 파일 추가/삭제/수정 시 트리 자동 갱신 (300ms 디바운스)
 - `Ctrl+S` 저장 시 사이드바 선택이 현재 프리뷰 파일로 자동 동기화
 
+### Source Graph / MCP
+
+- 명령: `MD Studio: Open Source Graph`
+- 명령: `MD Studio: Initialize Source Graph Workspace`
+- 명령: `MD Studio: Update Source Graph Index`
+- 명령: `MD Studio: Search Source Graph`
+- 명령: `MD Studio: Edit Source Ignore`
+- 명령: `MD Studio: Install Codex Source Graph MCP`
+- 명령: `MD Studio: Check Codex Source Graph MCP Status`
+- 명령: `MD Studio: Remove Codex Source Graph MCP`
+- 명령: `MD Studio: Copy Codex Source Graph MCP Config`
+- 워크스페이스 Markdown 파일을 `.mps/source-graph.sqlite`에 인덱싱합니다. 이 DB는 `codegraph init`처럼 프로젝트/워크스페이스마다 따로 생기는 로컬 SQLite 인덱스입니다.
+- DB는 dependency-free JSON이지만 `documents`, `headings`, `links`, `citations`, `searchIndex` 테이블과 graph `nodes/edges`를 가진 SQLite형 구조입니다.
+- `MD Studio: Edit Source Ignore`로 워크스페이스 루트의 `.mpsignore`를 만들거나 편집할 수 있습니다. 이 패턴은 Source Graph 인덱스와 MD Studio File Browser 목록에서 모두 제외됩니다.
+- 그래프 패널을 열면 인덱스를 먼저 갱신합니다. 기존 Markdown 파일 내용만 바뀌면 해당 문서 row만 교체하고 edge를 재계산하며, 파일 생성/삭제 또는 `.mpsignore` 변경은 전체 재빌드합니다.
+
+`.mpsignore` 예시:
+
+```gitignore
+.agents/**
+.claude/**
+raw/**
+**/drafts/**
+*.draft.md
+```
+
+CLI / MCP:
+
+```bash
+npm run source-graph:update
+node scripts/source-graph.mjs update-file --path README.md
+node scripts/source-graph.mjs search --query "DESIGN.md"
+node scripts/source-graph.mjs related --path README.md
+node scripts/source-graph.mjs neighbors --path README.md
+node scripts/source-graph.mjs mcp
+```
+
+일반 사용자는 수동 복사 대신 다음 흐름을 권장합니다.
+
+1. VSIX를 설치합니다.
+2. VS Code에서 Markdown 워크스페이스를 엽니다.
+3. `MD Studio: Initialize Source Graph Workspace`를 한 번 실행해 `.mps/source-graph.sqlite`를 생성합니다.
+4. `MD Studio: Install Codex Source Graph MCP`를 실행합니다.
+5. `Workspace .codex/config.toml (Recommended)`를 선택합니다.
+6. `MD Studio: Download Skill Folder`에서 `Bundled Codex`를 선택하고, `source-graph-search` 스킬이 없으면 `.codex/skills`로 업데이트합니다.
+7. Codex를 재시작하거나 해당 trusted workspace에서 새 Codex 세션을 시작합니다.
+
+설치 명령은 `.codex/config.toml`에 관리되는 MCP 블록을 쓰고, `.mps/source-graph.sqlite`를 생성/갱신하며, MCP 서버가 현재 워크스페이스를 바라보도록 설정합니다. `MD Studio: Check Codex Source Graph MCP Status`로 Node, 번들 MCP 스크립트, graph DB, config 등록 상태를 확인할 수 있습니다. 업데이트 확인은 Markdown 링크를 하나 추가/수정한 뒤 저장하고 `MD Studio: Open Source Graph` 또는 `MD Studio: Search Source Graph`를 실행하면 됩니다. DB timestamp와 연결 edge가 변경되어야 정상입니다. `MD Studio: Remove Codex Source Graph MCP`로 관리 블록을 제거할 수 있습니다.
+
+`MD Studio: Copy Codex Source Graph MCP Config`는 고급 사용자나 `~/.codex/config.toml`에 직접 붙여넣고 싶은 경우를 위한 수동 설정 명령으로 남겨둡니다.
+
+MCP 서버는 `source_graph_update`, `source_graph_search`, `source_graph_related`, `source_graph_neighbors` 도구를 제공합니다. 번들 Codex 스킬 `source-graph-search`는 관련 문서 검색, backlink 탐색, 변경 후 인덱스 갱신에 이 도구를 우선 사용하도록 안내합니다.
+
 ### Reader 내부 텍스트 검색
 
 - 프리뷰 Webview에서 `Ctrl+F` → 우측 상단에 검색 바 등장
@@ -446,7 +511,7 @@ npm run package:vsix
 설치:
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.32.vsix
+code --install-extension .\markdown-pattern-studio-preview-0.1.34.vsix
 ```
 
 ### 커서 동기화 동작 (Ctrl+S)
@@ -591,6 +656,20 @@ npm run md2html -- public/examples/design-showcase.md --theme midnight --intent 
 
 ## 변경 이력
 
+### VS Code Extension 0.1.34 — 2026-06-24
+
+- 다크/액센트 슬라이드의 본문, muted 문맥, 링크, inline code 대비 개선
+- 문서 생성 스킬에 렌더 후 색상/폰트 대비 하네스 추가
+- `.message .dark`와 일반 `.dark` 슬라이드 대비 회귀 테스트 추가
+- 최신 VSIX: `vscode-extension/markdown-pattern-studio-preview-0.1.34.vsix`
+
+### VS Code Extension 0.1.33 — 2026-06-24
+
+- VS Code Webview 카드/feature-grid 제목 크기와 줄바꿈 개선
+- 좁은 preview panel용 반응형 카드/컬럼 grid 보정
+- 카드형 문서 작성 스킬 가이드와 회귀 테스트 추가
+- 당시 VSIX: `vscode-extension/markdown-pattern-studio-preview-0.1.33.vsix`
+
 ### VS Code Extension 0.1.32 — 2026-06-22
 
 - Blog Embed HTML, Content Fragment export target 추가
@@ -598,7 +677,7 @@ npm run md2html -- public/examples/design-showcase.md --theme midnight --intent 
 - `mdStudioPreview.language`로 영어 기본값과 한국어 UI 선택 지원
 - `document-production-advisor` bundled skill 추가
 - Download Skill Folder에서 source와 매칭되는 workspace skill root 업데이트 지원
-- 최신 VSIX: `vscode-extension/markdown-pattern-studio-preview-0.1.32.vsix`
+- 당시 VSIX: `vscode-extension/markdown-pattern-studio-preview-0.1.32.vsix`
 
 ### VS Code Extension 0.1.31 — 2026-06-20
 

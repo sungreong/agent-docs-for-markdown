@@ -2,7 +2,7 @@
   "name": "markdown-pattern-studio-preview",
   "displayName": "Markdown Pattern Studio Preview",
   "description": "Preview Markdown Pattern Studio CLI output in a VS Code webview.",
-  "version": "0.1.32",
+  "version": "0.1.34",
   "publisher": "datanewbie-labs",
   "license": "MIT",
   "icon": "assets/icon.png",
@@ -21,14 +21,25 @@
     "Other"
   ],
   "activationEvents": [
+    "onUri",
     "onLanguage:markdown",
     "onView:mdStudioFileBrowser",
+    "onView:mdStudioSourceGraphLauncher",
     "onCommand:mdStudioPreview.open",
     "onCommand:mdStudioPreview.refresh",
     "onCommand:mdStudioPreview.openSourceEditor",
     "onCommand:mdStudioPreview.enableAutoOnSave",
     "onCommand:mdStudioPreview.disableAutoOnSave",
     "onCommand:mdStudioPreview.openTemplateBuilder",
+    "onCommand:mdStudioPreview.openSourceGraph",
+    "onCommand:mdStudioPreview.initializeSourceGraphWorkspace",
+    "onCommand:mdStudioPreview.updateSourceGraph",
+    "onCommand:mdStudioPreview.searchSourceGraph",
+    "onCommand:mdStudioPreview.openSourceIgnoreFile",
+    "onCommand:mdStudioPreview.copyCodexMcpConfig",
+    "onCommand:mdStudioPreview.installCodexMcp",
+    "onCommand:mdStudioPreview.checkCodexMcpStatus",
+    "onCommand:mdStudioPreview.removeCodexMcp",
     "onCommand:mdStudioPreview.openFileInViewer",
     "onCommand:mdStudioPreview.openFileInNewPanel",
     "onCommand:mdStudioFileBrowser.openInEditor",
@@ -57,7 +68,12 @@
         {
           "id": "mdStudioFileBrowserContainer",
           "title": "MD Studio File Browser",
-          "icon": "$(book)"
+          "icon": "assets/activity-md.svg"
+        },
+        {
+          "id": "mdStudioSourceGraphContainer",
+          "title": "MD Studio Source Graph",
+          "icon": "$(graph)"
         }
       ]
     },
@@ -66,6 +82,14 @@
         {
           "id": "mdStudioFileBrowser",
           "name": "MD Studio Files",
+          "when": "workspaceFolderCount > 0"
+        }
+      ],
+      "mdStudioSourceGraphContainer": [
+        {
+          "id": "mdStudioSourceGraphLauncher",
+          "name": "Source Graph",
+          "type": "webview",
           "when": "workspaceFolderCount > 0"
         }
       ]
@@ -98,6 +122,51 @@
         "command": "mdStudioPreview.openTemplateBuilder",
         "title": "Template Builder",
         "icon": "$(combine)"
+      },
+      {
+        "command": "mdStudioPreview.openSourceGraph",
+        "title": "MD Studio: Open Source Graph",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "mdStudioPreview.initializeSourceGraphWorkspace",
+        "title": "MD Studio: Initialize Source Graph Workspace",
+        "icon": "$(database)"
+      },
+      {
+        "command": "mdStudioPreview.updateSourceGraph",
+        "title": "MD Studio: Update Source Graph Index",
+        "icon": "$(database)"
+      },
+      {
+        "command": "mdStudioPreview.searchSourceGraph",
+        "title": "MD Studio: Search Source Graph",
+        "icon": "$(symbol-keyword)"
+      },
+      {
+        "command": "mdStudioPreview.openSourceIgnoreFile",
+        "title": "MD Studio: Edit Source Ignore",
+        "icon": "$(exclude)"
+      },
+      {
+        "command": "mdStudioPreview.copyCodexMcpConfig",
+        "title": "MD Studio: Copy Codex Source Graph MCP Config",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "mdStudioPreview.installCodexMcp",
+        "title": "MD Studio: Install Codex Source Graph MCP",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "mdStudioPreview.checkCodexMcpStatus",
+        "title": "MD Studio: Check Codex Source Graph MCP Status",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "mdStudioPreview.removeCodexMcp",
+        "title": "MD Studio: Remove Codex Source Graph MCP",
+        "icon": "$(trash)"
       },
       {
         "command": "mdStudioPreview.downloadSkillFolder",
@@ -281,6 +350,11 @@
     "menus": {
       "view/title": [
         {
+          "command": "mdStudioPreview.openSourceGraph",
+          "when": "view == mdStudioFileBrowser",
+          "group": "navigation@0"
+        },
+        {
           "command": "mdStudioFileBrowser.search",
           "when": "view == mdStudioFileBrowser",
           "group": "navigation@1"
@@ -319,6 +393,31 @@
           "command": "mdStudioPreview.clearFolderFocus",
           "when": "view == mdStudioFileBrowser && mdStudioPreview.folderFocusActive",
           "group": "navigation@8"
+        },
+        {
+          "command": "mdStudioPreview.openSourceGraph",
+          "when": "view == mdStudioSourceGraphLauncher",
+          "group": "navigation@0"
+        },
+        {
+          "command": "mdStudioPreview.initializeSourceGraphWorkspace",
+          "when": "view == mdStudioSourceGraphLauncher",
+          "group": "navigation@1"
+        },
+        {
+          "command": "mdStudioPreview.updateSourceGraph",
+          "when": "view == mdStudioSourceGraphLauncher",
+          "group": "navigation@2"
+        },
+        {
+          "command": "mdStudioPreview.openSourceIgnoreFile",
+          "when": "view == mdStudioSourceGraphLauncher",
+          "group": "navigation@3"
+        },
+        {
+          "command": "mdStudioPreview.checkCodexMcpStatus",
+          "when": "view == mdStudioSourceGraphLauncher",
+          "group": "navigation@4"
         }
       ],
       "editor/title": [
@@ -368,9 +467,14 @@
           "group": "navigation@22"
         },
         {
-          "command": "mdStudioPreview.transformMarkdownToHtml",
+          "command": "mdStudioPreview.openSourceGraph",
           "when": "resourceLangId == markdown",
           "group": "navigation@23"
+        },
+        {
+          "command": "mdStudioPreview.transformMarkdownToHtml",
+          "when": "resourceLangId == markdown",
+          "group": "navigation@24"
         }
       ],
       "view/item/context": [
@@ -459,15 +563,21 @@
   },
   "files": [
     "assets/icon.png",
+    "assets/icon.svg",
+    "assets/activity-md.svg",
     "dist/**",
     "README.md",
     "CHANGELOG.md",
     "LICENSE.md",
     "EXTENSION_GUIDE.md",
+    "source-graph-vsix-preview.png",
+    "vscode-extension-0.1.34-updates.png",
     "ai_skills/**",
+    "node_modules/sql.js/**",
     "node_modules/yazl/**",
     "node_modules/buffer-crc32/**",
     "scripts/md-to-html.mjs",
+    "scripts/source-graph.mjs",
     "public/core/**",
     "public/document.css",
     "public/template-builder-vscode.html"
@@ -479,6 +589,7 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
+    "sql.js": "^1.10.3",
     "yazl": "^2.5.1"
   }
 }

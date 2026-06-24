@@ -12,6 +12,7 @@ import {
   readExtraFileExtensions,
 } from '../utils/markdownFiles.js';
 import { pickLocalized, readMdStudioLanguage, type MdStudioLanguage } from '../utils/localization.js';
+import { MPS_IGNORE_FILE, loadSourceIgnoreMatcher } from '../utils/sourceIgnore.js';
 
 export type FileBrowserSortOrder = 'nameAsc' | 'nameDesc' | 'modifiedDesc' | 'modifiedAsc' | 'createdDesc' | 'createdAsc' | 'sizeDesc' | 'sizeAsc' | 'lengthDesc' | 'lengthAsc';
 
@@ -118,6 +119,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   private itemByPath = new Map<string, MarkdownFileItem>(); // fsPath -> item (needed for getParent)
   private roots: MarkdownFileItem[] = [];
   private watcher: vscode.FileSystemWatcher | undefined;
+  private ignoreWatcher: vscode.FileSystemWatcher | undefined;
   private watcherDisposables: vscode.Disposable[] = [];
   private refreshTimer: ReturnType<typeof setTimeout> | undefined;
   private sortOrder: FileBrowserSortOrder;
@@ -174,11 +176,16 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   private resetFileWatcher(): void {
     this.disposeWatcher();
     this.watcher = vscode.workspace.createFileSystemWatcher(this.getFindFilesPattern());
+    this.ignoreWatcher = vscode.workspace.createFileSystemWatcher(`**/${MPS_IGNORE_FILE}`);
     this.watcherDisposables = [
       this.watcher,
       this.watcher.onDidCreate(() => this.scheduleRefresh()),
       this.watcher.onDidChange(() => this.scheduleRefresh()),
       this.watcher.onDidDelete(() => this.scheduleRefresh()),
+      this.ignoreWatcher,
+      this.ignoreWatcher.onDidCreate(() => this.scheduleRefresh()),
+      this.ignoreWatcher.onDidChange(() => this.scheduleRefresh()),
+      this.ignoreWatcher.onDidDelete(() => this.scheduleRefresh()),
     ];
   }
 
@@ -188,6 +195,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     }
     this.watcherDisposables = [];
     this.watcher = undefined;
+    this.ignoreWatcher = undefined;
   }
 
   private scheduleRefresh(): void {
@@ -424,7 +432,11 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   }
 
   private async findAllFiles(): Promise<vscode.Uri[]> {
-    return vscode.workspace.findFiles(this.getFindFilesPattern(), DEFAULT_FILE_BROWSER_EXCLUDE_GLOB);
+    const [documentUris, ignoreUris] = await Promise.all([
+      vscode.workspace.findFiles(this.getFindFilesPattern(), DEFAULT_FILE_BROWSER_EXCLUDE_GLOB),
+      findSourceIgnoreFiles(),
+    ]);
+    return filterIgnoredUris([...documentUris, ...ignoreUris]);
   }
 
   async refresh(): Promise<void> {
@@ -1134,6 +1146,50 @@ function readFocusRootPath(context: vscode.ExtensionContext): string | null {
   const stored = context.workspaceState.get<unknown>(FOCUS_STATE_KEY);
   if (typeof stored !== 'string' || !stored.trim()) return null;
   return stored;
+}
+
+async function filterIgnoredUris(uris: vscode.Uri[]): Promise<vscode.Uri[]> {
+  const matchersByRoot = new Map<string, Awaited<ReturnType<typeof loadSourceIgnoreMatcher>>>();
+  const out: vscode.Uri[] = [];
+  const seen = new Set<string>();
+  for (const uri of uris) {
+    const normalizedFsPath = normalizeFsPath(uri.fsPath);
+    if (seen.has(normalizedFsPath)) continue;
+    seen.add(normalizedFsPath);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+    if (!workspaceFolder) {
+      out.push(uri);
+      continue;
+    }
+    const root = normalizeFsPath(workspaceFolder.uri.fsPath);
+    let matcher = matchersByRoot.get(root);
+    if (!matcher) {
+      matcher = await loadSourceIgnoreMatcher(workspaceFolder);
+      matchersByRoot.set(root, matcher);
+    }
+    const relativePath = path.relative(workspaceFolder.uri.fsPath, uri.fsPath).replace(/\\/g, '/');
+    if (relativePath === MPS_IGNORE_FILE) {
+      out.push(uri);
+      continue;
+    }
+    if (!matcher.isIgnored(relativePath)) out.push(uri);
+  }
+  return out;
+}
+
+async function findSourceIgnoreFiles(): Promise<vscode.Uri[]> {
+  const folders = vscode.workspace.workspaceFolders || [];
+  const uris: vscode.Uri[] = [];
+  await Promise.all(folders.map(async (workspaceFolder) => {
+    const uri = vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, MPS_IGNORE_FILE));
+    try {
+      await vscode.workspace.fs.stat(uri);
+      uris.push(uri);
+    } catch {
+      // The file browser exposes .mpsignore when it exists; the command can create it on demand.
+    }
+  }));
+  return uris;
 }
 
 function readStoredFsPaths(stored: unknown): string[] {

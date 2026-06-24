@@ -51,6 +51,7 @@ Check:
 - no clipped titles
 - no overlapping fixed controls
 - no text that is too small or invisible
+- no dark/accent surface where heading, body, muted, link, or code text fails readable contrast
 - no broken images without fallback
 - no table that requires awkward side scrolling unless unavoidable
 - no empty or nearly empty slides
@@ -72,8 +73,18 @@ PPTX-like documents also need:
 - title text that does not wrap unexpectedly or clip
 - no unintended overlap between diagram/text elements
 - enough font scale for projection-style reading
+- color/font contrast checked after render, especially for `.dark`, `.message .dark`, and muted paragraphs
 - clear slide-to-slide story flow
 - lower density when the content is meant to be presented
+
+Briefing, synthesis, or current-topic documents also need:
+
+- the highest-priority or most time-sensitive point before background context
+- a clear lead sentence that answers what matters and why it matters
+- source/evidence notes close to the claims they support
+- unverified or missing information labeled as such instead of blended into conclusions
+- "what to watch next", "next decision", or "open questions" when the situation is still developing
+- developer/process language removed unless the audience is technical
 
 ## Revision Gate
 
@@ -82,6 +93,7 @@ If the render fails:
 - simplify the class/template
 - split dense content
 - convert decorative cards back to lists/tables
+- revise color/font pairing: remove low-contrast muted text, switch dark slides to inverse/light text, or move dense prose to a light template
 - remove unsupported HTML or CSS assumptions
 - re-render and check again
 

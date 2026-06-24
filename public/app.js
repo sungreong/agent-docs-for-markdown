@@ -13,6 +13,7 @@ import {
   buildAppearanceRootAttributes,
   normalizeAppearanceOptions,
 } from '/core/appearance.js';
+import { buildSourceGraphIndex, searchSourceGraph } from '/core/source-graph.js';
 
 const STORAGE_KEY_MD = 'markdown-pattern-studio:markdown';
 const STORAGE_KEY_THEME = 'markdown-pattern-studio:theme';
@@ -42,6 +43,14 @@ const dom = {
   openMdInput: document.getElementById('openMdInput'),
   saveMdBtn: document.getElementById('saveMdBtn'),
   saveHtmlBtn: document.getElementById('saveHtmlBtn'),
+  sourceGraphBtn: document.getElementById('sourceGraphBtn'),
+  sourceGraphOverlay: document.getElementById('sourceGraphOverlay'),
+  sourceGraphCloseBtn: document.getElementById('sourceGraphCloseBtn'),
+  sourceGraphRefreshBtn: document.getElementById('sourceGraphRefreshBtn'),
+  sourceGraphSearch: document.getElementById('sourceGraphSearch'),
+  sourceGraphMeta: document.getElementById('sourceGraphMeta'),
+  sourceGraphSvg: document.getElementById('sourceGraphSvg'),
+  sourceGraphDetails: document.getElementById('sourceGraphDetails'),
   snippetGrid: document.getElementById('snippetGrid'),
   patternGuide: document.getElementById('patternGuide'),
   outlineList: document.getElementById('outlineList'),
@@ -79,6 +88,8 @@ const state = {
   appearanceFrameOverride: localStorage.getItem(STORAGE_KEY_APPEARANCE_FRAME) || 'default',
   viewerChromeOverride: localStorage.getItem(STORAGE_KEY_VIEWER_CHROME) || 'full',
   sourceBaseDir: localStorage.getItem(STORAGE_KEY_SOURCE_BASE) || '',
+  sourceGraphDb: null,
+  selectedGraphNodeId: '',
   renderTimer: null,
   statusTimer: null,
 };
@@ -311,6 +322,31 @@ function bindEvents() {
   dom.saveHtmlBtn.addEventListener('click', async () => {
     const html = await buildStandaloneHtml();
     downloadFile('document.html', html, 'text/html;charset=utf-8');
+  });
+
+  dom.sourceGraphBtn?.addEventListener('click', () => {
+    openSourceGraph();
+  });
+
+  dom.sourceGraphCloseBtn?.addEventListener('click', () => {
+    dom.sourceGraphOverlay.hidden = true;
+  });
+
+  dom.sourceGraphRefreshBtn?.addEventListener('click', () => {
+    renderSourceGraph({ force: true });
+  });
+
+  dom.sourceGraphSearch?.addEventListener('input', () => {
+    renderSourceGraphDetails();
+    paintSourceGraph();
+  });
+
+  dom.sourceGraphSvg?.addEventListener('click', (event) => {
+    const node = event.target.closest?.('[data-graph-node]');
+    if (!node) return;
+    state.selectedGraphNodeId = node.getAttribute('data-graph-node') || '';
+    renderSourceGraphDetails();
+    paintSourceGraph();
   });
 
   dom.snippetGrid.addEventListener('click', (event) => {
@@ -875,6 +911,7 @@ function render() {
     updateDocumentMeta();
     renderQualityPanel();
     updateOutlineAndSelection();
+    if (dom.sourceGraphOverlay && !dom.sourceGraphOverlay.hidden) renderSourceGraph({ force: true });
     persist();
   } catch (error) {
     console.error(error);
@@ -884,6 +921,177 @@ function render() {
     updatePreviewMode();
     renderQualityPanel(error);
   }
+}
+
+function openSourceGraph() {
+  if (!dom.sourceGraphOverlay) return;
+  dom.sourceGraphOverlay.hidden = false;
+  renderSourceGraph({ force: true });
+  dom.sourceGraphSearch?.focus();
+}
+
+function renderSourceGraph({ force = false } = {}) {
+  if (!force && state.sourceGraphDb) {
+    paintSourceGraph();
+    renderSourceGraphDetails();
+    return;
+  }
+  const title = state.model?.meta?.title || state.model?.sections?.[0]?.title || 'current-document.md';
+  const safePath = `${String(title).trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) || 'current-document'}.md`;
+  state.sourceGraphDb = buildSourceGraphIndex(
+    [
+      {
+        path: safePath,
+        source: getSource(),
+      },
+    ],
+    { includeExternal: true },
+  );
+  const db = state.sourceGraphDb;
+  if (dom.sourceGraphMeta) {
+    dom.sourceGraphMeta.textContent = `${db.tables.documents.length} doc · ${db.tables.links.length} links · ${db.graph.nodes.length} nodes`;
+  }
+  if (!state.selectedGraphNodeId) {
+    state.selectedGraphNodeId = db.graph.nodes.find((node) => node.kind === 'document')?.id || '';
+  }
+  paintSourceGraph();
+  renderSourceGraphDetails();
+}
+
+function getFilteredGraphNodes(db) {
+  const query = String(dom.sourceGraphSearch?.value || '').trim();
+  if (!query) return db.graph.nodes;
+  const resultIds = new Set(searchSourceGraph(db, query, 40).map((doc) => doc.id));
+  const queryLower = query.toLowerCase();
+  return db.graph.nodes.filter((node) => {
+    if (resultIds.has(node.id)) return true;
+    return `${node.label} ${node.path}`.toLowerCase().includes(queryLower);
+  });
+}
+
+function paintSourceGraph() {
+  const svg = dom.sourceGraphSvg;
+  const db = state.sourceGraphDb;
+  if (!svg || !db) return;
+  const width = Math.max(720, svg.clientWidth || 720);
+  const height = Math.max(420, svg.clientHeight || 420);
+  const nodes = getFilteredGraphNodes(db);
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const edges = db.graph.edges.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target));
+  const positions = layoutGraph(nodes, width, height);
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.innerHTML = `
+    <defs>
+      <marker id="graphArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 Z" fill="rgba(154,171,195,0.72)"></path>
+      </marker>
+    </defs>
+    <g class="source-graph-edges">
+      ${edges
+        .map((edge) => {
+          const source = positions.get(edge.source);
+          const target = positions.get(edge.target);
+          if (!source || !target) return '';
+          return `<line x1="${source.x}" y1="${source.y}" x2="${target.x}" y2="${target.y}" class="source-graph-edge edge-${escapeHtml(edge.status)}" marker-end="url(#graphArrow)" />`;
+        })
+        .join('')}
+    </g>
+    <g class="source-graph-nodes">
+      ${nodes
+        .map((node) => {
+          const pos = positions.get(node.id);
+          if (!pos) return '';
+          const selected = node.id === state.selectedGraphNodeId ? ' is-selected' : '';
+          const radius = Math.min(30, Math.max(13, 10 + Math.sqrt(node.weight || 1) * 4));
+          return `
+            <g class="source-graph-node node-${escapeHtml(node.kind)}${selected}" data-graph-node="${escapeHtml(node.id)}" transform="translate(${pos.x} ${pos.y})">
+              <circle r="${radius}"></circle>
+              <text y="${radius + 17}" text-anchor="middle">${escapeHtml(compactGraphLabel(node.label || node.path))}</text>
+            </g>
+          `;
+        })
+        .join('')}
+    </g>
+  `;
+}
+
+function layoutGraph(nodes, width, height) {
+  const positions = new Map();
+  if (!nodes.length) return positions;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const docNodes = nodes.filter((node) => node.kind === 'document');
+  const otherNodes = nodes.filter((node) => node.kind !== 'document');
+  docNodes.forEach((node, index) => {
+    const angle = (Math.PI * 2 * index) / Math.max(1, docNodes.length);
+    const radius = docNodes.length <= 1 ? 0 : Math.min(width, height) * 0.18;
+    positions.set(node.id, { x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius });
+  });
+  otherNodes.forEach((node, index) => {
+    const angle = -Math.PI / 2 + (Math.PI * 2 * index) / Math.max(1, otherNodes.length);
+    const radiusX = Math.max(180, width * 0.36);
+    const radiusY = Math.max(130, height * 0.31);
+    positions.set(node.id, { x: centerX + Math.cos(angle) * radiusX, y: centerY + Math.sin(angle) * radiusY });
+  });
+  return positions;
+}
+
+function renderSourceGraphDetails() {
+  const db = state.sourceGraphDb;
+  if (!dom.sourceGraphDetails || !db) return;
+  const selected = db.graph.nodes.find((node) => node.id === state.selectedGraphNodeId) || db.graph.nodes[0];
+  if (!selected) {
+    dom.sourceGraphDetails.innerHTML = '<div class="empty-note">그래프에 표시할 링크가 없습니다.</div>';
+    return;
+  }
+  const outbound = db.tables.links.filter((link) => link.sourceDocumentId === selected.id);
+  const inbound = db.tables.links.filter((link) => link.targetDocumentId === selected.id);
+  const searchResults = String(dom.sourceGraphSearch?.value || '').trim()
+    ? searchSourceGraph(db, dom.sourceGraphSearch.value, 6)
+    : [];
+  dom.sourceGraphDetails.innerHTML = `
+    <div class="source-graph-detail-block">
+      <span class="source-graph-kicker">${escapeHtml(selected.kind)}</span>
+      <strong>${escapeHtml(selected.label || selected.path)}</strong>
+      <small>${escapeHtml(selected.path || '')}</small>
+    </div>
+    ${searchResults.length ? `
+      <div class="source-graph-detail-block">
+        <span class="source-graph-kicker">Search</span>
+        ${searchResults.map((doc) => `<button type="button" data-graph-pick="${escapeHtml(doc.id)}">${escapeHtml(doc.title || doc.path)}</button>`).join('')}
+      </div>
+    ` : ''}
+    <div class="source-graph-detail-block">
+      <span class="source-graph-kicker">Outbound</span>
+      ${outbound.length ? outbound.map(renderGraphLinkRow).join('') : '<small>연결된 출처 링크가 없습니다.</small>'}
+    </div>
+    <div class="source-graph-detail-block">
+      <span class="source-graph-kicker">Inbound</span>
+      ${inbound.length ? inbound.map(renderGraphLinkRow).join('') : '<small>이 문서를 가리키는 링크가 없습니다.</small>'}
+    </div>
+  `;
+  dom.sourceGraphDetails.querySelectorAll('[data-graph-pick]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.selectedGraphNodeId = button.getAttribute('data-graph-pick') || '';
+      renderSourceGraphDetails();
+      paintSourceGraph();
+    });
+  });
+}
+
+function renderGraphLinkRow(link) {
+  const target = link.targetPath || link.href;
+  return `
+    <div class="source-graph-link-row">
+      <span>${escapeHtml(link.label || target)}</span>
+      <small>L${Number(link.line) || 1} · ${escapeHtml(link.status)} · ${escapeHtml(target)}</small>
+    </div>
+  `;
+}
+
+function compactGraphLabel(value) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return text.length > 22 ? `${text.slice(0, 19)}...` : text;
 }
 
 let mermaidLoaderPromise = null;

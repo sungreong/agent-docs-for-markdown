@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Markdown Pattern Studio">
+  <defs>
+    <linearGradient id="bg" x1="34" y1="16" x2="223" y2="238" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#07142e"/>
+      <stop offset="0.58" stop-color="#0a1f45"/>
+      <stop offset="1" stop-color="#12295a"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="54" y1="69" x2="204" y2="195" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d8e4ff"/>
+      <stop offset="1" stop-color="#5ee7ff"/>
+    </linearGradient>
+    <linearGradient id="coral" x1="68" y1="74" x2="218" y2="188" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd6de"/>
+      <stop offset="1" stop-color="#ff6f91"/>
+    </linearGradient>
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#020814" flood-opacity="0.42"/>
+    </filter>
+  </defs>
+
+  <rect width="256" height="256" rx="54" fill="url(#bg)"/>
+  <path d="M35 34h70c13 0 24 11 24 24v164H62c-15 0-27-12-27-27V34Z" fill="#081a3c" opacity="0.72"/>
+  <path d="M151 34h70v161c0 15-12 27-27 27h-67V58c0-13 11-24 24-24Z" fill="#081a3c" opacity="0.72"/>
+
+  <g filter="url(#shadow)">
+    <path d="M47 45h59c14 0 25 11 25 25v134c-6-7-15-11-25-11H47V45Z" fill="#f7f8ff"/>
+    <path d="M209 45h-59c-14 0-25 11-25 25v134c6-7 15-11 25-11h59V45Z" fill="#f7f8ff"/>
+    <path d="M128 67v143" stroke="#b8c5e8" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <path d="M66 86v64h15v-33l18 24h4l18-24v33h15V86h-14l-21 31-21-31H66Z" fill="#071b41"/>
+  <path d="M153 86v64h30c20 0 34-13 34-32s-14-32-34-32h-30Zm16 15h13c11 0 18 7 18 17s-7 17-18 17h-13v-34Z" fill="#071b41"/>
+
+  <path d="M54 174h55" stroke="url(#cyan)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M147 174h55" stroke="url(#coral)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M74 202h34" stroke="#071b41" stroke-width="8" stroke-linecap="round" opacity="0.88"/>
+  <path d="M151 202h34" stroke="#071b41" stroke-width="8" stroke-linecap="round" opacity="0.88"/>
+
+  <path d="M31 35 45 21M225 35l-14-14" stroke="#f7f8ff" stroke-width="3" stroke-linecap="round" opacity="0.22"/>
+</svg>

@@ -5,6 +5,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { downloadSkillFolderCommand } from './commands/exportSkillFolder.js';
+import { registerSourceGraphCommands } from './commands/sourceGraph.js';
 import { openTemplateBuilderCommand } from './commands/templateBuilder.js';
 import {
   type MarkdownFileBrowserController,
@@ -119,6 +120,16 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(outputChannel);
   void updateAutoOnSaveContext();
   context.subscriptions.push(
+    vscode.window.registerUriHandler({
+      async handleUri(uri: vscode.Uri) {
+        const route = uri.path.replace(/^\/+/, '').toLowerCase();
+        if (route === 'sourcegraph' || route === 'source-graph' || route === 'graph') {
+          await vscode.commands.executeCommand('mdStudioPreview.openSourceGraph');
+        }
+      },
+    }),
+  );
+  context.subscriptions.push(
     vscode.commands.registerCommand('mdStudioPreview.open', async () => {
       const document = await resolveTargetDocument();
       if (!document) return;
@@ -222,6 +233,8 @@ export function activate(context: vscode.ExtensionContext) {
       await diagnoseEnvironment();
     }),
   );
+
+  registerSourceGraphCommands(context);
 
   fileBrowserController = registerMarkdownFileBrowser(context, {
     openInEditor: openUriInTextEditor,

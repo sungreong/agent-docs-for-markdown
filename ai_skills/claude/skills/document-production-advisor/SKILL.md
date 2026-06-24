@@ -11,7 +11,7 @@ Turn rough Markdown into an export-ready document plan that works across Markdow
 
 ## When To Use
 
-- The user asks for a report, memo, proposal, tutorial, technical guide, blog post, or presentation.
+- The user asks for a report, memo, proposal, tutorial, technical guide, blog post, briefing, source synthesis, or presentation.
 - The output will be copied into a blog/CMS or exported to standalone HTML.
 - The document may later become a Word/DOCX file and needs clean headings, page breaks, tables, images, captions, and accessibility metadata.
 - The document may later become a slide/PPTX-style deck and needs clear slide flow, non-overlapping layout, readable titles, and mobile stack fallback.
@@ -25,7 +25,7 @@ Turn rough Markdown into an export-ready document plan that works across Markdow
    - must-include items and must-not-change facts
    - visible success criteria the final document must satisfy
    - verification steps that can actually be performed in the current environment
-3. Classify purpose: `report`, `pitch`, `reference`, `narrative`, `technical`, `tutorial`, or `blog`.
+3. Classify purpose: `report`, `pitch`, `reference`, `narrative`, `technical`, `tutorial`, `blog`, or `briefing`.
 4. Create a compact document map:
    - audience and action
    - narrative spine
@@ -36,8 +36,10 @@ Turn rough Markdown into an export-ready document plan that works across Markdow
    - evidence treatment: table, code block, diagram, comparison, or callout
    - KPI treatment: stats cards or table
    - expression treatment: safe zone, feature grid, big number, problem statement, or contrast pair
+   - card title treatment: short labels only; move explanation into body text instead of using oversized headings inside cards
 6. Write a section-by-section plan before final output.
-7. Verify with the request contract and production checklist.
+7. Run the color/font contrast harness after render: check headings, body, muted text, links, and code against every light, dark, and accent surface; revise and re-render if anything is hard to read.
+8. Verify with the request contract and production checklist.
 
 ## Request Fulfillment Harness
 
@@ -107,12 +109,15 @@ Use only classes that are supported by the current renderer:
 | `.safe-zone` | Keep critical content in the central reading area for slides, banners, and blog embeds |
 | `.problem-statement` | Pain-point or problem framing sections |
 | `.big-number-hero` | One strong metric or claim |
-| `.feature-grid` | 3-6 independent feature/capability bullets |
+| `.feature-grid` | 3-6 independent feature/capability bullets with short labels and concise body text |
 | `.metrics-dashboard` | KPI-like bullets that should scan as cards |
 | `.contrast-pair` | Before/after, old/new, risk/response comparisons |
 | `.gradient-number` | Accent treatment for a number paragraph or list emphasis |
 | `.oversized` | Large typographic statement |
 | `.screenshot-shadow` | Product/result screenshot emphasis |
+| `.briefing-lead` | Lead section for the highest-priority finding, update, decision, or briefing opener |
+| `.priority-strip` | Short list of top points, developments, risks, or actions that should scan quickly |
+| `.evidence-ledger` | Compact source/evidence list for briefings, research summaries, or decision memos |
 
 Example:
 
@@ -131,6 +136,55 @@ Reduction in rewrite cycles after moving to structured Markdown.
 - Blog-safe HTML export
 - Stack-first mobile reading
 ```
+
+For richer cards, prefer bold labels inside list items:
+
+```markdown
+## Capability Map {: .feature-grid}
+
+- **Preview**: VS Code and browser render checks stay close to the source.
+- **Export**: Blog-safe HTML and standalone output use the same structure.
+- **Handoff**: DOCX/PPTX-bound content keeps clean headings and captions.
+```
+
+Avoid using card grids for long conceptual labels or nested section headings. If a card title wraps into single letters or awkward fragments, shorten it or switch to `.timeline`, `.icon-list`, or a normal list.
+
+## DOCX-Aware Production Concepts
+
+## Briefing / Priority Writing Concepts
+
+Use this when the reader needs the highest-priority information first: current-topic updates, research synthesis, source collection, trend review, meeting brief, decision memo, incident summary, market monitoring, or any document where "what matters now" should come before background. Do not add this structure to ordinary reference docs unless it helps the reader act faster.
+
+Briefing-style documents should use an inverted-priority order:
+
+1. Lead with the highest-impact finding, newest relevant update, or decision point.
+2. Explain why it matters to the reader.
+3. Add the concrete evidence, numbers, quotes, or source references.
+4. Move background, timeline, methodology, and caveats after the priority points.
+5. Close with what to watch next or what remains unverified.
+
+Recommended Markdown Pattern Studio structure:
+
+```markdown
+## Lead Brief {: .briefing-lead}
+The most important finding, update, or decision point in one or two direct sentences.
+
+## Priority Points {: .priority-strip}
+- Most important confirmed point
+- High-impact consequence for the reader
+- Open question to monitor
+
+## Why It Matters
+Explain the consequence before giving long background.
+
+## Background and Context
+Put older context here, not above the priority points.
+
+## Evidence Checked {: .evidence-ledger}
+- Source | What it supports | Link/date
+```
+
+For reader-facing briefings, avoid developer-facing filler such as "pipeline", "harness", "render path", or implementation notes unless the audience is explicitly technical. Prefer clear labels such as "Key point", "Why it matters", "What changed", "Evidence checked", "Open questions", and "What to watch".
 
 ## DOCX-Aware Production Concepts
 

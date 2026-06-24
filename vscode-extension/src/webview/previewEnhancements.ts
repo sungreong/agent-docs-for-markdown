@@ -58,7 +58,7 @@ body.mps-stack-zoomed.export-stacked .document-shell.is-paginated {
   margin-right: 0;
 }
 body.mps-layout-wide .template-columns .multi-column-grid {
-  grid-template-columns: repeat(var(--column-count, 2), minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)) !important;
 }
 body.mps-layout-wide .studio-document .section-heading.level-1 {
   font-size: var(--font-size-title);
@@ -87,7 +87,8 @@ body.mps-narrow-preview .md-list,
 body.mps-narrow-preview .md-callout,
 body.mps-narrow-preview .md-table th,
 body.mps-narrow-preview .md-table td {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: keep-all;
 }
 body.mps-narrow-preview .section-heading {
   line-height: 1.14;

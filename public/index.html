@@ -55,6 +55,7 @@
           <button id="openMdBtn" type="button">MD 열기</button>
           <button id="saveMdBtn" type="button">MD 저장</button>
           <button id="saveHtmlBtn" type="button">HTML 저장</button>
+          <button id="sourceGraphBtn" type="button">Source Graph</button>
           <a href="/template-builder.html" id="openBuilderBtn" style="text-decoration:none"><button type="button">🧩 Template Builder</button></a>
           <input type="file" id="openMdInput" accept=".md,.markdown,text/markdown" hidden />
         </div>
@@ -151,6 +152,26 @@
           <aside id="qualityPanel" class="quality-panel" aria-label="Document quality checks"></aside>
         </section>
       </main>
+
+      <section id="sourceGraphOverlay" class="source-graph-overlay" hidden aria-label="Source graph">
+        <div class="source-graph-panel">
+          <header class="source-graph-head">
+            <div>
+              <strong>Source Graph</strong>
+              <span id="sourceGraphMeta">현재 문서의 링크와 출처 관계</span>
+            </div>
+            <div class="source-graph-actions">
+              <input id="sourceGraphSearch" type="search" placeholder="Search graph..." autocomplete="off" />
+              <button id="sourceGraphRefreshBtn" type="button">Update</button>
+              <button id="sourceGraphCloseBtn" type="button">Close</button>
+            </div>
+          </header>
+          <div class="source-graph-body">
+            <svg id="sourceGraphSvg" class="source-graph-svg" role="img" aria-label="Document source graph"></svg>
+            <aside id="sourceGraphDetails" class="source-graph-details"></aside>
+          </div>
+        </div>
+      </section>
     </div>
 
     <script type="module" src="/app.js"></script>

@@ -10,6 +10,7 @@ const repoRoot = path.resolve(extensionRoot, '..');
 
 const filePairs = [
   ['scripts/md-to-html.mjs', 'scripts/md-to-html.mjs'],
+  ['scripts/source-graph.mjs', 'scripts/source-graph.mjs'],
   ['public/core/engine.js', 'public/core/engine.js'],
   ['public/core/export-standalone.js', 'public/core/export-standalone.js'],
   ['public/core/appearance.js', 'public/core/appearance.js'],
@@ -18,6 +19,9 @@ const filePairs = [
   ['public/core/registry.js', 'public/core/registry.js'],
   ['public/core/snippets.js', 'public/core/snippets.js'],
   ['public/core/brand-designs.js', 'public/core/brand-designs.js'],
+  ['public/core/source-graph.js', 'public/core/source-graph.js'],
+  ['public/core/source-graph-sqlite.js', 'public/core/source-graph-sqlite.js'],
+  ['public/core/ignore-rules.js', 'public/core/ignore-rules.js'],
   ['public/document.css', 'public/document.css'],
   // NOTE: public/template-builder-vscode.html is VSCode-dedicated; do NOT sync from repo root
 ];

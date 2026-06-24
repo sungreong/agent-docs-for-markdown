@@ -11,7 +11,8 @@
 4. `page-break` 정규화
 5. 페이지 의미성 검증(빈 페이지 제거)
 6. 저장 HTML 재검증(스크립트/네비게이션)
-7. 실제 렌더 UX 검증: desktop/narrow 화면에서 overflow, clipping, overlap, broken image, unreadable table을 확인한다.
+7. 색/폰트 대비 하네스: surface별 배경색과 heading/body/muted/link/code 색을 점검하고 대비 실패 시 수정 후 재렌더한다.
+8. 실제 렌더 UX 검증: desktop/narrow 화면에서 overflow, clipping, overlap, broken image, unreadable table을 확인한다.
 
 ## 요청 계약 검증
 - 최종 문서의 모든 주요 섹션은 사용자 요구, 독자 필요, 또는 근거 필요 중 하나에 연결되어야 한다.
@@ -87,7 +88,25 @@ Run this checklist on every slide deck before declaring done. Assume there are p
 - [ ] If `design:` is set, the slug exists in `references/design-md/manifest.json`
 - [ ] The selected brand/archetype is visible through structure, density, typography, and accent role, not through color alone
 - [ ] No text-on-background with insufficient contrast (especially in `.dark` slides)
+- [ ] Body, list, and meaningful muted text meet WCAG AA contrast (`4.5:1` target); large headings meet at least `3:1`
+- [ ] Dark/accent slides use inverse text tokens or visibly light text, not ordinary muted gray
 - [ ] Accent color (`--doc-accent`) is not overused — used only for emphasis
+
+## Color / Font Contrast Harness
+
+Run this after drafting Markdown and before final delivery.
+
+1. Inventory surfaces: list every page using `.dark`, `.cover .dark`, `.message .dark`, accent backgrounds, screenshots, or tinted cards.
+2. Map text roles on each surface: heading, lead paragraph, body paragraph, list, muted/caption, link, inline code, table text.
+3. Check contrast in the rendered artifact, not only the Markdown. Use browser screenshots, computed styles, or a visual pass at desktop and narrow widths.
+4. Treat meaningful muted text as body text. If it carries content, it still needs readable contrast; do not hide important context in low-opacity gray.
+5. If contrast fails, revise in this order:
+   - remove `.is-muted` or convert the paragraph to normal body text
+   - use `.dark` only with inverse/light text, or switch back to a light template
+   - increase font weight/size only after color contrast is fixed
+   - replace accent text with white/off-white on dark surfaces
+   - split the slide if a dark background is making dense prose hard to scan
+6. Re-render and repeat until headings, body, muted text, links, and code are legible on both desktop and narrow previews.
 
 **Spacing & Breathing Room**
 - [ ] Slide inner padding is at least `2rem` on all sides
