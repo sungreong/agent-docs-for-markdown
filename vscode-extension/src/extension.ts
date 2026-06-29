@@ -51,6 +51,7 @@ interface PreviewSession {
   isBridgeReady: boolean;
   pendingSyncSectionId: string | null;
   outlineCollapsed: boolean;
+  isDisposed: boolean;
 }
 
 interface RenderOutput {
@@ -715,19 +716,26 @@ async function previewDocument(document: vscode.TextDocument, reason: PreviewRea
   const syncTargetSectionId = reason === 'save' ? await resolveCursorSectionIdForSave(document) : null;
 
   const session = ensureSessionForUri(document.uri, reason !== 'save');
-  setPanelStatus(session.panel, `Rendering (${reason})...`);
+  if (!safeSetPanelStatus(session, `Rendering (${reason})...`)) return;
 
   try {
     const renderOutput = await runCliRenderer(document);
+    if (!isSessionAlive(session)) {
+      await cleanupTempFile(renderOutput.outputPath);
+      return;
+    }
     const roots = [
       ...(renderOutput.workspaceFolder ? [renderOutput.workspaceFolder.uri] : []),
       vscode.Uri.file(renderOutput.inputDir),
       vscode.Uri.file(path.dirname(renderOutput.outputPath)),
     ];
-    session.panel.webview.options = {
+    if (!safeSetWebviewOptions(session, {
       enableScripts: true,
       localResourceRoots: roots,
-    };
+    })) {
+      await cleanupTempFile(renderOutput.outputPath);
+      return;
+    }
 
     const html = injectPreviewEnhancements(
       rewriteLocalFileUris(renderOutput.html, session.panel.webview),
@@ -741,8 +749,10 @@ async function previewDocument(document: vscode.TextDocument, reason: PreviewRea
     session.lastSyncedSectionId = null;
     session.isBridgeReady = false;
     session.pendingSyncSectionId = null;
-    session.panel.webview.html = html;
-    session.panel.title = `MPS Preview: ${path.basename(document.uri.fsPath)}`;
+    if (!safeSetWebviewHtml(session, html, `MPS Preview: ${path.basename(document.uri.fsPath)}`)) {
+      await cleanupTempFile(renderOutput.outputPath);
+      return;
+    }
 
     if (session.tempOutputPath && session.tempOutputPath !== renderOutput.outputPath) {
       await cleanupTempFile(session.tempOutputPath);
@@ -759,8 +769,9 @@ async function previewDocument(document: vscode.TextDocument, reason: PreviewRea
       await syncPreviewToSection(session, syncTargetSectionId);
     }
   } catch (error) {
+    if (!isSessionAlive(session) || isWebviewDisposedError(error)) return;
     const details = errorToMessage(error);
-    session.panel.webview.html = renderErrorHtml(details);
+    safeSetWebviewHtml(session, renderErrorHtml(details));
     void vscode.window.showErrorMessage(`Markdown Studio preview failed: ${details}`);
   }
 }
@@ -769,7 +780,7 @@ async function previewHtmlFile(uri: vscode.Uri, reveal: boolean): Promise<void> 
   const config = readConfig();
   const key = uri.toString();
   const session = ensureSessionForUri(uri, reveal);
-  setPanelStatus(session.panel, 'Opening HTML...');
+  if (!safeSetPanelStatus(session, 'Opening HTML...')) return;
 
   try {
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri) ?? null;
@@ -778,10 +789,10 @@ async function previewHtmlFile(uri: vscode.Uri, reveal: boolean): Promise<void> 
       ...(workspaceFolder ? [workspaceFolder.uri] : []),
       vscode.Uri.file(inputDir),
     ];
-    session.panel.webview.options = {
+    if (!safeSetWebviewOptions(session, {
       enableScripts: true,
       localResourceRoots: roots,
-    };
+    })) return;
 
     const rawHtml = await fs.readFile(uri.fsPath, 'utf8');
     const htmlDocument = normalizeHtmlForWebview(rawHtml, path.basename(uri.fsPath));
@@ -797,14 +808,14 @@ async function previewHtmlFile(uri: vscode.Uri, reveal: boolean): Promise<void> 
     session.lastSyncedSectionId = null;
     session.isBridgeReady = false;
     session.pendingSyncSectionId = null;
-    session.panel.webview.html = html;
-    session.panel.title = `MPS Preview: ${path.basename(uri.fsPath)}`;
+    if (!safeSetWebviewHtml(session, html, `MPS Preview: ${path.basename(uri.fsPath)}`)) return;
     lastPreviewKey = key;
     fileBrowserController?.recordRecent(uri);
     fileBrowserController?.reveal(uri);
   } catch (error) {
+    if (!isSessionAlive(session) || isWebviewDisposedError(error)) return;
     const details = errorToMessage(error);
-    session.panel.webview.html = renderErrorHtml(details);
+    safeSetWebviewHtml(session, renderErrorHtml(details));
     void vscode.window.showErrorMessage(`Markdown Studio HTML preview failed: ${details}`);
   }
 }
@@ -840,6 +851,7 @@ function ensureSessionForUri(uri: vscode.Uri, reveal: boolean): PreviewSession {
     isBridgeReady: false,
     pendingSyncSectionId: null,
     outlineCollapsed: loadOutlineCollapsedState(key),
+    isDisposed: false,
   };
   sessions.set(key, session);
 
@@ -872,11 +884,66 @@ function ensureSessionForUri(uri: vscode.Uri, reveal: boolean): PreviewSession {
   });
 
   panel.onDidDispose(() => {
+    session.isDisposed = true;
     sessions.delete(key);
     void cleanupTempFile(session.tempOutputPath);
   });
 
   return session;
+}
+
+function isSessionAlive(session: PreviewSession): boolean {
+  return !session.isDisposed && sessions.get(session.key) === session;
+}
+
+function isWebviewDisposedError(error: unknown): boolean {
+  return errorToMessage(error).toLowerCase().includes('webview is disposed');
+}
+
+function safeSetPanelStatus(session: PreviewSession, message: string): boolean {
+  if (!isSessionAlive(session)) return false;
+  try {
+    setPanelStatus(session.panel, message);
+    return true;
+  } catch (error) {
+    if (isWebviewDisposedError(error)) {
+      session.isDisposed = true;
+      sessions.delete(session.key);
+      return false;
+    }
+    throw error;
+  }
+}
+
+function safeSetWebviewOptions(session: PreviewSession, options: vscode.WebviewOptions): boolean {
+  if (!isSessionAlive(session)) return false;
+  try {
+    session.panel.webview.options = options;
+    return true;
+  } catch (error) {
+    if (isWebviewDisposedError(error)) {
+      session.isDisposed = true;
+      sessions.delete(session.key);
+      return false;
+    }
+    throw error;
+  }
+}
+
+function safeSetWebviewHtml(session: PreviewSession, html: string, title?: string): boolean {
+  if (!isSessionAlive(session)) return false;
+  try {
+    session.panel.webview.html = html;
+    if (title) session.panel.title = title;
+    return true;
+  } catch (error) {
+    if (isWebviewDisposedError(error)) {
+      session.isDisposed = true;
+      sessions.delete(session.key);
+      return false;
+    }
+    throw error;
+  }
 }
 
 function normalizeHtmlForWebview(rawHtml: string, title: string): string {
@@ -1579,6 +1646,7 @@ async function syncPreviewToSection(session: PreviewSession, sectionId: string |
 }
 
 async function flushPendingSync(session: PreviewSession): Promise<void> {
+  if (!isSessionAlive(session)) return;
   const sectionId = session.pendingSyncSectionId;
   if (!sectionId) return;
   if (!session.isBridgeReady) return;

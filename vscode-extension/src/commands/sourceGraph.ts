@@ -65,31 +65,72 @@ interface SourceGraphWebviewMessage {
   type?: unknown;
   path?: unknown;
   href?: unknown;
+  query?: unknown;
+  mode?: unknown;
+  requestId?: unknown;
+  text?: unknown;
 }
 
 const DB_RELATIVE_PATH = path.join('.mps', 'source-graph.sqlite');
+const SKILL_COPY_EXCLUDED_NAMES = new Set(['.git', 'node_modules', '.DS_Store', 'Thumbs.db', 'desktop.ini']);
+const workspaceMcpSkillProfiles = [
+  {
+    id: 'claude',
+    label: 'Claude',
+    sourcePathSegments: ['ai_skills', 'claude', 'skills'],
+    targetPathSegments: ['.claude', 'skills'],
+  },
+  {
+    id: 'agents',
+    label: 'Agents',
+    sourcePathSegments: ['ai_skills', 'agents', 'skills'],
+    targetPathSegments: ['.agents', 'skills'],
+  },
+  {
+    id: 'codex',
+    label: 'Codex',
+    sourcePathSegments: ['ai_skills', 'codex', 'skills'],
+    targetPathSegments: ['.codex', 'skills'],
+  },
+] as const;
 let sourceGraphPanel: vscode.WebviewPanel | null = null;
+let sourceGraphMcpGuidePanel: vscode.WebviewPanel | null = null;
+let sourceGraphMcpStatusPanel: vscode.WebviewPanel | null = null;
 let sourceGraphWorkspaceFolder: vscode.WorkspaceFolder | null = null;
 let sourceGraphRenderGeneration = 0;
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function registerSourceGraphCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('mdStudioSourceGraphLauncher', {
-      resolveWebviewView(webviewView) {
-        renderSourceGraphLauncherView(webviewView);
-        webviewView.webview.onDidReceiveMessage((message: SourceGraphWebviewMessage) => {
-          if (!message || typeof message !== 'object') return;
-          if (message.type === 'openGraph') void vscode.commands.executeCommand('mdStudioPreview.openSourceGraph');
-          if (message.type === 'initializeGraph') void vscode.commands.executeCommand('mdStudioPreview.initializeSourceGraphWorkspace');
-          if (message.type === 'updateGraph') void vscode.commands.executeCommand('mdStudioPreview.updateSourceGraph');
-          if (message.type === 'searchGraph') void vscode.commands.executeCommand('mdStudioPreview.searchSourceGraph');
-          if (message.type === 'editIgnore') void vscode.commands.executeCommand('mdStudioPreview.openSourceIgnoreFile');
-          if (message.type === 'installMcp') void vscode.commands.executeCommand('mdStudioPreview.installCodexMcp');
-          if (message.type === 'checkMcp') void vscode.commands.executeCommand('mdStudioPreview.checkCodexMcpStatus');
-        });
+    vscode.window.registerWebviewViewProvider(
+      'mdStudioSourceGraphLauncher',
+      {
+        resolveWebviewView(webviewView) {
+          renderSourceGraphLauncherView(webviewView);
+          webviewView.webview.onDidReceiveMessage((message: SourceGraphWebviewMessage) => {
+            if (!message || typeof message !== 'object') return;
+            if (message.type === 'openGraph') void vscode.commands.executeCommand('mdStudioPreview.openSourceGraph');
+            if (message.type === 'initializeGraph') void vscode.commands.executeCommand('mdStudioPreview.initializeSourceGraphWorkspace');
+            if (message.type === 'updateGraph') void vscode.commands.executeCommand('mdStudioPreview.updateSourceGraph');
+            if (message.type === 'launcherSearch') {
+              void respondToLauncherSourceGraphSearch(context, webviewView.webview, message);
+            }
+            if (message.type === 'openPath' && typeof message.path === 'string') {
+              void openLauncherGraphPath(message.path, false);
+            }
+            if (message.type === 'openEditorPath' && typeof message.path === 'string') {
+              void openLauncherGraphPath(message.path, true);
+            }
+            if (message.type === 'editIgnore') void vscode.commands.executeCommand('mdStudioPreview.openSourceIgnoreFile');
+            if (message.type === 'copyMcpConfig') void vscode.commands.executeCommand('mdStudioPreview.copyCodexMcpConfig');
+            if (message.type === 'showMcpGuide') openSourceGraphMcpGuidePanel(context);
+            if (message.type === 'installMcp') void vscode.commands.executeCommand('mdStudioPreview.installCodexMcp');
+            if (message.type === 'checkMcp') void vscode.commands.executeCommand('mdStudioPreview.checkCodexMcpStatus');
+          });
+        },
       },
-    }),
+      { webviewOptions: { retainContextWhenHidden: true } },
+    ),
     registerSourceGraphCommand('mdStudioPreview.openSourceGraph', async () => {
       await openSourceGraphPanel(context);
     }),
@@ -150,15 +191,35 @@ function renderSourceGraphLauncherView(webviewView: vscode.WebviewView): void {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';" />
   <style>
     :root { color-scheme: dark; }
-    body { margin: 0; padding: 12px; font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-sideBar-background); }
+    body { margin: 0; padding: 10px; font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-sideBar-background); }
     .stack { display: grid; gap: 10px; }
     .head { display: grid; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, rgba(128,128,128,.25)); }
     .head strong { font-size: 13px; }
     .head span { color: var(--vscode-descriptionForeground); font-size: 11px; line-height: 1.4; }
-    button { width: 100%; border: 1px solid var(--vscode-button-border, transparent); border-radius: 4px; padding: 7px 8px; text-align: left; color: var(--vscode-button-foreground); background: var(--vscode-button-background); cursor: pointer; }
+    button { width: 100%; min-height: 28px; border: 1px solid var(--vscode-button-border, transparent); border-radius: 3px; padding: 5px 7px; text-align: left; color: var(--vscode-button-foreground); background: var(--vscode-button-background); cursor: pointer; font: inherit; font-size: 12px; line-height: 1.25; }
     button:hover { background: var(--vscode-button-hoverBackground); }
     .secondary { color: var(--vscode-foreground); background: var(--vscode-button-secondaryBackground); }
     .secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
+    .group { display: grid; gap: 6px; }
+    .group-title { color: var(--vscode-descriptionForeground); font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .button-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .search-panel { display: none; gap: 7px; padding: 8px; border: 1px solid var(--vscode-sideBarSectionHeader-border, rgba(128,128,128,.25)); border-radius: 5px; background: var(--vscode-editorWidget-background, rgba(128,128,128,.07)); }
+    .search-panel.is-open { display: grid; }
+    .search-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; }
+    .search-input { width: 100%; min-width: 0; height: 28px; border: 1px solid var(--vscode-input-border, rgba(128,128,128,.35)); border-radius: 3px; padding: 4px 7px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); font: inherit; font-size: 12px; }
+    .mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .mode-tabs button { min-height: 24px; padding: 4px 6px; text-align: center; color: var(--vscode-descriptionForeground); background: transparent; border-color: var(--vscode-button-border, rgba(128,128,128,.25)); }
+    .mode-tabs button[aria-pressed="true"] { color: var(--vscode-button-foreground); background: var(--vscode-button-background); }
+    .icon-button { width: 28px; min-height: 28px; padding: 0; text-align: center; }
+    .search-meta { color: var(--vscode-descriptionForeground); font-size: 11px; line-height: 1.35; }
+    .results { display: grid; gap: 5px; max-height: 360px; overflow: auto; }
+    .result { display: grid; gap: 4px; padding: 7px; border: 1px solid var(--vscode-sideBarSectionHeader-border, rgba(128,128,128,.22)); border-radius: 4px; background: var(--vscode-sideBar-background); cursor: pointer; }
+    .result:hover { border-color: var(--vscode-focusBorder); background: var(--vscode-list-hoverBackground); }
+    .result-title { display: flex; justify-content: space-between; gap: 6px; color: var(--vscode-foreground); font-size: 12px; font-weight: 600; }
+    .badge { color: var(--vscode-badge-foreground); background: var(--vscode-badge-background); border-radius: 999px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
+    .result-path, .result-snippet { color: var(--vscode-descriptionForeground); font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
+    .result-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .result-actions button { min-height: 24px; padding: 4px 6px; text-align: center; font-size: 11px; }
     .hint { color: var(--vscode-descriptionForeground); font-size: 11px; line-height: 1.45; }
   </style>
 </head>
@@ -166,23 +227,424 @@ function renderSourceGraphLauncherView(webviewView: vscode.WebviewView): void {
   <div class="stack">
     <div class="head">
       <strong>Source Graph</strong>
-      <span>Open the workspace Markdown graph, update the index, or connect Codex MCP.</span>
+      <span>Open the workspace Markdown graph, update the index, or connect an MCP client.</span>
     </div>
-    <button type="button" data-action="openGraph">Open Source Graph</button>
-    <button type="button" class="secondary" data-action="initializeGraph">Initialize Workspace DB</button>
-    <button type="button" class="secondary" data-action="searchGraph">Search Graph</button>
-    <button type="button" class="secondary" data-action="updateGraph">Update Index</button>
-    <button type="button" class="secondary" data-action="editIgnore">Edit Ignore</button>
-    <button type="button" class="secondary" data-action="installMcp">Install Codex MCP</button>
-    <button type="button" class="secondary" data-action="checkMcp">Check MCP Status</button>
+    <button type="button" data-action="toggleSearch">Search</button>
+    <div id="searchPanel" class="search-panel" aria-live="polite">
+      <div class="mode-tabs" role="group" aria-label="Search mode">
+        <button id="launcherSearchBody" type="button" aria-pressed="true">Body</button>
+        <button id="launcherSearchFile" type="button" aria-pressed="false">File</button>
+      </div>
+      <div class="search-row">
+        <input id="launcherSearchInput" class="search-input" type="search" placeholder="Search Markdown body..." aria-label="Search Markdown body text" />
+        <button id="launcherSearchRun" class="icon-button secondary" type="button" title="Run search" aria-label="Run search">↵</button>
+      </div>
+      <div id="launcherSearchMeta" class="search-meta">Search body text across indexed Markdown files.</div>
+      <div id="launcherSearchResults" class="results"></div>
+    </div>
+    <button type="button" class="secondary" data-action="openGraph">Open Graph</button>
+    <div class="group">
+      <div class="group-title">Workspace</div>
+      <div class="button-grid">
+        <button type="button" class="secondary" data-action="initializeGraph">Initialize DB</button>
+        <button type="button" class="secondary" data-action="updateGraph">Update</button>
+        <button type="button" class="secondary" data-action="editIgnore">Ignore</button>
+        <button type="button" class="secondary" data-action="openGraph">Graph</button>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-title">MCP</div>
+      <div class="button-grid">
+        <button type="button" class="secondary" data-action="installMcp">Install</button>
+        <button type="button" class="secondary" data-action="checkMcp">Status</button>
+        <button type="button" class="secondary" data-action="showMcpGuide">Guide</button>
+        <button type="button" class="secondary" data-action="copyMcpConfig">Copy Config</button>
+      </div>
+    </div>
     <div class="hint">Tip: the graph icon in the File Browser toolbar opens this graph directly too.</div>
   </div>
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
+    const searchPanel = document.getElementById('searchPanel');
+    const searchInput = document.getElementById('launcherSearchInput');
+    const searchRun = document.getElementById('launcherSearchRun');
+    const searchMeta = document.getElementById('launcherSearchMeta');
+    const searchResults = document.getElementById('launcherSearchResults');
+    const bodyMode = document.getElementById('launcherSearchBody');
+    const fileMode = document.getElementById('launcherSearchFile');
+    const restored = vscode.getState && vscode.getState() || {};
+    let mode = restored.mode === 'file' ? 'file' : 'body';
+    let requestId = Number(restored.requestId || 0);
+    let searchTimer = 0;
+    let lastResults = Array.isArray(restored.results) ? restored.results : [];
+    let lastQuery = String(restored.query || '');
+    let lastMeta = String(restored.meta || '');
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"']/g, (ch) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+    }
+    function saveSearchState() {
+      vscode.setState({
+        open: searchPanel.classList.contains('is-open'),
+        mode,
+        query: searchInput.value,
+        requestId,
+        results: lastResults,
+        meta: searchMeta.textContent || '',
+      });
+    }
+    function applyModeChrome() {
+      bodyMode.setAttribute('aria-pressed', String(mode === 'body'));
+      fileMode.setAttribute('aria-pressed', String(mode === 'file'));
+      searchInput.placeholder = mode === 'body' ? 'Search Markdown body...' : 'Search file name or path...';
+      searchInput.setAttribute('aria-label', mode === 'body' ? 'Search Markdown body text' : 'Search Markdown file names and paths');
+    }
+    function defaultSearchMeta() {
+      return mode === 'body' ? 'Search body text across indexed Markdown files.' : 'Search titles, file names, and paths.';
+    }
+    function setMode(nextMode) {
+      mode = nextMode;
+      applyModeChrome();
+      searchMeta.textContent = defaultSearchMeta();
+      lastResults = [];
+      lastQuery = '';
+      searchResults.innerHTML = '';
+      saveSearchState();
+      runSearch();
+    }
+    function openSearchPanel(focus = true) {
+      searchPanel.classList.add('is-open');
+      saveSearchState();
+      if (focus) searchInput.focus();
+    }
+    function runSearch() {
+      const query = searchInput.value.trim();
+      clearTimeout(searchTimer);
+      if (!query) {
+        searchResults.innerHTML = '';
+        lastResults = [];
+        lastQuery = '';
+        searchMeta.textContent = defaultSearchMeta();
+        saveSearchState();
+        return;
+      }
+      const id = ++requestId;
+      searchMeta.textContent = 'Searching...';
+      saveSearchState();
+      vscode.postMessage({ type: 'launcherSearch', mode, query, requestId: id });
+    }
+    function scheduleSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(runSearch, 180);
+    }
+    function renderResults(message) {
+      if (Number(message.requestId || 0) !== requestId) return;
+      const results = Array.isArray(message.results) ? message.results : [];
+      if (message.error) {
+        searchMeta.textContent = 'Search failed. Check Source Graph status.';
+        searchResults.innerHTML = '<div class="hint">' + escapeHtml(message.error) + '</div>';
+        lastResults = [];
+        lastQuery = String(message.query || '');
+        saveSearchState();
+        return;
+      }
+      searchMeta.textContent = results.length + ' result' + (results.length === 1 ? '' : 's') + ' for "' + escapeHtml(message.query || '') + '"';
+      lastResults = results;
+      lastQuery = String(message.query || '');
+      searchResults.innerHTML = results.length ? results.map((item) => {
+        return '<div class="result" data-open-path="' + escapeHtml(item.path) + '">' +
+          '<div class="result-title"><span>' + escapeHtml(item.title || item.path) + '</span><span class="badge">' + escapeHtml(item.score) + '</span></div>' +
+          '<div class="result-path">' + escapeHtml(item.path) + '</div>' +
+          '<div class="result-snippet">' + escapeHtml(item.snippet || '') + '</div>' +
+          '<div class="result-actions"><button type="button" class="secondary" data-open-path="' + escapeHtml(item.path) + '">View</button><button type="button" class="secondary" data-open-editor-path="' + escapeHtml(item.path) + '">Edit</button></div>' +
+        '</div>';
+      }).join('') : '<div class="hint">No matching Markdown files.</div>';
+      saveSearchState();
+    }
+    function restoreSearchState() {
+      applyModeChrome();
+      searchInput.value = String(restored.query || '');
+      if (restored.open) openSearchPanel(false);
+      if (lastResults.length) {
+        renderResults({ requestId, query: restored.query || '', results: lastResults });
+        return;
+      }
+      searchMeta.textContent = lastMeta || defaultSearchMeta();
+    }
+    bodyMode.addEventListener('click', () => setMode('body'));
+    fileMode.addEventListener('click', () => setMode('file'));
+    searchRun.addEventListener('click', runSearch);
+    searchInput.addEventListener('input', scheduleSearch);
+    searchInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') runSearch();
+    });
+    window.addEventListener('message', (event) => {
+      const message = event.data || {};
+      if (message.type === 'launcherSearchResults') renderResults(message);
+    });
     document.addEventListener('click', (event) => {
       const button = event.target.closest && event.target.closest('[data-action]');
+      if (button) {
+        const action = button.getAttribute('data-action');
+        if (action === 'toggleSearch') {
+          openSearchPanel();
+          return;
+        }
+        vscode.postMessage({ type: action });
+        return;
+      }
+      const editor = event.target.closest && event.target.closest('[data-open-editor-path]');
+      if (editor) {
+        event.stopPropagation();
+        vscode.postMessage({ type: 'openEditorPath', path: editor.getAttribute('data-open-editor-path') });
+        return;
+      }
+      const opener = event.target.closest && event.target.closest('[data-open-path]');
+      if (opener) {
+        vscode.postMessage({ type: 'openPath', path: opener.getAttribute('data-open-path') });
+      }
+    });
+    restoreSearchState();
+  </script>
+</body>
+</html>`;
+}
+
+async function respondToLauncherSourceGraphSearch(
+  context: vscode.ExtensionContext,
+  webview: vscode.Webview,
+  message: SourceGraphWebviewMessage,
+): Promise<void> {
+  const query = String(message.query || '').trim();
+  const requestId = Number(message.requestId || 0);
+  const mode = message.mode === 'file' ? 'file' : 'body';
+  if (!query) {
+    await webview.postMessage({ type: 'launcherSearchResults', mode, query, requestId, results: [] });
+    return;
+  }
+  try {
+    const workspaceFolder = await pickWorkspaceFolder();
+    if (!workspaceFolder) {
+      await webview.postMessage({ type: 'launcherSearchResults', mode, query, requestId, results: [] });
+      return;
+    }
+    const db = await loadOrUpdateDb(context, workspaceFolder);
+    const results = mode === 'body'
+      ? await searchBodyDocuments(workspaceFolder, db, query, 80)
+      : searchFileDocuments(db, query, 80);
+    await webview.postMessage({
+      type: 'launcherSearchResults',
+      mode,
+      query,
+      requestId,
+      results: results.map((item) => ({
+        path: item.document.path,
+        title: item.document.title || path.basename(item.document.path),
+        snippet: item.document.snippet,
+        score: item.score,
+        incomingCount: item.document.incomingCount,
+        outgoingCount: item.document.outgoingCount,
+        wordCount: item.document.wordCount,
+      })),
+    });
+  } catch (error) {
+    await webview.postMessage({
+      type: 'launcherSearchResults',
+      mode,
+      query,
+      requestId,
+      results: [],
+      error: stringifyError(error),
+    });
+  }
+}
+
+async function openLauncherGraphPath(relativePath: string, inEditor: boolean): Promise<void> {
+  const workspaceFolder = await pickWorkspaceFolder();
+  if (!workspaceFolder) return;
+  if (inEditor) await openGraphPathInEditor(workspaceFolder, relativePath);
+  else await openGraphPathInViewer(workspaceFolder, relativePath);
+}
+
+function openSourceGraphMcpGuidePanel(context: vscode.ExtensionContext): void {
+  if (sourceGraphMcpGuidePanel) {
+    sourceGraphMcpGuidePanel.reveal(vscode.ViewColumn.Beside);
+    return;
+  }
+  sourceGraphMcpGuidePanel = vscode.window.createWebviewPanel(
+    'mdStudioSourceGraphMcpGuide',
+    'Source Graph MCP Guide',
+    vscode.ViewColumn.Beside,
+    { enableScripts: true, retainContextWhenHidden: true },
+  );
+  sourceGraphMcpGuidePanel.onDidDispose(() => {
+    sourceGraphMcpGuidePanel = null;
+  }, null, context.subscriptions);
+  sourceGraphMcpGuidePanel.webview.onDidReceiveMessage((message: SourceGraphWebviewMessage) => {
+    if (!message || typeof message !== 'object') return;
+    if (message.type === 'copyGuideText' && typeof message.text === 'string') {
+      void vscode.env.clipboard.writeText(message.text)
+        .then(() => vscode.window.showInformationMessage('Source Graph MCP example copied.'));
+    }
+  }, null, context.subscriptions);
+  sourceGraphMcpGuidePanel.webview.html = renderSourceGraphMcpGuideHtml(sourceGraphMcpGuidePanel.webview);
+}
+
+function renderSourceGraphMcpGuideHtml(webview: vscode.Webview): string {
+  const nonce = createNonce();
+  const promptExamples = [
+    {
+      title: 'Search Body Text',
+      text: 'Source Graph MCP의 source_graph_search tool을 써서 "채용 공고"가 본문에 나오는 Markdown 파일을 찾아줘. query는 "채용 공고", limit은 10으로 해줘.',
+    },
+    {
+      title: 'Find Linked Context',
+      text: 'Source Graph MCP의 source_graph_search tool을 써서 "Source Graph" 관련 문서를 찾고, 각 결과에서 연결된 문서 맥락도 linksDepth 2까지 같이 요약해줘. query는 "Source Graph", limit은 5, linksDepth는 2로 해줘.',
+    },
+    {
+      title: 'Trace Neighbors',
+      text: 'Source Graph MCP의 source_graph_neighbors tool을 써서 README.md가 링크하는 문서와 README.md를 링크하는 문서를 보여줘. path는 README.md, depth는 1로 해줘.',
+    },
+    {
+      title: 'Recommend Related Docs',
+      text: 'Source Graph MCP의 source_graph_related tool을 써서 README.md 다음에 읽을 만한 관련 Markdown 문서 5개를 추천해줘. path는 README.md, limit은 5로 해줘.',
+    },
+    {
+      title: 'Refresh Index',
+      text: 'Source Graph MCP의 source_graph_update tool을 써서 방금 수정한 Markdown workspace 그래프 인덱스를 다시 갱신해줘.',
+    },
+  ];
+  const toolExamples = [
+    {
+      title: 'source_graph_search',
+      text: JSON.stringify({ query: '검색어 또는 파일 주제', limit: 5, linksDepth: 2 }, null, 2),
+    },
+    {
+      title: 'source_graph_neighbors',
+      text: JSON.stringify({ path: 'README.md', depth: 1 }, null, 2),
+    },
+    {
+      title: 'source_graph_related',
+      text: JSON.stringify({ path: 'README.md', limit: 5 }, null, 2),
+    },
+    {
+      title: 'source_graph_update',
+      text: JSON.stringify({}, null, 2),
+    },
+  ];
+  const copyCards = (items: Array<{ title: string; text: string }>, kind: string) => items.map((item, index) => `
+        <div class="copy-card">
+          <div class="copy-head"><strong>${escapeHtmlText(item.title)}</strong><button type="button" data-copy-kind="${kind}" data-copy-index="${index}">Copy</button></div>
+          <pre>${escapeHtmlText(item.text)}</pre>
+        </div>`).join('');
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src ${webview.cspSource} data:; script-src 'nonce-${nonce}';" />
+  <title>Source Graph MCP Guide</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; color: var(--vscode-editor-foreground); background: var(--vscode-editor-background); font-family: var(--vscode-font-family); }
+    main { max-width: 980px; margin: 0 auto; padding: 28px 32px 40px; }
+    header { display: grid; gap: 8px; padding-bottom: 18px; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,.25)); }
+    .kicker { color: var(--vscode-textLink-foreground); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: 24px; line-height: 1.2; }
+    p { margin: 0; color: var(--vscode-descriptionForeground); line-height: 1.6; }
+    section { display: grid; gap: 12px; padding: 22px 0; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,.18)); }
+    h2 { margin: 0; font-size: 15px; line-height: 1.35; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+    .tool { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.28)); border-radius: 6px; background: var(--vscode-editorWidget-background, rgba(128,128,128,.07)); }
+    .copy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 10px; }
+    .copy-card { display: grid; gap: 8px; min-width: 0; padding: 12px; border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.28)); border-radius: 6px; background: var(--vscode-editorWidget-background, rgba(128,128,128,.07)); }
+    .copy-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .copy-head strong { min-width: 0; font-size: 12px; }
+    .copy-head button { flex: 0 0 auto; min-height: 26px; border: 1px solid var(--vscode-button-border, transparent); border-radius: 4px; padding: 4px 9px; color: var(--vscode-button-foreground); background: var(--vscode-button-background); cursor: pointer; font: inherit; font-size: 12px; }
+    .copy-head button:hover { background: var(--vscode-button-hoverBackground); }
+    code { color: var(--vscode-textPreformat-foreground, var(--vscode-editor-foreground)); font-family: var(--vscode-editor-font-family); font-size: .95em; }
+    pre { overflow: auto; margin: 0; padding: 12px; border-radius: 6px; color: var(--vscode-editor-foreground); background: var(--vscode-textCodeBlock-background, var(--vscode-editorWidget-background)); font-family: var(--vscode-editor-font-family); font-size: 12px; line-height: 1.55; }
+    .steps { display: grid; gap: 8px; }
+    .step { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; }
+    .num { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 999px; color: var(--vscode-button-foreground); background: var(--vscode-button-background); font-size: 11px; font-weight: 700; }
+    .fields { display: grid; gap: 8px; }
+    .field { display: grid; grid-template-columns: minmax(140px, .5fr) 1fr; gap: 12px; }
+    @media (max-width: 680px) {
+      main { padding: 20px; }
+      .field { grid-template-columns: 1fr; gap: 3px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="kicker">Markdown Pattern Studio</div>
+      <h1>Source Graph MCP Guide</h1>
+      <p>Use this when Codex needs to search local Markdown, trace backlinks, find related sources, or refresh the workspace graph after edits.</p>
+    </header>
+    <section>
+      <h2>Recommended Flow</h2>
+      <div class="steps">
+        <div class="step"><div class="num">1</div><p>Run <code>Initialize DB</code> once per workspace to create <code>.mps/source-graph.sqlite</code>.</p></div>
+        <div class="step"><div class="num">2</div><p>Run <code>Install MCP</code> so Codex can load the workspace Source Graph server.</p></div>
+        <div class="step"><div class="num">3</div><p>Restart Codex or start a new trusted workspace session, then ask Codex to search, trace, or update the graph.</p></div>
+      </div>
+    </section>
+    <section>
+      <h2>MCP Tools</h2>
+      <div class="grid">
+        <div class="tool"><code>source_graph_update</code><p>Rebuilds the workspace Source Graph index.</p></div>
+        <div class="tool"><code>source_graph_search</code><p>Searches Markdown title, path, and body. Add <code>linksDepth</code> to include link context inside each result.</p></div>
+        <div class="tool"><code>source_graph_related</code><p>Ranks related documents using links, backlinks, and shared terms.</p></div>
+        <div class="tool"><code>source_graph_neighbors</code><p>Returns inbound and outbound neighbors for a document path or document id.</p></div>
+      </div>
+    </section>
+    <section>
+      <h2>Real Codex Prompts</h2>
+      <p>Copy one of these into Codex when you want it to use the Source Graph MCP tool explicitly.</p>
+      <div class="copy-grid">
+        ${copyCards(promptExamples, 'prompt')}
+      </div>
+    </section>
+    <section>
+      <h2>Tool Inputs</h2>
+      <p>Use these argument shapes when you want to describe the exact MCP tool input.</p>
+      <div class="copy-grid">
+        ${copyCards(toolExamples, 'tool')}
+      </div>
+    </section>
+    <section>
+      <h2>Search Result With Links</h2>
+      <pre>{
+  &quot;path&quot;: &quot;README.md&quot;,
+  &quot;title&quot;: &quot;Markdown Pattern Studio&quot;,
+  &quot;score&quot;: 8,
+  &quot;linksDepth&quot;: 2,
+  &quot;linkedDocuments&quot;: [...],
+  &quot;links&quot;: [...]
+}</pre>
+      <div class="fields">
+        <div class="field"><code>linkedDocuments</code><p>Documents reached from the search hit within the requested depth.</p></div>
+        <div class="field"><code>links</code><p>Raw graph edges with <code>sourcePath</code>, <code>targetPath</code>, <code>label</code>, <code>status</code>, and <code>line</code>.</p></div>
+        <div class="field"><code>linksDepth</code><p>The graph radius used to collect the link context. Search supports depth 1 through 3.</p></div>
+      </div>
+    </section>
+  </main>
+  <script nonce="${nonce}">
+    const vscode = acquireVsCodeApi();
+    const copies = {
+      prompt: ${JSON.stringify(promptExamples.map((item) => item.text))},
+      tool: ${JSON.stringify(toolExamples.map((item) => item.text))},
+    };
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest && event.target.closest('[data-copy-kind]');
       if (!button) return;
-      vscode.postMessage({ type: button.getAttribute('data-action') });
+      const kind = button.getAttribute('data-copy-kind');
+      const index = Number(button.getAttribute('data-copy-index') || 0);
+      const text = copies[kind] && copies[kind][index];
+      if (!text) return;
+      vscode.postMessage({ type: 'copyGuideText', text });
+      button.textContent = 'Copied';
+      setTimeout(() => { button.textContent = 'Copy'; }, 1200);
     });
   </script>
 </body>
@@ -204,28 +666,51 @@ async function copyCodexMcpConfig(context: vscode.ExtensionContext): Promise<voi
   if (!workspaceFolder) return;
   const scriptPath = resolveSourceGraphScriptPath(context);
   const root = workspaceFolder.uri.fsPath;
-  const snippet = buildMcpTomlBlock('markdown_pattern_studio_source_graph', scriptPath, root, false);
+  const serverName = getMcpServerName(workspaceFolder, 'workspace');
+  const nodeCommand = await resolveMcpNodeCommand(workspaceFolder);
+  const snippet = [
+    '# Codex .codex/config.toml',
+    buildMcpTomlBlock(serverName, nodeCommand, scriptPath, root, false).trimEnd(),
+    '',
+    '# Claude / MCP .mcp.json',
+    JSON.stringify(buildMcpJsonConfig(serverName, nodeCommand, scriptPath, root), null, 2),
+    '',
+  ].join('\n');
   await vscode.env.clipboard.writeText(snippet);
-  void vscode.window.showInformationMessage('Codex MCP config copied. Paste it into your Codex config.toml, then restart Codex.');
+  void vscode.window.showInformationMessage('Source Graph MCP config copied for Codex config.toml and Claude-compatible .mcp.json.');
 }
 
 async function installCodexMcp(context: vscode.ExtensionContext): Promise<void> {
   const workspaceFolder = await pickWorkspaceFolder();
   if (!workspaceFolder) return;
-  const target = await pickCodexConfigTarget(workspaceFolder);
-  if (!target) return;
   const scriptPath = resolveSourceGraphScriptPath(context);
   await assertSourceGraphPreflight(scriptPath, workspaceFolder);
   const root = workspaceFolder.uri.fsPath;
-  const serverName = getMcpServerName(workspaceFolder, target.scope);
-  const configPath = getCodexConfigPath(workspaceFolder, target.scope);
+  const serverName = getMcpServerName(workspaceFolder, 'workspace');
+  const nodeCommand = await resolveMcpNodeCommand(workspaceFolder);
+  const codexConfigPath = getCodexConfigPath(workspaceFolder, 'workspace');
+  const mcpJsonPath = getWorkspaceMcpJsonPath(workspaceFolder);
+  const target = await pickMcpInstallTarget(workspaceFolder, serverName, codexConfigPath, mcpJsonPath);
+  if (!target) return;
+  const skillRoots = await ensureWorkspaceMcpSkillFolders(context, workspaceFolder);
   await updateSourceGraphIndex(context, workspaceFolder);
-  const backupPath = await upsertManagedMcpBlock(configPath, serverName, scriptPath, root);
-  const restart = target.scope === 'workspace'
-    ? 'Restart Codex or start a new Codex session for this trusted workspace.'
-    : 'Restart Codex or start a new Codex session.';
-  const backupText = backupPath ? ` Backup: ${backupPath}` : '';
-  void vscode.window.showInformationMessage(`MD Studio Source Graph MCP installed in ${configPath}.${backupText} ${restart}`);
+  const backupPaths: string[] = [];
+  const configPaths: string[] = [];
+  if (target === 'all' || target === 'mcp-json') {
+    const backupPath = await upsertMcpJsonServer(mcpJsonPath, serverName, nodeCommand, scriptPath, root);
+    if (backupPath) backupPaths.push(backupPath);
+    configPaths.push(mcpJsonPath);
+  }
+  if (target === 'all' || target === 'codex') {
+    const backupPath = await upsertManagedMcpBlock(codexConfigPath, serverName, nodeCommand, scriptPath, root);
+    if (backupPath) backupPaths.push(backupPath);
+    configPaths.push(codexConfigPath);
+  }
+  const backupText = backupPaths.length ? ` Backups: ${backupPaths.join(', ')}` : '';
+  const skillsText = skillRoots.length ? ` Skill roots prepared: ${skillRoots.join(', ')}.` : '';
+  void vscode.window.showInformationMessage(
+    `MD Studio Source Graph MCP installed for this workspace. Configs: ${configPaths.join(', ')}.${backupText}${skillsText} Claude may require project approval in /mcp. Codex shows project MCP only after opening a fresh trusted session for this workspace.`,
+  );
 }
 
 async function checkCodexMcpStatus(context: vscode.ExtensionContext): Promise<void> {
@@ -234,35 +719,330 @@ async function checkCodexMcpStatus(context: vscode.ExtensionContext): Promise<vo
   const scriptPath = resolveSourceGraphScriptPath(context);
   const dbPath = getDbPath(workspaceFolder);
   const workspaceConfigPath = getCodexConfigPath(workspaceFolder, 'workspace');
-  const userConfigPath = getCodexConfigPath(workspaceFolder, 'user');
+  const mcpJsonPath = getWorkspaceMcpJsonPath(workspaceFolder);
   const workspaceServerName = getMcpServerName(workspaceFolder, 'workspace');
-  const userServerName = getMcpServerName(workspaceFolder, 'user');
-  const checks = [
-    `Workspace: ${workspaceFolder.uri.fsPath}`,
-    `Node: ${await checkNodeAvailable()}`,
-    `Bundled MCP script: ${await pathExists(scriptPath) ? scriptPath : 'missing'}`,
-    `Graph DB: ${await pathExists(dbPath) ? dbPath : 'missing - run MD Studio: Initialize Source Graph Workspace'}`,
-    `Workspace config: ${await describeConfigRegistration(workspaceConfigPath, workspaceServerName)}`,
-    `User config: ${await describeConfigRegistration(userConfigPath, userServerName)}`,
+  const node = await checkNodeAvailable();
+  const scriptExists = await pathExists(scriptPath);
+  const dbExists = await pathExists(dbPath);
+  const workspaceConfig = await inspectCodexConfigRegistration(workspaceConfigPath, workspaceServerName);
+  const mcpJsonConfig = await inspectMcpJsonRegistration(mcpJsonPath, workspaceServerName);
+  const claudeStatus = await inspectClaudeMcpStatus(workspaceFolder, workspaceServerName, mcpJsonConfig.registered);
+  const codexStatus = await inspectCodexMcpStatus(workspaceFolder, workspaceServerName, workspaceConfig.registered);
+  const skillRoots = await inspectWorkspaceMcpSkillRoots(workspaceFolder);
+  const items: SourceGraphMcpStatusItem[] = [
+    {
+      label: 'Node.js',
+      state: node.startsWith('not available') ? 'bad' : 'ok',
+      value: node,
+      detail: node.startsWith('not available')
+        ? 'Set mdStudioPreview.nodePath or install Node.js.'
+        : 'Runtime is available for the MCP server.',
+    },
+    {
+      label: 'Bundled MCP script',
+      state: scriptExists ? 'ok' : 'bad',
+      value: scriptPath,
+      detail: scriptExists ? 'The extension bundle can start Source Graph MCP.' : 'Reinstall the VSIX or rebuild the extension bundle.',
+    },
+    {
+      label: 'Graph DB',
+      state: dbExists ? 'ok' : 'warn',
+      value: dbPath,
+      detail: dbExists ? 'Workspace index exists.' : 'missing - run MD Studio: Initialize Source Graph Workspace or Update before relying on graph results.',
+    },
+    {
+      label: 'Codex client config',
+      state: workspaceConfig.registered ? 'ok' : workspaceConfig.exists ? 'warn' : 'warn',
+      value: workspaceConfig.path,
+      detail: workspaceConfig.registered
+        ? `Registered as ${workspaceConfig.serverName}.`
+        : workspaceConfig.exists
+          ? 'Config exists, but this Source Graph server is not registered.'
+          : 'Codex client config file is not present.',
+    },
+    {
+      label: 'MCP JSON config',
+      state: mcpJsonConfig.registered ? 'ok' : mcpJsonConfig.exists ? 'warn' : 'warn',
+      value: mcpJsonConfig.path,
+      detail: mcpJsonConfig.registered
+        ? `Registered as ${mcpJsonConfig.serverName}.`
+        : mcpJsonConfig.exists
+          ? 'Config exists, but this Source Graph server is not registered.'
+          : '.mcp.json is not present.',
+    },
+    {
+      label: 'Claude project approval',
+      state: claudeStatus.state,
+      value: claudeStatus.value,
+      detail: claudeStatus.detail,
+    },
+    {
+      label: 'Codex project visibility',
+      state: codexStatus.state,
+      value: codexStatus.value,
+      detail: codexStatus.detail,
+    },
+    {
+      label: 'Workspace skill roots',
+      state: skillRoots.allPresent ? 'ok' : 'warn',
+      value: skillRoots.value,
+      detail: skillRoots.allPresent
+        ? 'Agent skill roots exist in this workspace.'
+        : 'Run MD Studio: Install Source Graph MCP to create/update workspace skill roots.',
+    },
   ];
-  const document = await vscode.workspace.openTextDocument({
-    language: 'markdown',
-    content: `# MD Studio Source Graph MCP Status\n\n${checks.map((item) => `- ${item}`).join('\n')}\n\nIf the MCP config is newly installed, restart Codex or start a new Codex session. Project-scoped config requires the workspace to be trusted by Codex.\n`,
+  const configReady = workspaceConfig.registered || mcpJsonConfig.registered;
+  const hardFailure = items.some((item) => item.state === 'bad');
+  const overallState: SourceGraphMcpState = hardFailure ? 'bad' : configReady && dbExists ? 'ok' : 'warn';
+  const model: SourceGraphMcpStatusModel = {
+    workspace: workspaceFolder.uri.fsPath,
+    checkedAt: new Date().toLocaleString(),
+    overallState,
+    headline: overallState === 'ok' ? 'MCP is ready' : overallState === 'bad' ? 'MCP cannot start yet' : 'MCP needs attention',
+    summary: overallState === 'ok'
+      ? 'MCP clients can load this workspace Source Graph server after a fresh trusted session.'
+      : hardFailure
+        ? 'Fix the red checks first, then reinstall or recheck the MCP setup.'
+        : 'The core pieces are present, but a config or graph index step still needs attention.',
+    configuredClients: [
+      mcpJsonConfig.registered ? `Claude/generic MCP: ${mcpJsonConfig.serverName}` : '',
+      workspaceConfig.registered ? `Codex: ${workspaceConfig.serverName}` : '',
+    ].filter(Boolean).join(' | ') || 'No workspace MCP client config found',
+    items,
+  };
+  openSourceGraphMcpStatusPanel(context, model);
+}
+
+type SourceGraphMcpState = 'ok' | 'warn' | 'bad';
+
+interface SourceGraphMcpStatusItem {
+  label: string;
+  state: SourceGraphMcpState;
+  value: string;
+  detail: string;
+}
+
+interface SourceGraphMcpConfigRegistration {
+  path: string;
+  serverName: string;
+  exists: boolean;
+  registered: boolean;
+}
+
+interface SourceGraphSkillRootsStatus {
+  allPresent: boolean;
+  value: string;
+}
+
+interface SourceGraphMcpStatusModel {
+  workspace: string;
+  checkedAt: string;
+  overallState: SourceGraphMcpState;
+  headline: string;
+  summary: string;
+  configuredClients: string;
+  items: SourceGraphMcpStatusItem[];
+}
+
+type SourceGraphMcpInstallTarget = 'all' | 'mcp-json' | 'codex';
+
+interface SourceGraphMcpInstallPick extends vscode.QuickPickItem {
+  target: SourceGraphMcpInstallTarget;
+}
+
+interface ClaudeMcpStatus {
+  state: SourceGraphMcpState;
+  value: string;
+  detail: string;
+}
+
+interface CodexMcpStatus {
+  state: SourceGraphMcpState;
+  value: string;
+  detail: string;
+}
+
+async function pickMcpInstallTarget(
+  workspaceFolder: vscode.WorkspaceFolder,
+  serverName: string,
+  codexConfigPath: string,
+  mcpJsonPath: string,
+): Promise<SourceGraphMcpInstallTarget | null> {
+  const codex = await inspectCodexConfigRegistration(codexConfigPath, serverName);
+  const mcpJson = await inspectMcpJsonRegistration(mcpJsonPath, serverName);
+  const registeredText = [
+    mcpJson.registered ? 'MCP JSON already registered' : '',
+    codex.registered ? 'Codex already registered' : '',
+  ].filter(Boolean).join(' · ');
+  const suffix = registeredText ? `Current: ${registeredText}` : 'No existing Source Graph MCP registration found.';
+  const picks: SourceGraphMcpInstallPick[] = [
+    {
+      label: 'All supported clients',
+      description: '.mcp.json + .codex/config.toml',
+      detail: `Use this workspace MCP server from Claude-compatible clients and Codex. ${suffix}`,
+      target: 'all',
+    },
+    {
+      label: 'Claude / generic MCP',
+      description: '.mcp.json',
+      detail: `Register only the workspace .mcp.json entry. ${mcpJson.registered ? 'Already registered; this will refresh it.' : 'Claude Code and compatible MCP clients can use this.'}`,
+      target: 'mcp-json',
+    },
+    {
+      label: 'Codex',
+      description: '.codex/config.toml',
+      detail: `Register only the workspace Codex config entry. ${codex.registered ? 'Already registered; this will refresh it.' : 'Codex can use this after a fresh trusted workspace session.'}`,
+      target: 'codex',
+    },
+  ];
+  const picked = await vscode.window.showQuickPick(picks, {
+    ignoreFocusOut: true,
+    title: 'Install Source Graph MCP',
+    placeHolder: `Choose which MCP client config to update for ${workspaceFolder.name}`,
   });
-  await vscode.window.showTextDocument(document, { preview: true, viewColumn: vscode.ViewColumn.Beside });
+  return picked?.target ?? null;
+}
+
+async function inspectConfigRegistration(configPath: string, serverName: string): Promise<SourceGraphMcpConfigRegistration> {
+  const text = await readTextIfExists(configPath);
+  return {
+    path: configPath,
+    serverName,
+    exists: Boolean(text),
+    registered: Boolean(text) && (managedBlockPattern(serverName).test(text) || text.includes(`[mcp_servers.${serverName}]`)),
+  };
+}
+
+async function inspectWorkspaceMcpSkillRoots(workspaceFolder: vscode.WorkspaceFolder): Promise<SourceGraphSkillRootsStatus> {
+  const workspaceRoot = workspaceFolder.uri.fsPath;
+  const roots = [
+    ...workspaceMcpSkillProfiles.map((profile) => path.join(workspaceRoot, ...profile.targetPathSegments)),
+    resolveWorkspaceConfiguredSkillsDir(workspaceFolder),
+  ];
+  const uniqueRoots = [...new Map(roots.map((rootDir) => [normalizeForCompare(rootDir), rootDir])).values()];
+  const results = await Promise.all(uniqueRoots.map(async (rootDir) => ({
+    rootDir,
+    exists: await pathExists(rootDir),
+  })));
+  return {
+    allPresent: results.every((result) => result.exists),
+    value: results.map((result) => `${result.exists ? '[ok]' : '[missing]'} ${result.rootDir}`).join('\n'),
+  };
+}
+
+function openSourceGraphMcpStatusPanel(context: vscode.ExtensionContext, model: SourceGraphMcpStatusModel): void {
+  if (sourceGraphMcpStatusPanel) {
+    sourceGraphMcpStatusPanel.reveal(vscode.ViewColumn.Beside);
+  } else {
+    sourceGraphMcpStatusPanel = vscode.window.createWebviewPanel(
+      'mdStudioSourceGraphMcpStatus',
+      'Source Graph MCP Status',
+      vscode.ViewColumn.Beside,
+      { enableScripts: false, retainContextWhenHidden: true },
+    );
+    sourceGraphMcpStatusPanel.onDidDispose(() => {
+      sourceGraphMcpStatusPanel = null;
+    }, null, context.subscriptions);
+  }
+  sourceGraphMcpStatusPanel.webview.html = renderSourceGraphMcpStatusHtml(sourceGraphMcpStatusPanel.webview, model);
+}
+
+function renderSourceGraphMcpStatusHtml(webview: vscode.Webview, model: SourceGraphMcpStatusModel): string {
+  const rows = model.items.map((item) => `
+    <article class="check ${item.state}">
+      <div class="status-dot" aria-hidden="true"></div>
+      <div>
+        <h2>${escapeHtmlText(item.label)}</h2>
+        <p>${escapeHtmlText(item.detail)}</p>
+        <code>${escapeHtmlText(item.value)}</code>
+      </div>
+    </article>
+  `).join('');
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src ${webview.cspSource} data:;" />
+  <title>Source Graph MCP Status</title>
+  <style>
+    :root { color-scheme: dark; --ok:#3fb950; --warn:#d29922; --bad:#f85149; --line:var(--vscode-panel-border, rgba(128,128,128,.24)); }
+    body { margin: 0; color: var(--vscode-editor-foreground); background: var(--vscode-editor-background); font-family: var(--vscode-font-family); }
+    main { max-width: 1040px; margin: 0 auto; padding: 28px 32px 40px; }
+    header { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: start; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+    .kicker { color: var(--vscode-textLink-foreground); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: 6px 0 8px; font-size: 25px; line-height: 1.2; }
+    h2 { margin: 0; font-size: 13px; line-height: 1.35; }
+    p { margin: 0; color: var(--vscode-descriptionForeground); line-height: 1.55; }
+    code { display: block; overflow-wrap: anywhere; color: var(--vscode-textPreformat-foreground, var(--vscode-editor-foreground)); font-family: var(--vscode-editor-font-family); font-size: 12px; }
+    .badge { display: inline-flex; gap: 8px; align-items: center; justify-content: center; min-width: 142px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 999px; font-weight: 700; background: var(--vscode-editorWidget-background, rgba(128,128,128,.08)); }
+    .badge .status-dot { width: 10px; height: 10px; }
+    .ok .status-dot, .badge.ok .status-dot { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok), transparent 78%); }
+    .warn .status-dot, .badge.warn .status-dot { background: var(--warn); box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn), transparent 78%); }
+    .bad .status-dot, .badge.bad .status-dot { background: var(--bad); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad), transparent 78%); }
+    .status-dot { width: 11px; height: 11px; border-radius: 999px; margin-top: 3px; }
+    .meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 20px 0; }
+    .meta-item { display: grid; gap: 5px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--vscode-editorWidget-background, rgba(128,128,128,.07)); }
+    .meta-item span { color: var(--vscode-descriptionForeground); font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+    .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+    .check { display: grid; grid-template-columns: 18px 1fr; gap: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 7px; background: var(--vscode-editorWidget-background, rgba(128,128,128,.06)); }
+    .check.ok { border-color: color-mix(in srgb, var(--ok), transparent 65%); }
+    .check.warn { border-color: color-mix(in srgb, var(--warn), transparent 58%); }
+    .check.bad { border-color: color-mix(in srgb, var(--bad), transparent 58%); }
+    .check p { margin: 4px 0 8px; }
+    .note { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+    @media (max-width: 760px) {
+      main { padding: 20px; }
+      header, .meta { grid-template-columns: 1fr; }
+      .badge { justify-content: flex-start; width: fit-content; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <div class="kicker">Markdown Pattern Studio</div>
+        <h1>${escapeHtmlText(model.headline)}</h1>
+        <p>${escapeHtmlText(model.summary)}</p>
+      </div>
+      <div class="badge ${model.overallState}"><span class="status-dot"></span>${escapeHtmlText(statusLabel(model.overallState))}</div>
+    </header>
+    <section class="meta" aria-label="MCP status scope">
+      <div class="meta-item"><span>Workspace</span><code>${escapeHtmlText(model.workspace)}</code></div>
+      <div class="meta-item"><span>Configured Clients</span><code>${escapeHtmlText(model.configuredClients)}</code></div>
+      <div class="meta-item"><span>Checked</span><code>${escapeHtmlText(model.checkedAt)}</code></div>
+    </section>
+    <section class="checks" aria-label="MCP readiness checks">
+      ${rows}
+    </section>
+    <p class="note">If MCP was just installed, restart Codex or start a new trusted workspace session before expecting the tools to appear.</p>
+  </main>
+</body>
+</html>`;
+}
+
+function statusLabel(state: SourceGraphMcpState): string {
+  if (state === 'ok') return 'Ready';
+  if (state === 'bad') return 'Blocked';
+  return 'Needs Attention';
 }
 
 async function removeCodexMcp(context: vscode.ExtensionContext): Promise<void> {
   const workspaceFolder = await pickWorkspaceFolder();
   if (!workspaceFolder) return;
-  const target = await pickCodexConfigTarget(workspaceFolder);
-  if (!target) return;
-  const configPath = getCodexConfigPath(workspaceFolder, target.scope);
-  const serverName = getMcpServerName(workspaceFolder, target.scope);
-  const removed = await removeManagedMcpBlock(configPath, serverName);
-  const message = removed
-    ? `MD Studio Source Graph MCP removed from ${configPath}. Restart Codex or start a new Codex session.`
-    : `No MD Studio Source Graph MCP block found in ${configPath}.`;
+  const codexConfigPath = getCodexConfigPath(workspaceFolder, 'workspace');
+  const mcpJsonPath = getWorkspaceMcpJsonPath(workspaceFolder);
+  const serverName = getMcpServerName(workspaceFolder, 'workspace');
+  const removedCodex = await removeManagedMcpBlock(codexConfigPath, serverName);
+  const removedJson = await removeMcpJsonServer(mcpJsonPath, serverName);
+  const removedPaths = [
+    removedCodex ? codexConfigPath : '',
+    removedJson ? mcpJsonPath : '',
+  ].filter(Boolean);
+  const message = removedPaths.length
+    ? `MD Studio Source Graph MCP removed from ${removedPaths.join(', ')}. Restart your MCP client or start a fresh session.`
+    : `No MD Studio Source Graph MCP registration found in ${codexConfigPath} or ${mcpJsonPath}.`;
   void vscode.window.showInformationMessage(message);
 }
 
@@ -299,6 +1079,9 @@ async function openSourceGraphPanel(context: vscode.ExtensionContext): Promise<v
       if (message.type === 'openUrl' && typeof message.href === 'string') {
         void openGraphUrl(message.href);
       }
+      if (message.type === 'searchGraph' && typeof message.query === 'string') {
+        void respondToSourceGraphSearch(context, activeWorkspaceFolder, sourceGraphPanel?.webview, message);
+      }
       if (message.type === 'refresh') {
         void openSourceGraphPanel(context);
       }
@@ -316,7 +1099,7 @@ async function openSourceGraphPanel(context: vscode.ExtensionContext): Promise<v
     sourceGraphPanel.webview.html = renderSourceGraphLoadingHtml(
       sourceGraphPanel.webview,
       'Source Graph DB missing',
-      'No .mps/source-graph.sqlite exists for this workspace yet. MD Studio is creating it automatically now; if this fails, run MD Studio: Initialize Source Graph Workspace or Check Codex Source Graph MCP Status.',
+      'No .mps/source-graph.sqlite exists for this workspace yet. MD Studio is creating it automatically now; if this fails, run MD Studio: Initialize Source Graph Workspace or Check Source Graph MCP Status.',
     );
   }
 
@@ -331,7 +1114,7 @@ async function openSourceGraphPanel(context: vscode.ExtensionContext): Promise<v
         sourceGraphPanel.webview.html = renderSourceGraphLoadingHtml(
           sourceGraphPanel.webview,
           'Source Graph update failed',
-          'The graph DB could not be created for this workspace. Run MD Studio: Initialize Source Graph Workspace, or run Check Codex Source Graph MCP Status for setup details.',
+          'The graph DB could not be created for this workspace. Run MD Studio: Initialize Source Graph Workspace, or run Check Source Graph MCP Status for setup details.',
         );
       }
       void showSourceGraphError('openSourceGraph', error);
@@ -342,22 +1125,33 @@ async function searchSourceGraph(context: vscode.ExtensionContext): Promise<void
   const workspaceFolder = await pickWorkspaceFolder();
   if (!workspaceFolder) return;
   const db = await loadOrUpdateDb(context, workspaceFolder);
+  const mode = await vscode.window.showQuickPick(
+    [
+      {
+        label: 'Body text',
+        description: 'Search inside Markdown content',
+        mode: 'body' as const,
+      },
+      {
+        label: 'File name / path',
+        description: 'Search titles, filenames, and paths',
+        mode: 'file' as const,
+      },
+    ],
+    { title: 'Search Source Graph', placeHolder: 'Choose what to search' },
+  );
+  if (!mode) return;
   const query = await vscode.window.showInputBox({
-    title: 'Search Source Graph',
-    prompt: 'Search indexed Markdown by title, path, or content.',
-    placeHolder: 'report, DESIGN.md, source, ...',
+    title: mode.mode === 'body' ? 'Search Markdown Body Text' : 'Search File Names And Paths',
+    prompt: mode.mode === 'body'
+      ? 'Search inside indexed Markdown files.'
+      : 'Search Markdown titles, filenames, and paths.',
+    placeHolder: mode.mode === 'body' ? 'revenue forecast, decision memo, ...' : 'README.md, docs/source, ...',
   });
   if (!query) return;
-  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const documents = db.tables.documents
-    .map((document) => {
-      const haystack = `${document.title} ${document.path} ${document.snippet}`.toLowerCase();
-      const score = terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
-      return { document, score };
-    })
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score || a.document.path.localeCompare(b.document.path))
-    .slice(0, 50);
+  const documents = mode.mode === 'body'
+    ? await searchBodyDocuments(workspaceFolder, db, query, 50)
+    : searchFileDocuments(db, query, 50);
 
   const picked = await vscode.window.showQuickPick(
     documents.map((item) => ({
@@ -370,6 +1164,96 @@ async function searchSourceGraph(context: vscode.ExtensionContext): Promise<void
   );
   if (!picked) return;
   await openGraphPathInViewer(workspaceFolder, picked.document.path);
+}
+
+async function respondToSourceGraphSearch(
+  context: vscode.ExtensionContext,
+  workspaceFolder: vscode.WorkspaceFolder,
+  webview: vscode.Webview | undefined,
+  message: SourceGraphWebviewMessage,
+): Promise<void> {
+  if (!webview) return;
+  const query = String(message.query || '').trim();
+  const requestId = Number(message.requestId || 0);
+  const mode = message.mode === 'file' ? 'file' : 'body';
+  try {
+    const db = await loadOrUpdateDb(context, workspaceFolder);
+    const results = mode === 'body'
+      ? await searchBodyDocuments(workspaceFolder, db, query, 80)
+      : searchFileDocuments(db, query, 80);
+    await webview.postMessage({
+      type: 'searchGraphResults',
+      mode,
+      query,
+      requestId,
+      ids: results.map((item) => item.document.id),
+    });
+  } catch (error) {
+    await webview.postMessage({
+      type: 'searchGraphResults',
+      mode,
+      query,
+      requestId,
+      ids: [],
+      error: stringifyError(error),
+    });
+  }
+}
+
+function searchFileDocuments(
+  db: SourceGraphDb,
+  query: string,
+  limit: number,
+): Array<{ document: SourceGraphDocument; score: number }> {
+  const terms = normalizeSourceGraphSearchText(query).split(/\s+/).filter(Boolean);
+  if (!terms.length) return [];
+  return db.tables.documents
+    .map((document) => {
+      const haystack = normalizeSourceGraphSearchText(`${document.title} ${document.path}`);
+      const score = terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
+      return { document, score };
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score || a.document.path.localeCompare(b.document.path))
+    .slice(0, limit);
+}
+
+async function searchBodyDocuments(
+  workspaceFolder: vscode.WorkspaceFolder,
+  db: SourceGraphDb,
+  query: string,
+  limit: number,
+): Promise<Array<{ document: SourceGraphDocument; score: number }>> {
+  const terms = normalizeSourceGraphSearchText(query).split(/\s+/).filter(Boolean);
+  if (!terms.length) return [];
+  const root = workspaceFolder.uri.fsPath;
+  const results: Array<{ document: SourceGraphDocument; score: number }> = [];
+  for (const document of db.tables.documents) {
+    const fullPath = resolveWorkspaceFilePath(root, document.path);
+    if (!fullPath) continue;
+    try {
+      const source = await fs.readFile(fullPath, 'utf8');
+      const haystack = normalizeSourceGraphSearchText(source);
+      const score = terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
+      if (score > 0) results.push({ document, score });
+    } catch {
+      // A stale index entry should not break the search UI.
+    }
+  }
+  return results
+    .sort((a, b) => b.score - a.score || a.document.path.localeCompare(b.document.path))
+    .slice(0, limit);
+}
+
+function resolveWorkspaceFilePath(root: string, relativePath: string): string {
+  const resolved = path.resolve(root, relativePath);
+  const relative = path.relative(root, resolved);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) return '';
+  return resolved;
+}
+
+function normalizeSourceGraphSearchText(value: string): string {
+  return String(value || '').toLowerCase().replace(/[^\p{L}\p{N}._/-]+/gu, ' ').trim();
 }
 
 async function openSourceIgnoreFile(): Promise<void> {
@@ -512,10 +1396,10 @@ async function showSourceGraphError(command: string, error: unknown): Promise<vo
       '',
       '## Next Checks',
       '',
-      '- Run `MD Studio: Check Codex Source Graph MCP Status`.',
+      '- Run `MD Studio: Check Source Graph MCP Status`.',
       '- Confirm Node.js is installed and `mdStudioPreview.nodePath` is correct.',
       '- Confirm the workspace is trusted in Codex if you installed workspace `.codex/config.toml`.',
-      '- Re-run `MD Studio: Install Codex Source Graph MCP` after fixing the issue.',
+      '- Re-run `MD Studio: Install Source Graph MCP` after fixing the issue.',
       '',
     ].join('\n'),
   });
@@ -540,7 +1424,7 @@ function diagnoseSourceGraphError(command: string, error: unknown): { title: str
     return {
       title: 'Source Graph setup failed',
       cause: 'VS Code does not have permission to write the graph DB or Codex config file.',
-      fix: 'Check folder permissions, close apps locking the file, or choose user-level config if workspace config cannot be written.',
+      fix: 'Check workspace folder permissions, close apps locking the file, then retry the workspace MCP install.',
       detail,
     };
   }
@@ -563,36 +1447,94 @@ function diagnoseSourceGraphError(command: string, error: unknown): { title: str
   return {
     title: 'Source Graph command failed',
     cause: 'The command did not complete successfully.',
-    fix: 'Run `MD Studio: Check Codex Source Graph MCP Status`, review the technical details, then retry the command.',
+    fix: 'Run `MD Studio: Check Source Graph MCP Status`, review the technical details, then retry the command.',
     detail,
   };
 }
 
 type CodexConfigScope = 'workspace' | 'user';
 
-interface CodexConfigTarget {
-  scope: CodexConfigScope;
-  label: string;
+async function ensureWorkspaceMcpSkillFolders(
+  context: vscode.ExtensionContext,
+  workspaceFolder: vscode.WorkspaceFolder,
+): Promise<string[]> {
+  const workspaceRoot = workspaceFolder.uri.fsPath;
+  const prepared = new Map<string, string>();
+  const addPrepared = (rootDir: string, label: string) => {
+    prepared.set(normalizeForCompare(rootDir), `${label}: ${rootDir}`);
+  };
+
+  for (const profile of workspaceMcpSkillProfiles) {
+    const sourceDir = await resolveBundledSkillRoot(context, profile.sourcePathSegments);
+    if (!sourceDir) continue;
+    const targetDir = path.join(workspaceRoot, ...profile.targetPathSegments);
+    await syncBundledSkillRoot(sourceDir, targetDir);
+    addPrepared(targetDir, profile.label);
+  }
+
+  const configuredSkillsDir = resolveWorkspaceConfiguredSkillsDir(workspaceFolder);
+  const claudeSourceDir = await resolveBundledSkillRoot(context, ['ai_skills', 'claude', 'skills']);
+  if (configuredSkillsDir && claudeSourceDir) {
+    await syncBundledSkillRoot(claudeSourceDir, configuredSkillsDir);
+    addPrepared(configuredSkillsDir, 'Configured skillsDir');
+  }
+
+  return [...prepared.values()];
 }
 
-async function pickCodexConfigTarget(workspaceFolder: vscode.WorkspaceFolder): Promise<CodexConfigTarget | null> {
-  const picked = await vscode.window.showQuickPick<CodexConfigTarget>(
-    [
-      {
-        scope: 'workspace',
-        label: 'Workspace .codex/config.toml (Recommended)',
-      },
-      {
-        scope: 'user',
-        label: 'User ~/.codex/config.toml',
-      },
-    ],
-    {
-      placeHolder: `Install MCP config for ${workspaceFolder.name}`,
-      title: 'Choose where Codex should load the Source Graph MCP server.',
-    },
-  );
-  return picked || null;
+async function resolveBundledSkillRoot(context: vscode.ExtensionContext, segments: readonly string[]): Promise<string | null> {
+  return firstExistingDirectory([
+    path.join(context.extensionPath, ...segments),
+    path.resolve(context.extensionPath, '..', ...segments),
+  ]);
+}
+
+function resolveWorkspaceConfiguredSkillsDir(workspaceFolder: vscode.WorkspaceFolder): string {
+  const raw = String(vscode.workspace.getConfiguration('mdStudioPreview').get<string>('skillsDir', 'claude_skills/skills') || '').trim();
+  const value = raw || 'claude_skills/skills';
+  const workspaceRoot = workspaceFolder.uri.fsPath;
+  const expanded = value.replace(/\$\{workspaceFolder\}/g, workspaceRoot);
+  return path.isAbsolute(expanded) ? path.normalize(expanded) : path.join(workspaceRoot, expanded);
+}
+
+async function syncBundledSkillRoot(sourceRoot: string, targetRoot: string): Promise<void> {
+  const sourceEntries = await fs.readdir(sourceRoot, { withFileTypes: true });
+  await fs.mkdir(targetRoot, { recursive: true });
+  for (const entry of sourceEntries.sort((a, b) => a.name.localeCompare(b.name))) {
+    if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
+    if (SKILL_COPY_EXCLUDED_NAMES.has(entry.name)) continue;
+
+    const sourceSkillDir = path.join(sourceRoot, entry.name);
+    if (!await isFile(path.join(sourceSkillDir, 'SKILL.md'))) continue;
+
+    const targetSkillDir = path.join(targetRoot, entry.name);
+    assertInsideDirectory(targetRoot, targetSkillDir);
+    if (isSameOrInside(targetSkillDir, sourceSkillDir) || isSameOrInside(sourceSkillDir, targetSkillDir)) {
+      throw new Error(`Refusing to sync ${entry.name}: source and target overlap.`);
+    }
+
+    await fs.mkdir(targetSkillDir, { recursive: true });
+    await clearDirectoryContents(targetSkillDir);
+    await fs.cp(sourceSkillDir, targetSkillDir, {
+      recursive: true,
+      force: true,
+      filter: (sourcePath) => !SKILL_COPY_EXCLUDED_NAMES.has(path.basename(sourcePath)),
+    });
+  }
+}
+
+async function clearDirectoryContents(targetDir: string): Promise<void> {
+  let entries: import('node:fs').Dirent[];
+  try {
+    entries = await fs.readdir(targetDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+
+  for (const entry of entries) {
+    if (SKILL_COPY_EXCLUDED_NAMES.has(entry.name) || entry.isSymbolicLink()) continue;
+    await fs.rm(path.join(targetDir, entry.name), { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  }
 }
 
 function getCodexConfigPath(workspaceFolder: vscode.WorkspaceFolder, scope: CodexConfigScope): string {
@@ -600,15 +1542,32 @@ function getCodexConfigPath(workspaceFolder: vscode.WorkspaceFolder, scope: Code
   return path.join(os.homedir(), '.codex', 'config.toml');
 }
 
+function getWorkspaceMcpJsonPath(workspaceFolder: vscode.WorkspaceFolder): string {
+  return path.join(workspaceFolder.uri.fsPath, '.mcp.json');
+}
+
 function getMcpServerName(workspaceFolder: vscode.WorkspaceFolder, scope: CodexConfigScope): string {
   if (scope === 'workspace') return 'markdown_pattern_studio_source_graph';
   return `markdown_pattern_studio_source_graph_${hashText(workspaceFolder.uri.fsPath)}`;
 }
 
-function buildMcpTomlBlock(serverName: string, scriptPath: string, root: string, managed: boolean): string {
+async function resolveMcpNodeCommand(workspaceFolder: vscode.WorkspaceFolder): Promise<string> {
+  const configured = readNodePath();
+  if (path.isAbsolute(configured)) return configured;
+  try {
+    const resolved = await spawnCapture(configured, ['-p', 'process.execPath'], workspaceFolder.uri.fsPath);
+    const firstLine = resolved.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+    if (firstLine && path.isAbsolute(firstLine)) return firstLine;
+  } catch {
+    // Fall back to the configured command; status diagnostics will surface launch failures.
+  }
+  return configured;
+}
+
+function buildMcpTomlBlock(serverName: string, nodeCommand: string, scriptPath: string, root: string, managed: boolean): string {
   const lines = [
     `[mcp_servers.${serverName}]`,
-    `command = "${escapeTomlString(readNodePath())}"`,
+    `command = "${escapeTomlString(nodeCommand)}"`,
     `args = ["${escapeTomlString(scriptPath)}", "mcp", "--root", "${escapeTomlString(root)}"]`,
     `cwd = "${escapeTomlString(root)}"`,
     'startup_timeout_sec = 20',
@@ -624,9 +1583,26 @@ function buildMcpTomlBlock(serverName: string, scriptPath: string, root: string,
   ].join('\n');
 }
 
-async function upsertManagedMcpBlock(configPath: string, serverName: string, scriptPath: string, root: string): Promise<string> {
+function buildMcpJsonConfig(serverName: string, nodeCommand: string, scriptPath: string, root: string): Record<string, unknown> {
+  return {
+    mcpServers: {
+      [serverName]: buildMcpJsonServer(nodeCommand, scriptPath, root),
+    },
+  };
+}
+
+function buildMcpJsonServer(nodeCommand: string, scriptPath: string, root: string): Record<string, unknown> {
+  return {
+    type: 'stdio',
+    command: nodeCommand,
+    args: [scriptPath, 'mcp', '--root', root],
+    cwd: root,
+  };
+}
+
+async function upsertManagedMcpBlock(configPath: string, serverName: string, nodeCommand: string, scriptPath: string, root: string): Promise<string> {
   const existing = await readTextIfExists(configPath);
-  const nextBlock = buildMcpTomlBlock(serverName, scriptPath, root, true);
+  const nextBlock = buildMcpTomlBlock(serverName, nodeCommand, scriptPath, root, true);
   const prepared = managedBlockPattern(serverName).test(existing)
     ? existing
     : removeUnmanagedMcpServerTables(existing, serverName);
@@ -641,6 +1617,23 @@ async function upsertManagedMcpBlock(configPath: string, serverName: string, scr
   return backupPath;
 }
 
+async function upsertMcpJsonServer(configPath: string, serverName: string, nodeCommand: string, scriptPath: string, root: string): Promise<string> {
+  const existing = await readTextIfExists(configPath);
+  const config = parseMcpJsonConfig(existing, configPath);
+  const mcpServers = normalizeObject(config.mcpServers);
+  mcpServers[serverName] = buildMcpJsonServer(nodeCommand, scriptPath, root);
+  config.mcpServers = mcpServers;
+
+  await fs.mkdir(path.dirname(configPath), { recursive: true });
+  let backupPath = '';
+  if (existing.trim()) {
+    backupPath = `${configPath}.bak-${timestampForPath()}`;
+    await fs.writeFile(backupPath, existing, 'utf8');
+  }
+  await fs.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
+  return backupPath;
+}
+
 async function removeManagedMcpBlock(configPath: string, serverName: string): Promise<boolean> {
   const existing = await readTextIfExists(configPath);
   if (!existing) return false;
@@ -648,6 +1641,18 @@ async function removeManagedMcpBlock(configPath: string, serverName: string): Pr
   if (!pattern.test(existing)) return false;
   const next = existing.replace(pattern, '').replace(/\n{3,}/g, '\n\n').trimEnd();
   await fs.writeFile(configPath, next ? `${next}\n` : '', 'utf8');
+  return true;
+}
+
+async function removeMcpJsonServer(configPath: string, serverName: string): Promise<boolean> {
+  const existing = await readTextIfExists(configPath);
+  if (!existing.trim()) return false;
+  const config = parseMcpJsonConfig(existing, configPath);
+  const mcpServers = normalizeObject(config.mcpServers);
+  if (!Object.prototype.hasOwnProperty.call(mcpServers, serverName)) return false;
+  delete mcpServers[serverName];
+  config.mcpServers = mcpServers;
+  await fs.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
   return true;
 }
 
@@ -690,12 +1695,191 @@ async function describeConfigRegistration(configPath: string, serverName: string
     : `${configPath} (not registered)`;
 }
 
+async function inspectCodexConfigRegistration(configPath: string, serverName: string): Promise<SourceGraphMcpConfigRegistration> {
+  const text = await readTextIfExists(configPath);
+  return {
+    path: configPath,
+    serverName,
+    exists: Boolean(text),
+    registered: Boolean(text) && (managedBlockPattern(serverName).test(text) || text.includes(`[mcp_servers.${serverName}]`)),
+  };
+}
+
+async function inspectMcpJsonRegistration(configPath: string, serverName: string): Promise<SourceGraphMcpConfigRegistration> {
+  const text = await readTextIfExists(configPath);
+  if (!text.trim()) {
+    return { path: configPath, serverName, exists: false, registered: false };
+  }
+  try {
+    const config = parseMcpJsonConfig(text, configPath);
+    const mcpServers = normalizeObject(config.mcpServers);
+    return {
+      path: configPath,
+      serverName,
+      exists: true,
+      registered: Object.prototype.hasOwnProperty.call(mcpServers, serverName),
+    };
+  } catch {
+    return { path: configPath, serverName, exists: true, registered: false };
+  }
+}
+
+async function inspectClaudeMcpStatus(
+  workspaceFolder: vscode.WorkspaceFolder,
+  serverName: string,
+  mcpJsonRegistered: boolean,
+): Promise<ClaudeMcpStatus> {
+  if (!mcpJsonRegistered) {
+    return {
+      state: 'warn',
+      value: 'No .mcp.json registration found.',
+      detail: 'Choose Claude / generic MCP or All supported clients from Install Source Graph MCP.',
+    };
+  }
+  try {
+    const output = await spawnCapture('claude', ['mcp', 'list'], workspaceFolder.uri.fsPath);
+    const line = output
+      .split(/\r?\n/)
+      .map((item) => item.trim())
+      .find((item) => item.includes(serverName));
+    if (!line) {
+      return {
+        state: 'warn',
+        value: 'Claude CLI did not list this project server.',
+        detail: 'Reload Claude Code or run `claude mcp list` from the workspace root.',
+      };
+    }
+    if (/pending approval/i.test(line)) {
+      return {
+        state: 'warn',
+        value: line,
+        detail: 'Claude Code discovered the project MCP but needs approval. Open Claude Code in this workspace and approve it from /mcp, or run `claude` in this folder to approve project MCP choices.',
+      };
+    }
+    if (/connected/i.test(line)) {
+      return {
+        state: 'ok',
+        value: line,
+        detail: 'Claude Code can connect to the Source Graph MCP server.',
+      };
+    }
+    return {
+      state: 'warn',
+      value: line,
+      detail: 'Claude Code listed the server, but it is not connected yet. Check /mcp for approval or connection details.',
+    };
+  } catch (error) {
+    return {
+      state: 'warn',
+      value: 'Claude CLI status unavailable.',
+      detail: `Install Claude Code CLI or run /mcp in Claude Code. ${errorToShortText(error)}`,
+    };
+  }
+}
+
+async function inspectCodexMcpStatus(
+  workspaceFolder: vscode.WorkspaceFolder,
+  serverName: string,
+  codexRegistered: boolean,
+): Promise<CodexMcpStatus> {
+  if (!codexRegistered) {
+    return {
+      state: 'warn',
+      value: 'No Codex project config registration found.',
+      detail: 'Choose Codex or All supported clients from Install Source Graph MCP.',
+    };
+  }
+  try {
+    const output = await spawnCapture('codex', ['mcp', 'get', serverName], workspaceFolder.uri.fsPath);
+    if (output.toLowerCase().includes(serverName.toLowerCase())) {
+      return {
+        state: 'ok',
+        value: 'Codex CLI can see this project MCP from the workspace root.',
+        detail: 'The desktop MCP panel shows project-scoped servers only after a fresh trusted Codex session is opened for this exact workspace.',
+      };
+    }
+    return {
+      state: 'warn',
+      value: 'Codex CLI did not list this project server.',
+      detail: 'Restart Codex in this workspace, or check that the workspace is trusted and .codex/config.toml is in the workspace root.',
+    };
+  } catch (error) {
+    return {
+      state: 'warn',
+      value: 'Codex CLI status unavailable or server not loaded in this folder.',
+      detail: `Open a fresh trusted Codex session for this workspace, then check the MCP panel. ${errorToShortText(error)}`,
+    };
+  }
+}
+
+function parseMcpJsonConfig(source: string, configPath: string): Record<string, unknown> {
+  if (!source.trim()) return {};
+  try {
+    const parsed = JSON.parse(source) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('root must be an object');
+    }
+    return parsed as Record<string, unknown>;
+  } catch (error) {
+    throw new SourceGraphUserError(
+      'Workspace MCP JSON config is invalid.',
+      `${configPath} could not be parsed as JSON.`,
+      'Fix or delete the invalid .mcp.json file, then rerun MD Studio: Install Source Graph MCP.',
+      stringifyError(error),
+    );
+  }
+}
+
+function normalizeObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
 async function readTextIfExists(filePath: string): Promise<string> {
   try {
     return await fs.readFile(filePath, 'utf8');
   } catch {
     return '';
   }
+}
+
+async function firstExistingDirectory(candidates: string[]): Promise<string | null> {
+  for (const candidate of candidates) {
+    try {
+      const stat = await fs.stat(candidate);
+      if (stat.isDirectory()) return path.normalize(candidate);
+    } catch {
+      // Try the next bundled location.
+    }
+  }
+  return null;
+}
+
+async function isFile(filePath: string): Promise<boolean> {
+  try {
+    const stat = await fs.stat(filePath);
+    return stat.isFile();
+  } catch {
+    return false;
+  }
+}
+
+function assertInsideDirectory(parentPath: string, candidatePath: string): void {
+  if (!isSameOrInside(candidatePath, parentPath)) {
+    throw new Error(`Refusing to write outside target skill root: ${candidatePath}`);
+  }
+}
+
+function isSameOrInside(candidatePath: string, parentPath: string): boolean {
+  const normalizedCandidate = normalizeForCompare(candidatePath);
+  const normalizedParent = normalizeForCompare(parentPath);
+  const relative = path.relative(normalizedParent, normalizedCandidate);
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+function normalizeForCompare(value: string): string {
+  const resolved = path.resolve(value);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
 async function pathExists(filePath: string): Promise<boolean> {
@@ -760,6 +1944,11 @@ function stringifyError(error: unknown): string {
   } catch {
     return String(error);
   }
+}
+
+function errorToShortText(error: unknown): string {
+  const text = stringifyError(error).replace(/\s+/g, ' ').trim();
+  return text ? `Details: ${text.slice(0, 220)}` : '';
 }
 
 function spawnNodeScript(command: string, args: string[], cwd: string): Promise<void> {
@@ -921,6 +2110,11 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     strong, small { display:block; }
     small { margin-top:3px; color:var(--muted); }
     .actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+    .search-tools { display:flex; gap:6px; align-items:center; min-width:min(520px,52vw); }
+    .search-mode { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:2px; padding:2px; border:1px solid var(--line); border-radius:8px; background:#0b111c; }
+    .search-mode button { min-width:52px; padding:6px 8px; border-color:transparent; border-radius:6px; color:var(--muted); background:transparent; }
+    .search-mode button[aria-pressed="true"] { color:var(--text); border-color:rgba(126,160,255,.55); background:rgba(126,160,255,.16); }
+    .search-status { min-width:70px; color:var(--muted); font-size:11px; white-space:nowrap; }
     input { width:min(320px,42vw); min-width:160px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:#0b111c; color:var(--text); outline:none; }
     button { border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:rgba(255,255,255,.04); color:var(--text); cursor:pointer; }
     button:hover { border-color:var(--accent); }
@@ -1005,7 +2199,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     @keyframes nodePulse { from { stroke-width:2; filter:drop-shadow(0 0 3px rgba(246,214,122,.45)); } to { stroke-width:3.2; filter:drop-shadow(0 0 12px rgba(246,214,122,.95)); } }
     @keyframes edgePulse { from { stroke-opacity:.72; } to { stroke-opacity:1; filter:drop-shadow(0 0 10px rgba(126,160,255,1)); } }
     @keyframes loadSlide { from { transform:translateX(-18%); opacity:.65; } to { transform:translateX(180%); opacity:1; } }
-    @media (max-width: 860px) { main { grid-template-columns:1fr; grid-template-rows:minmax(320px,1fr) 260px; } aside { border-left:0; border-top:1px solid var(--line); } input { width:100%; } header { align-items:flex-start; flex-direction:column; } .actions { width:100%; justify-content:flex-start; } }
+    @media (max-width: 860px) { main { grid-template-columns:1fr; grid-template-rows:minmax(320px,1fr) 260px; } aside { border-left:0; border-top:1px solid var(--line); } input { width:100%; } header { align-items:flex-start; flex-direction:column; } .actions { width:100%; justify-content:flex-start; } .search-tools { width:100%; min-width:0; flex-wrap:wrap; } .search-tools input { flex:1 1 180px; } .search-status { min-width:0; } }
   </style>
 </head>
 <body>
@@ -1016,7 +2210,14 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
         <small id="meta"></small>
       </div>
       <div class="actions">
-        <input id="search" type="search" placeholder="Search graph..." />
+        <div class="search-tools" role="search">
+          <div class="search-mode" role="group" aria-label="Search mode">
+            <button id="searchBodyMode" type="button" aria-pressed="true" title="Search inside Markdown body text">Body</button>
+            <button id="searchFileMode" type="button" aria-pressed="false" title="Search titles, file names, and paths">File</button>
+          </div>
+          <input id="search" type="search" placeholder="Search body text..." aria-label="Search Source Graph body text" />
+          <span id="searchStatus" class="search-status" aria-live="polite"></span>
+        </div>
         <button id="layerUrl" class="layer-toggle url" type="button" aria-pressed="false" title="Show external URL nodes">URLs</button>
         <button id="layerImage" class="layer-toggle image" type="button" aria-pressed="false" title="Show image/asset links" aria-label="Show image and asset links">Img</button>
         <button id="layerMissing" class="layer-toggle missing" type="button" aria-pressed="false" title="Show unresolved links" aria-label="Show unresolved links">Miss</button>
@@ -1037,7 +2238,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const detailsEl = document.getElementById('details');
       const graphEl = document.getElementById('graph');
       const message = error && (error.stack || error.message || String(error)) || 'Unknown webview error';
-      if (detailsEl) detailsEl.innerHTML = '<div class="block stage"><span class="kicker">Source Graph failed</span><strong>Webview initialization stopped</strong><small>' + String(message).replace(/[&<>"']/g, (ch) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch])) + '</small><div class="hint">Close this tab and run MD Studio: Open Source Graph again. If it repeats, run MD Studio: Check Codex Source Graph MCP Status.</div></div>';
+      if (detailsEl) detailsEl.innerHTML = '<div class="block stage"><span class="kicker">Source Graph failed</span><strong>Webview initialization stopped</strong><small>' + String(message).replace(/[&<>"']/g, (ch) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch])) + '</small><div class="hint">Close this tab and run MD Studio: Open Source Graph again. If it repeats, run MD Studio: Check Source Graph MCP Status.</div></div>';
       if (graphEl) graphEl.innerHTML = '';
     }
     window.addEventListener('error', (event) => showEarlyBootFailure(event.error || event.message));
@@ -1065,6 +2266,9 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     const graph = document.getElementById('graph');
     const details = document.getElementById('details');
     const search = document.getElementById('search');
+    const searchBodyMode = document.getElementById('searchBodyMode');
+    const searchFileMode = document.getElementById('searchFileMode');
+    const searchStatus = document.getElementById('searchStatus');
     const state = {
       nodes: [],
       edges: [],
@@ -1089,13 +2293,21 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       running: false,
       frame: 0,
       booting: true,
+      searchMode: 'body',
+      searchRequestId: 0,
+      searchDebounce: 0,
+      searchMatchCount: 0,
+      bodySearch: { query: '', ids: null, pending: false, error: '' },
     };
     const groupToggle = document.getElementById('toggleGroups');
     groupToggle.setAttribute('aria-pressed', 'false');
     updateMeta();
+    updateSearchChrome();
     document.getElementById('refresh').addEventListener('click', () => vscode.postMessage({ type: 'refresh' }));
     document.getElementById('fit').addEventListener('click', () => { fitGraph(); paint(); });
     document.getElementById('settle').addEventListener('click', () => settleLayout(160, { defer: true }));
+    searchBodyMode.addEventListener('click', () => setSearchMode('body'));
+    searchFileMode.addEventListener('click', () => setSearchMode('file'));
     groupToggle.addEventListener('click', (event) => {
       state.groupsEnabled = !state.groupsEnabled;
       event.currentTarget.setAttribute('aria-pressed', String(state.groupsEnabled));
@@ -1103,7 +2315,12 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       paint();
       updateMeta();
     });
-    search.addEventListener('input', () => { rebuildGraphState(); settleLayout(80, { defer: true }); });
+    search.addEventListener('input', handleSearchInput);
+    window.addEventListener('message', (event) => {
+      const message = event.data || {};
+      if (message.type !== 'searchGraphResults') return;
+      applySearchResponse(message);
+    });
     for (const [layer, button] of Object.entries(layerControls)) {
       button.addEventListener('click', () => {
         state.layers[layer] = !state.layers[layer];
@@ -1119,6 +2336,76 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const group = state.activeGroupKey ? ' · group: ' + state.activeGroupLabel : (state.groupsEnabled ? ' · groups on' : ' · groups off');
       const optional = active.length || state.groupsEnabled ? '' : ' · optional layers off';
       document.getElementById('meta').textContent = db.tables.documents.length + ' files · ' + fileEdges.length + ' file edges · ' + connectedNodeIds.size + ' linked files' + suffix + group + optional + ' · updated ' + new Date(db.updatedAt).toLocaleString();
+    }
+    function setSearchMode(mode) {
+      if (state.searchMode === mode) return;
+      state.searchMode = mode;
+      updateSearchChrome();
+      if (search.value.trim() && mode === 'body') {
+        requestBodySearch();
+        return;
+      }
+      rebuildGraphState();
+      settleLayout(80, { defer: true });
+    }
+    function handleSearchInput() {
+      if (state.searchMode === 'body') {
+        clearTimeout(state.searchDebounce);
+        state.bodySearch.pending = Boolean(search.value.trim());
+        state.bodySearch.error = '';
+        state.searchDebounce = setTimeout(requestBodySearch, 180);
+        updateSearchChrome();
+        return;
+      }
+      rebuildGraphState();
+      settleLayout(80, { defer: true });
+    }
+    function requestBodySearch() {
+      const query = search.value.trim();
+      clearTimeout(state.searchDebounce);
+      state.bodySearch.query = query;
+      state.bodySearch.ids = null;
+      state.bodySearch.pending = Boolean(query);
+      state.bodySearch.error = '';
+      if (!query) {
+        rebuildGraphState();
+        updateSearchChrome();
+        return;
+      }
+      const requestId = ++state.searchRequestId;
+      vscode.postMessage({ type: 'searchGraph', mode: 'body', query, requestId });
+      updateSearchChrome();
+    }
+    function applySearchResponse(message) {
+      if (message.mode !== state.searchMode || Number(message.requestId || 0) !== state.searchRequestId) return;
+      state.bodySearch.query = String(message.query || '');
+      state.bodySearch.ids = new Set(Array.isArray(message.ids) ? message.ids : []);
+      state.bodySearch.pending = false;
+      state.bodySearch.error = String(message.error || '');
+      rebuildGraphState();
+      settleLayout(80, { defer: true });
+      updateSearchChrome();
+    }
+    function updateSearchChrome() {
+      const bodyMode = state.searchMode === 'body';
+      searchBodyMode.setAttribute('aria-pressed', String(bodyMode));
+      searchFileMode.setAttribute('aria-pressed', String(!bodyMode));
+      search.placeholder = bodyMode ? 'Search body text...' : 'Search file name or path...';
+      search.setAttribute('aria-label', bodyMode ? 'Search Source Graph body text' : 'Search Source Graph file names and paths');
+      const query = search.value.trim();
+      if (!query) {
+        searchStatus.textContent = bodyMode ? 'Body' : 'File';
+        return;
+      }
+      if (bodyMode && state.bodySearch.pending) {
+        searchStatus.textContent = 'Searching';
+        return;
+      }
+      if (bodyMode && state.bodySearch.error) {
+        searchStatus.textContent = 'Failed';
+        return;
+      }
+      searchStatus.textContent = state.searchMatchCount + ' matches';
     }
     function progressBlock() {
       const active = Object.entries(state.layers).filter(([, enabled]) => enabled).map(([layer]) => layer);
@@ -1490,11 +2777,23 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     function filteredNodes() {
       const q = search.value.trim().toLowerCase();
       if (q) {
-        const directMatches = new Set(
-          currentNodes()
-            .filter((node) => (node.label + ' ' + node.path).toLowerCase().includes(q))
-            .map((node) => node.id)
-        );
+        let directMatches = new Set();
+        if (state.searchMode === 'body') {
+          if (state.bodySearch.query !== search.value.trim() || state.bodySearch.pending && state.bodySearch.ids === null) {
+            state.searchMatchCount = 0;
+            updateSearchChrome();
+            return defaultFilteredNodes();
+          }
+          directMatches = new Set(state.bodySearch.ids || []);
+        } else {
+          directMatches = new Set(
+            currentNodes()
+              .filter((node) => (node.label + ' ' + node.path).toLowerCase().includes(q))
+              .map((node) => node.id)
+          );
+        }
+        state.searchMatchCount = directMatches.size;
+        updateSearchChrome();
         const expanded = expandWithNeighbors(directMatches);
         return currentNodes()
           .filter((node) => expanded.has(node.id))
@@ -1502,6 +2801,11 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
           .sort((a, b) => graphDegree(b.id) - graphDegree(a.id) || (a.path || '').localeCompare(b.path || ''))
           .slice(0, 160);
       }
+      state.searchMatchCount = 0;
+      updateSearchChrome();
+      return defaultFilteredNodes();
+    }
+    function defaultFilteredNodes() {
       const activeConnectedIds = new Set(currentEdges().flatMap((edge) => [edge.source, edge.target]));
       const connected = groupVisibleNodes(currentNodes())
         .filter((node) => activeConnectedIds.has(node.id))
@@ -1937,7 +3241,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     function showBootFailure(error) {
       state.booting = false;
       const message = error && (error.stack || error.message || String(error)) || 'Unknown webview error';
-      details.innerHTML = '<div class="block stage"><span class="kicker">Source Graph failed</span><strong>Webview initialization stopped</strong><small>' + escapeHtml(message) + '</small><div class="hint">Close this tab and run MD Studio: Open Source Graph again. If it repeats, run MD Studio: Check Codex Source Graph MCP Status.</div></div>';
+      details.innerHTML = '<div class="block stage"><span class="kicker">Source Graph failed</span><strong>Webview initialization stopped</strong><small>' + escapeHtml(message) + '</small><div class="hint">Close this tab and run MD Studio: Open Source Graph again. If it repeats, run MD Studio: Check Source Graph MCP Status.</div></div>';
       graph.innerHTML = '';
     }
     function startProgressiveRender() {

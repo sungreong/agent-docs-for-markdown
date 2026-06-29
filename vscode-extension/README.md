@@ -8,7 +8,7 @@ This extension runs the repository CLI (`scripts/md-to-html.mjs`) and opens the 
 
 ![Markdown Pattern Studio Preview 0.1.34 update highlights](vscode-extension-0.1.34-updates.png)
 
-The current VSIX builds on `0.1.32` with a Source Graph workspace, Codex MCP setup commands, blog-safe HTML export targets, stronger render-quality guards, and a custom MD book icon for the Activity Bar.
+The current VSIX builds on `0.1.32` with a Source Graph workspace, MCP setup commands, blog-safe HTML export targets, stronger render-quality guards, and a custom MD book icon for the Activity Bar.
 
 ## Source Graph Preview
 
@@ -23,11 +23,11 @@ The Source Graph webview indexes local Markdown into a workspace SQLite graph so
 - Custom MD book Activity Bar icon for the MD Studio File Browser
 - `MD Studio: Open in Viewer` command safely opens the selected tree item or the active markdown document
 - `MD Studio: Transform Markdown to Styled HTML` command (export the currently open `.md` to styled `.html`)
-- `MD Studio: Download Skill Folder` command exports bundled/workspace skills as ZIP files or updates the matching workspace skill root in place
+- `MD Studio: Install or Export Skills` command installs bundled skills into matching workspace agent folders, exports skills as ZIP files, or opens advanced source/target update options
 - Bundled skills include `md-presentation-composer` and `document-production-advisor`
 - `MD Studio: Initialize Source Graph Workspace` creates a workspace-local `.mps/source-graph.sqlite` document graph DB
 - `MD Studio: Edit Source Ignore` opens `.mpsignore` so noisy folders can be excluded from both the graph and file browser
-- `MD Studio: Install Codex Source Graph MCP` writes workspace/user Codex MCP config and points Codex at the current Markdown workspace
+- `MD Studio: Install Source Graph MCP` lets you choose Claude/generic MCP, Codex, or all supported workspace client configs
 - `FOCUS` command on a folder narrows only the MD Studio File Browser to that folder
 - `MD Studio: Clear Folder Focus` restores the MD Studio File Browser view and cleans up legacy Explorer exclude rules if an older build added them
 - `MD Studio: File Extensions` adds non-markdown file types such as `.txt`, `.html`, or `.json` to the browser
@@ -62,7 +62,7 @@ The Source Graph webview indexes local Markdown into a workspace SQLite graph so
 
 0.1.32:
 
-- Added Source Graph workspace initialization, graph search, and Codex MCP setup commands.
+- Added Source Graph workspace initialization, graph search, and MCP setup commands.
 - Added `.mpsignore` support for graph/file-browser exclusion patterns.
 - Added bundled Codex `source-graph-search` skill export/update support for document discovery workflows.
 - Added export target selection to `MD Studio: Transform Markdown to Styled HTML`: Standalone HTML, Blog Embed HTML, and Content Fragment.
@@ -73,7 +73,7 @@ The Source Graph webview indexes local Markdown into a workspace SQLite graph so
 - Kept existing preview actions working for HTML files: Edit Source, Refresh, and save-triggered preview updates.
 - Fixed Webview toolbar Edit Source fallback so Markdown and HTML previews open their original source file instead of showing a file-selection error.
 - Added slide/banner-inspired expression utility classes for safer composition, feature grids, KPI dashboards, contrast pairs, large numbers, and screenshot emphasis.
-- Added bundled `document-production-advisor` skill for request-contract tracing, render UX verification, and HTML/blog/DOCX/PPTX-style handoff planning, downloadable through `MD Studio: Download Skill Folder`.
+- Added bundled `document-production-advisor` skill for request-contract tracing, render UX verification, and HTML/blog/DOCX/PPTX-style handoff planning, installable or exportable through `MD Studio: Install or Export Skills`.
 
 Compared from the pre-browser-upgrade point (`db030df`) to the current extension:
 
@@ -104,7 +104,7 @@ A dedicated sidebar for navigating markdown files as a reader:
 - **Filter icon** → show all files, Pinned, Recent, stale documents, long documents, or large files
 - **Sort icon** → sort by name, modified time, created time, file size, or line count
 - **Eye icon** → manage hidden files and folders
-- **Download icon** in the sidebar title bar → choose a bundled/workspace skill source, then save a ZIP or update the matching workspace skill root
+- **Download icon** in the sidebar title bar → choose a bundled/workspace skill source, then save a ZIP, update the matching workspace skill root, or apply to all known agent skill folders
 - **Right-click → Pin to Top / Unpin** → keep important documents in the Pinned section
 - **Right-click → Hide from Browser** → hide low-signal files or folders without changing the filesystem
 - **File Extensions icon** in the sidebar title bar → add non-markdown file types to the browser
@@ -118,31 +118,32 @@ A dedicated sidebar for navigating markdown files as a reader:
 - Tree auto-refreshes when `.md` files are added, changed, or deleted (300 ms debounce)
 - Sidebar selection syncs automatically when the preview changes via `Ctrl+S`
 
-### Skill Folder Download
+### Skill Install / Export
 
-Use `MD Studio: Download Skill Folder` from the Command Palette or MD Studio File Browser sidebar title bar.
+Use `MD Studio: Install or Export Skills` from the Command Palette or MD Studio File Browser sidebar title bar.
 
-1. Choose one source: bundled Claude, Agents, Codex, or the configured workspace `mdStudioPreview.skillsDir`.
-2. Choose an action: download one skill as ZIP, update one selected skill, or update every skill from that source.
-3. If updating in place, the default target follows the selected source: Bundled Claude -> `.claude/skills`, Bundled Agents -> `.agents/skills`, Bundled Codex -> `.codex/skills`, workspace source -> configured `mdStudioPreview.skillsDir`.
-4. If saving a ZIP, choose a skill folder that contains `SKILL.md`, then save the generated archive. The archive keeps the skill folder as the root, so it extracts as `md-presentation-composer/SKILL.md` plus its references.
-5. Give the ZIP to Claude, Codex, or another compatible agent when you want it to create documents with the same Markdown Pattern Studio structure, visual classes, export rules, and render-verification checklist.
-6. For `document-production-advisor`, open `examples/request-fulfillment-render-test.md` in VS Code and run `MD Studio: Preview` to test DOCX/PPTX-style structure, mobile stacking, tables, and blog-safe expression classes inside the extension.
+1. Choose `Install bundled skills to this workspace` for the normal setup flow. The extension copies each bundled source into its matching workspace target: Bundled Claude -> `.claude/skills`, Bundled Agents -> `.agents/skills`, Bundled Codex -> `.codex/skills`.
+2. Choose `Export one skill as ZIP` when you want a portable archive for manual installation in another tool.
+3. Choose `Advanced: choose source and target` only when you need to update one selected skill, update every skill from one source, or pick a custom workspace skill root.
+4. Missing target folders are created automatically before the skill files are copied.
+5. If saving a ZIP, choose a skill folder that contains `SKILL.md`, then save the generated archive. The archive keeps the skill folder as the root, so it extracts as `md-presentation-composer/SKILL.md` plus its references.
+6. For custom targets, choose a skill root folder such as `.claude/skills`, not an individual skill folder such as `.claude/skills/md-presentation-composer`.
+7. For `document-production-advisor`, open `examples/request-fulfillment-render-test.md` in VS Code and run `MD Studio: Preview` to test DOCX/PPTX-style structure, mobile stacking, tables, and blog-safe expression classes inside the extension.
 
-### Source Graph And Codex MCP
+### Source Graph And MCP
 
-Use this when a workspace has many Markdown documents and you want graph navigation, related-source search, or Codex MCP access.
+Use this when a workspace has many Markdown documents and you want graph navigation, related-source search, or MCP access from Claude-compatible clients, Codex, or both.
 
 1. Open the Markdown workspace in VS Code.
 2. Run `MD Studio: Initialize Source Graph Workspace`.
 3. Confirm `.mps/source-graph.sqlite` is created in the workspace.
-4. Run `MD Studio: Install Codex Source Graph MCP`.
-5. Choose `Workspace .codex/config.toml (Recommended)` for project-local setup.
-6. Use `MD Studio: Download Skill Folder` → `Bundled Codex` to update `source-graph-search` into `.codex/skills` if needed.
-7. Restart Codex or open a new Codex session in the trusted workspace.
-8. Run `MD Studio: Check Codex Source Graph MCP Status` whenever Node, DB, script, or config registration needs verification.
+4. Run `MD Studio: Install Source Graph MCP`.
+5. Choose whether to update `.mcp.json`, `.codex/config.toml`, or all supported client configs.
+6. Use `MD Studio: Install or Export Skills` to install bundled skills into matching workspace agent folders if needed.
+7. Restart the selected MCP client or open a fresh trusted workspace session.
+8. Run `MD Studio: Check Source Graph MCP Status` whenever Node, DB, script, or config registration needs verification.
 
-The DB is workspace-local, similar to a project init command. `Open Source Graph`, `Update Source Graph Index`, and `Install Codex Source Graph MCP` all refresh or create it. Saving an existing Markdown file updates that document's graph rows; creating or deleting a Markdown file triggers a full rebuild.
+The DB is workspace-local, similar to a project init command. `Open Source Graph`, `Update Source Graph Index`, and `Install Source Graph MCP` all refresh or create it. Saving an existing Markdown file updates that document's graph rows; creating or deleting a Markdown file triggers a full rebuild.
 
 Use `MD Studio: Edit Source Ignore` to create `.mpsignore` in the workspace root. Patterns such as `.agents/**`, `raw/**`, `**/drafts/**`, or `*.draft.md` are excluded from both Source Graph and the MD Studio File Browser.
 

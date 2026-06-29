@@ -89,6 +89,9 @@ try {
   const names = new Set((tools.tools || []).map((tool) => tool.name));
   assert(names.has('source_graph_search'), 'missing search tool');
   assert(names.has('source_graph_related'), 'missing related tool');
+  const searchTool = (tools.tools || []).find((tool) => tool.name === 'source_graph_search');
+  assert(searchTool?.inputSchema?.properties?.includeLinks?.type === 'boolean', 'missing search includeLinks option');
+  assert(searchTool?.inputSchema?.properties?.linksDepth?.type === 'number', 'missing search linksDepth option');
 
   const update = await client.request('tools/call', {
     name: 'source_graph_update',
@@ -105,6 +108,15 @@ try {
   const relatedText = related.content?.[0]?.text || '';
   assert(relatedText.includes('reference.md'), 'expected related reference document');
   assert(relatedText.includes('index.md'), 'expected backlink or shared related document');
+
+  const search = await client.request('tools/call', {
+    name: 'source_graph_search',
+    arguments: { root: tmpRoot, query: 'guide', limit: 1, includeLinks: true, linksDepth: 2 },
+  });
+  const searchResult = JSON.parse(search.content?.[0]?.text || '[]');
+  assert(searchResult[0]?.linksDepth === 2, 'expected search links depth in MCP result');
+  assert(Array.isArray(searchResult[0]?.links), 'expected search links in MCP result');
+  assert(searchResult[0].links.some((link) => link.sourcePath === 'guide.md' && link.targetPath === 'reference.md'), 'expected guide search links');
 } finally {
   child.kill();
   await fs.rm(tmpRoot, { recursive: true, force: true });

@@ -38,7 +38,11 @@ interface SkillPick extends vscode.QuickPickItem {
 }
 
 interface ActionPick extends vscode.QuickPickItem {
-  action: 'zip-one' | 'update-one' | 'update-all';
+  action: 'zip-one' | 'update-one' | 'update-one-all-agents' | 'update-all' | 'update-all-agents';
+}
+
+interface WorkflowPick extends vscode.QuickPickItem {
+  action: 'install-bundled-matching' | 'export-zip' | 'advanced';
 }
 
 interface SkillTarget {
@@ -50,17 +54,60 @@ interface SkillTarget {
 
 interface SkillTargetPlan {
   primaryTarget: SkillTarget | null;
+  allAgentTargets: SkillTarget[];
 }
 
 interface TargetActionPick extends vscode.QuickPickItem {
   action: 'primary' | 'choose-folder';
 }
 
-const bundledProfiles = [
-  { id: 'claude', label: 'Bundled Claude' },
-  { id: 'agents', label: 'Bundled Agents' },
-  { id: 'codex', label: 'Bundled Codex' },
+interface BundledInstallPlan {
+  source: SkillSource;
+  target: SkillTarget;
+  skills: ExportableSkill[];
+}
+
+const bundledSourceIdPrefix = 'bundled-';
+const workspaceTargetIdPrefix = 'workspace-';
+const configuredTargetId = 'workspace-configured';
+
+const skillAgentProfiles = [
+  {
+    id: 'claude',
+    bundledLabel: 'Bundled Claude',
+    workspaceLabel: 'Workspace .claude/skills',
+    workspacePathSegments: ['.claude', 'skills'],
+  },
+  {
+    id: 'agents',
+    bundledLabel: 'Bundled Agents',
+    workspaceLabel: 'Workspace .agents/skills',
+    workspacePathSegments: ['.agents', 'skills'],
+  },
+  {
+    id: 'codex',
+    bundledLabel: 'Bundled Codex',
+    workspaceLabel: 'Workspace .codex/skills',
+    workspacePathSegments: ['.codex', 'skills'],
+  },
+  {
+    id: 'gemini',
+    bundledLabel: 'Bundled Gemini',
+    workspaceLabel: 'Workspace .gemini/skills',
+    workspacePathSegments: ['.gemini', 'skills'],
+  },
+  {
+    id: 'cursor',
+    bundledLabel: 'Bundled Cursor',
+    workspaceLabel: 'Workspace .cursor/skills',
+    workspacePathSegments: ['.cursor', 'skills'],
+  },
 ] as const;
+
+const bundledProfiles = skillAgentProfiles.map((profile) => ({
+  id: profile.id,
+  label: profile.bundledLabel,
+}));
 
 const excludedNames = new Set(['.git', 'node_modules', '.DS_Store', 'Thumbs.db', 'desktop.ini']);
 
@@ -70,6 +117,19 @@ export async function downloadSkillFolderCommand(context: vscode.ExtensionContex
 
   if (sources.length === 0) {
     void vscode.window.showErrorMessage('MD Studio: No bundled or workspace skill folders were found.');
+    return;
+  }
+
+  const workflow = await pickSkillWorkflow(sources, workspaceFolder);
+  if (!workflow) return;
+
+  if (workflow === 'install-bundled-matching') {
+    await installBundledSkillsToMatchingWorkspace(sources, workspaceFolder);
+    return;
+  }
+
+  if (workflow === 'export-zip') {
+    await exportSkillZipFromSources(sources, workspaceFolder);
     return;
   }
 
@@ -83,11 +143,15 @@ export async function downloadSkillFolderCommand(context: vscode.ExtensionContex
   }
 
   const targetPlan = await resolveSkillUpdateTargets(context, workspaceFolder, source);
-  const action = await pickSkillAction(source, targetPlan.primaryTarget);
+  const action = await pickSkillAction(source, targetPlan);
   if (!action) return;
 
-  if (action === 'update-all') {
-    const selectedTargets = await pickUpdateTargets(source, targetPlan.primaryTarget);
+  const useAllAgentTargets = action === 'update-one-all-agents' || action === 'update-all-agents';
+
+  if (action === 'update-all' || action === 'update-all-agents') {
+    const selectedTargets = useAllAgentTargets
+      ? resolveAllAgentTargets(targetPlan)
+      : await pickUpdateTargets(source, targetPlan.primaryTarget);
     if (!selectedTargets || selectedTargets.length === 0) return;
     await updateSkillFolders(skills, selectedTargets);
     return;
@@ -103,7 +167,114 @@ export async function downloadSkillFolderCommand(context: vscode.ExtensionContex
     return;
   }
 
+  if (action === 'update-one-all-agents') {
+    const selectedTargets = resolveAllAgentTargets(targetPlan);
+    if (!selectedTargets || selectedTargets.length === 0) return;
+    await updateSkillFolders([skill], selectedTargets);
+    return;
+  }
+
   await downloadSkillAsZip(skill, workspaceFolder);
+}
+
+async function exportSkillZipFromSources(
+  sources: SkillSource[],
+  workspaceFolder: vscode.WorkspaceFolder | null,
+): Promise<void> {
+  const source = await pickSkillSource(sources, 'Choose the skill source to export from');
+  if (!source) return;
+
+  const skills = await scanExportableSkills(source);
+  if (skills.length === 0) {
+    void vscode.window.showErrorMessage(`MD Studio: No skill folders with SKILL.md found in ${source.rootDir}.`);
+    return;
+  }
+
+  const skill = await pickSkill(skills, 'Choose a skill folder to export as ZIP');
+  if (!skill) return;
+  await downloadSkillAsZip(skill, workspaceFolder);
+}
+
+async function installBundledSkillsToMatchingWorkspace(
+  sources: SkillSource[],
+  workspaceFolder: vscode.WorkspaceFolder | null,
+): Promise<void> {
+  if (!workspaceFolder) {
+    void vscode.window.showErrorMessage('MD Studio: Open a workspace before installing bundled skills.');
+    return;
+  }
+
+  const workspaceRoot = workspaceFolder.uri.fsPath;
+  const plans: BundledInstallPlan[] = [];
+  for (const source of sources.filter((candidate) => candidate.id.startsWith(bundledSourceIdPrefix))) {
+    const profile = skillAgentProfileForSource(source);
+    if (!profile) continue;
+    const skills = await scanExportableSkills(source);
+    if (skills.length === 0) continue;
+    plans.push({
+      source,
+      skills,
+      target: {
+        id: workspaceTargetIdForAgent(profile.id),
+        label: profile.workspaceLabel,
+        description: path.join(workspaceRoot, ...profile.workspacePathSegments),
+        rootDir: path.normalize(path.join(workspaceRoot, ...profile.workspacePathSegments)),
+      },
+    });
+  }
+
+  if (plans.length === 0) {
+    void vscode.window.showErrorMessage('MD Studio: No bundled skill folders with SKILL.md were found.');
+    return;
+  }
+
+  const summary = plans
+    .map((plan) => {
+      const relativeTarget = vscode.workspace.asRelativePath(vscode.Uri.file(plan.target.rootDir), false);
+      return `${plan.source.label} -> ${relativeTarget} (${plan.skills.length} skill${plan.skills.length === 1 ? '' : 's'})`;
+    })
+    .join('\n');
+  const confirm = await vscode.window.showWarningMessage(
+    `MD Studio will install/update bundled skills into matching workspace agent folders.\n\n${summary}`,
+    { modal: true },
+    'Install / Update',
+  );
+  if (confirm !== 'Install / Update') return;
+
+  try {
+    const totalOperations = plans.reduce((total, plan) => total + plan.skills.length, 0);
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'MD Studio: Installing bundled skills',
+        cancellable: false,
+      },
+      async (progress) => {
+        let done = 0;
+        for (const plan of plans) {
+          await fs.mkdir(plan.target.rootDir, { recursive: true });
+          for (const skill of plan.skills) {
+            progress.report({
+              message: `${skill.id} -> ${plan.target.label}`,
+              increment: totalOperations > 0 ? 100 / totalOperations : undefined,
+            });
+            await replaceSkillFolder(skill, plan.target);
+            done += 1;
+          }
+        }
+        progress.report({ message: `${done} update${done === 1 ? '' : 's'} complete` });
+      },
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    void vscode.window.showErrorMessage(`MD Studio: Failed to install bundled skills - ${message}`);
+    return;
+  }
+
+  const installedTargets = plans
+    .map((plan) => vscode.workspace.asRelativePath(vscode.Uri.file(plan.target.rootDir), false))
+    .join(', ');
+  void vscode.window.showInformationMessage(`MD Studio: Installed bundled skills into ${installedTargets}.`);
 }
 
 async function downloadSkillAsZip(
@@ -116,8 +287,8 @@ async function downloadSkillAsZip(
     filters: {
       'ZIP Archives': ['zip'],
     },
-    saveLabel: 'Download Skill Folder',
-    title: `Download ${skill.id} as ZIP`,
+    saveLabel: 'Export Skill ZIP',
+    title: `Export ${skill.id} as ZIP`,
   });
   if (!saveUri) return;
 
@@ -167,7 +338,7 @@ async function resolveSkillSources(
   }
 
   const workspaceSkillsDir = resolveWorkspaceSkillsDir(workspaceFolder);
-  if (workspaceSkillsDir) {
+  if (workspaceSkillsDir && await hasExportableSkill(workspaceSkillsDir)) {
     sources.push({
       id: 'workspace',
       label: 'Workspace configured skillsDir',
@@ -179,6 +350,20 @@ async function resolveSkillSources(
   return sources;
 }
 
+async function hasExportableSkill(rootDir: string): Promise<boolean> {
+  let entries: import('node:fs').Dirent[];
+  try {
+    entries = await fs.readdir(rootDir, { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
+    if (await fileExists(path.join(rootDir, entry.name, 'SKILL.md'))) return true;
+  }
+  return false;
+}
+
 async function firstExistingDirectory(candidates: string[]): Promise<string | null> {
   for (const candidate of candidates) {
     if (await directoryExists(candidate)) return path.normalize(candidate);
@@ -186,7 +371,43 @@ async function firstExistingDirectory(candidates: string[]): Promise<string | nu
   return null;
 }
 
-async function pickSkillSource(sources: SkillSource[]): Promise<SkillSource | null> {
+async function pickSkillWorkflow(
+  sources: SkillSource[],
+  workspaceFolder: vscode.WorkspaceFolder | null,
+): Promise<WorkflowPick['action'] | null> {
+  const hasBundledSources = sources.some((source) => source.id.startsWith(bundledSourceIdPrefix));
+  const items: WorkflowPick[] = [];
+  if (hasBundledSources) {
+    items.push({
+      label: 'Install bundled skills to this workspace',
+      description: workspaceFolder ? '.claude/skills, .agents/skills, .codex/skills' : 'Open a workspace first',
+      detail: 'Recommended: copy each VSIX bundled skill set into its matching workspace agent folder.',
+      action: 'install-bundled-matching',
+    });
+  }
+  items.push(
+    {
+      label: 'Export one skill as ZIP',
+      description: 'Portable archive',
+      detail: 'Save a selected bundled or workspace skill folder so another agent can install it manually.',
+      action: 'export-zip',
+    },
+    {
+      label: 'Advanced: choose source and target',
+      description: 'Manual install/update options',
+      detail: 'Pick a source first, then choose whether to update one skill, all skills, or custom workspace folders.',
+      action: 'advanced',
+    },
+  );
+
+  const picked = await vscode.window.showQuickPick<WorkflowPick>(items, {
+    ignoreFocusOut: true,
+    placeHolder: 'Install bundled skills to workspace, export a ZIP, or choose advanced options?',
+  });
+  return picked?.action ?? null;
+}
+
+async function pickSkillSource(sources: SkillSource[], placeHolder = 'Choose the skill source to install/export from'): Promise<SkillSource | null> {
   const picked = await vscode.window.showQuickPick<SourcePick>(
     sources.map((source) => ({
       label: source.label,
@@ -196,19 +417,21 @@ async function pickSkillSource(sources: SkillSource[]): Promise<SkillSource | nu
     })),
     {
       ignoreFocusOut: true,
-      placeHolder: 'Choose the skill source to download from',
+      placeHolder,
     },
   );
   return picked?.source ?? null;
 }
 
-async function pickSkillAction(source: SkillSource, primaryTarget: SkillTarget | null): Promise<ActionPick['action'] | null> {
+async function pickSkillAction(source: SkillSource, targetPlan: SkillTargetPlan): Promise<ActionPick['action'] | null> {
+  const { primaryTarget, allAgentTargets } = targetPlan;
   const hasTarget = Boolean(primaryTarget);
+  const hasAllAgentTargets = allAgentTargets.length > 0;
   const targetLabel = primaryTarget?.label || targetLabelForSource(source);
   const items: ActionPick[] = [
     {
-      label: 'Download selected skill as ZIP',
-      description: 'Save a portable ZIP',
+      label: 'Export selected skill as ZIP',
+      description: 'Save a portable archive',
       detail: 'Use this when you want to send one skill folder to another agent manually.',
       action: 'zip-one',
     },
@@ -219,23 +442,48 @@ async function pickSkillAction(source: SkillSource, primaryTarget: SkillTarget |
       {
         label: `Update selected skill in ${targetLabel}`,
         description: primaryTarget?.rootDir,
-        detail: 'Replace the matching skill folder only in the workspace target that matches the chosen source.',
+        detail: 'Replace the matching skill folder in the workspace target that matches the chosen source. Missing folders are created automatically.',
         action: 'update-one',
       },
+    );
+  }
+
+  if (hasAllAgentTargets) {
+    items.push(
+      {
+        label: 'Update selected skill in all workspace agent folders',
+        description: `${allAgentTargets.length} targets`,
+        detail: 'Create/update this skill in .claude, .agents, .codex, .gemini, .cursor, and any future configured agent target.',
+        action: 'update-one-all-agents',
+      },
+    );
+  }
+
+  if (hasTarget) {
+    items.push(
       {
         label: `Update all ${source.label.replace(/^Bundled\s+/, '')} skills`,
         description: primaryTarget?.rootDir,
-        detail: 'Replace every skill from the chosen source only in its matching workspace target.',
+        detail: 'Replace every skill from the chosen source in the matching workspace target. Missing folders are created automatically.',
         action: 'update-all',
       },
     );
   }
 
+  if (hasAllAgentTargets) {
+    items.push({
+      label: `Update all ${source.label.replace(/^Bundled\s+/, '')} skills in all workspace agent folders`,
+      description: `${allAgentTargets.length} targets`,
+      detail: 'Create/update every skill from this source across all known workspace agent skill folders.',
+      action: 'update-all-agents',
+    });
+  }
+
   const picked = await vscode.window.showQuickPick<ActionPick>(items, {
     ignoreFocusOut: true,
-    placeHolder: hasTarget
-      ? `Download a ZIP, or update ${targetLabel}?`
-      : `No matching ${targetLabel} folder detected. Download as ZIP?`,
+    placeHolder: hasTarget || hasAllAgentTargets
+      ? `Export a ZIP, update ${targetLabel}, or apply to all agent folders?`
+      : `No matching ${targetLabel} folder detected. Export as ZIP?`,
   });
 
   return picked?.action ?? null;
@@ -314,10 +562,14 @@ async function resolveSkillUpdateTargets(
   };
 
   if (workspaceRoot) {
-    addCandidate('workspace-claude', 'Workspace .claude/skills', path.join(workspaceRoot, '.claude', 'skills'));
-    addCandidate('workspace-agents', 'Workspace .agents/skills', path.join(workspaceRoot, '.agents', 'skills'));
-    addCandidate('workspace-codex', 'Workspace .codex/skills', path.join(workspaceRoot, '.codex', 'skills'));
-    addCandidate('workspace-configured', 'Workspace configured skillsDir', resolveWorkspaceSkillsDir(workspaceFolder));
+    for (const profile of skillAgentProfiles) {
+      addCandidate(
+        workspaceTargetIdForAgent(profile.id),
+        profile.workspaceLabel,
+        path.join(workspaceRoot, ...profile.workspacePathSegments),
+      );
+    }
+    addCandidate(configuredTargetId, 'Workspace configured skillsDir', resolveWorkspaceSkillsDir(workspaceFolder));
   }
 
   const extensionSkillsRoot = path.join(context.extensionPath, 'ai_skills');
@@ -328,7 +580,6 @@ async function resolveSkillUpdateTargets(
     if (deduped.has(key)) continue;
     if (normalizeForCompare(normalized) === normalizeForCompare(source.rootDir)) continue;
     if (isSameOrInside(normalized, extensionSkillsRoot)) continue;
-    if (!(await directoryExists(normalized))) continue;
     deduped.set(key, {
       ...candidate,
       rootDir: normalized,
@@ -338,8 +589,9 @@ async function resolveSkillUpdateTargets(
   const targets = [...deduped.values()];
   const primaryId = targetIdForSource(source);
   const primaryTarget = targets.find((target) => target.id === primaryId) ?? null;
+  const allAgentTargets = targets.filter((target) => isWorkspaceAgentTarget(target));
 
-  return { primaryTarget };
+  return { primaryTarget, allAgentTargets };
 }
 
 async function pickUpdateTargets(source: SkillSource, primaryTarget: SkillTarget | null): Promise<SkillTarget[] | null> {
@@ -385,6 +637,14 @@ async function pickUpdateTargets(source: SkillSource, primaryTarget: SkillTarget
     void vscode.window.showErrorMessage(`MD Studio: Skill updates are workspace-only. ${outsideWorkspace.fsPath} is outside the current workspace.`);
     return null;
   }
+  for (const uri of selected) {
+    if (await fileExists(path.join(uri.fsPath, 'SKILL.md'))) {
+      void vscode.window.showErrorMessage(
+        `MD Studio: Choose a skill root folder such as .claude/skills, not an individual skill folder: ${uri.fsPath}`,
+      );
+      return null;
+    }
+  }
   return selected.map((uri, index) => ({
     id: `chosen-${index}`,
     label: path.basename(uri.fsPath) || uri.fsPath,
@@ -393,18 +653,36 @@ async function pickUpdateTargets(source: SkillSource, primaryTarget: SkillTarget
   }));
 }
 
+function resolveAllAgentTargets(targetPlan: SkillTargetPlan): SkillTarget[] | null {
+  if (targetPlan.allAgentTargets.length > 0) return targetPlan.allAgentTargets;
+
+  void vscode.window.showErrorMessage('MD Studio: No workspace agent skill folders are available for this source.');
+  return null;
+}
+
 function targetIdForSource(source: SkillSource): string {
-  if (source.id === 'bundled-claude') return 'workspace-claude';
-  if (source.id === 'bundled-agents') return 'workspace-agents';
-  if (source.id === 'bundled-codex') return 'workspace-codex';
-  return 'workspace-configured';
+  const profile = skillAgentProfileForSource(source);
+  return profile ? workspaceTargetIdForAgent(profile.id) : configuredTargetId;
 }
 
 function targetLabelForSource(source: SkillSource): string {
-  if (source.id === 'bundled-claude') return 'Workspace .claude/skills';
-  if (source.id === 'bundled-agents') return 'Workspace .agents/skills';
-  if (source.id === 'bundled-codex') return 'Workspace .codex/skills';
+  const profile = skillAgentProfileForSource(source);
+  if (profile) return profile.workspaceLabel;
   return 'Workspace configured skillsDir';
+}
+
+function skillAgentProfileForSource(source: SkillSource): (typeof skillAgentProfiles)[number] | null {
+  if (!source.id.startsWith(bundledSourceIdPrefix)) return null;
+  const profileId = source.id.slice(bundledSourceIdPrefix.length);
+  return skillAgentProfiles.find((profile) => profile.id === profileId) ?? null;
+}
+
+function workspaceTargetIdForAgent(agentId: string): string {
+  return `${workspaceTargetIdPrefix}${agentId}`;
+}
+
+function isWorkspaceAgentTarget(target: SkillTarget): boolean {
+  return skillAgentProfiles.some((profile) => target.id === workspaceTargetIdForAgent(profile.id));
 }
 
 async function updateSkillFolders(skills: ExportableSkill[], targets: SkillTarget[]): Promise<void> {

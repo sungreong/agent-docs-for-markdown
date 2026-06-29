@@ -27,7 +27,7 @@ code --install-extension .\markdown-pattern-studio-preview-0.1.34.vsix --force
 4. Use `Markdown Studio: Refresh Preview` for manual force refresh.
 5. Use `MD Studio: Transform Markdown to Styled HTML` to export the currently open markdown file as styled HTML.
 6. Use `MD Studio: Open in Viewer` from the MD Studio File Browser sidebar or Command Palette. From the palette it falls back to the active markdown document and shows a clear message if no markdown target is available.
-7. Use `MD Studio: Download Skill Folder` to export bundled or workspace skills as ready-to-share ZIP folders.
+7. Use `MD Studio: Install or Export Skills` to install bundled skills into workspace agent folders or export a skill as a ready-to-share ZIP folder.
 8. Right-click a folder in the MD Studio File Browser sidebar and choose `FOCUS` to narrow only that browser until `MD Studio: Clear Folder Focus` is run.
 9. Use the preview `Style` menu to switch document appearance; the selected style is reused for preview refresh and HTML transform.
 10. Use `MD Studio: Initialize Source Graph Workspace` once per workspace when you want a document graph DB at `.mps/source-graph.sqlite`.
@@ -91,18 +91,18 @@ Outline state:
 - Outline hide/show state is remembered per markdown document.
 - Default for new documents is expanded (open).
 
-## 4) Skill Folder Download
+## 4) Skill Install / Export
 
-`MD Studio: Download Skill Folder` is available from the Command Palette and the MD Studio File Browser sidebar title bar.
+`MD Studio: Install or Export Skills` is available from the Command Palette and the MD Studio File Browser sidebar title bar.
 
-1. Choose a source:
-   - `Bundled Claude`
-   - `Bundled Agents`
-   - `Bundled Codex`
-   - `Workspace configured skillsDir`
-2. Choose a skill folder. Only folders with a root `SKILL.md` are exportable.
-3. Pick a save location. The output archive is named `{skill-id}.zip` by default.
-4. Extract the ZIP where your AI tool expects skills. The ZIP keeps the skill folder at the archive root.
+1. Choose `Install bundled skills to this workspace` for the normal setup flow.
+2. The extension installs each available bundled source into its matching workspace agent target: Bundled Claude -> `.claude/skills`, Bundled Agents -> `.agents/skills`, Bundled Codex -> `.codex/skills`, Bundled Gemini -> `.gemini/skills`, Bundled Cursor -> `.cursor/skills`.
+3. Choose `Export one skill as ZIP` when you want a portable archive for manual installation in another tool.
+4. Choose `Advanced: choose source and target` when you need source-by-source updates, selected-skill updates, or a custom workspace skill root.
+5. Missing target folders are created automatically before files are copied.
+6. For custom targets, choose a skill root folder such as `.claude/skills`, not an individual skill folder such as `.claude/skills/md-presentation-composer`.
+7. If saving a ZIP, choose a skill folder with a root `SKILL.md`, then pick a save location. The output archive is named `{skill-id}.zip` by default.
+8. Extract the ZIP where your AI tool expects skills. The ZIP keeps the skill folder at the archive root.
 
 Bundled skills are copied into the VSIX during `npm run build`, so installed users can export them without cloning the repository.
 
@@ -116,11 +116,11 @@ Source Graph is the document-link index for one VS Code workspace. It creates `.
 2. Open the folder that contains your Markdown documents in VS Code.
 3. Run `MD Studio: Initialize Source Graph Workspace`.
 4. Confirm `.mps/source-graph.sqlite` exists in that workspace.
-5. Run `MD Studio: Install Codex Source Graph MCP`.
-6. Choose `Workspace .codex/config.toml (Recommended)`.
-7. Run `MD Studio: Download Skill Folder`, choose `Bundled Codex`, then update `source-graph-search` into `.codex/skills` if it is missing.
-8. Restart Codex or start a new Codex session in this trusted workspace.
-9. Run `MD Studio: Check Codex Source Graph MCP Status` to verify Node, the bundled MCP script, graph DB, and config registration.
+5. Run `MD Studio: Install Source Graph MCP`.
+6. Choose whether to update `.mcp.json`, `.codex/config.toml`, or all supported client configs.
+7. Run `MD Studio: Install or Export Skills`, then choose `Install bundled skills to this workspace` if workspace skill folders are missing or stale.
+8. Restart the selected MCP client or start a fresh trusted workspace session.
+9. Run `MD Studio: Check Source Graph MCP Status` to verify Node, the bundled MCP script, graph DB, and config registration.
 
 This is the Source Graph equivalent of a project-local init step such as `codegraph init`: each workspace owns its own `.mps/source-graph.sqlite`.
 
@@ -147,7 +147,7 @@ After editing `.mpsignore`, run `MD Studio: Update Source Graph Index` or reopen
 - Saving an existing Markdown file updates that file's graph rows and recomputes resolved edges.
 - Creating or deleting a Markdown file triggers a full rebuild after a short debounce.
 - Creating, editing, or deleting `.mpsignore` triggers a full rebuild after a short debounce.
-- `MD Studio: Install Codex Source Graph MCP` also creates or updates the DB before writing the MCP config.
+- `MD Studio: Install Source Graph MCP` also creates or updates the DB before writing selected MCP client config.
 
 ### How to verify updates
 
@@ -243,9 +243,9 @@ Example (absolute path):
 
 ### Source Graph DB or MCP does not appear
 
-- Run `MD Studio: Check Codex Source Graph MCP Status`.
+- Run `MD Studio: Check Source Graph MCP Status`.
 - Confirm Node.js is installed and `mdStudioPreview.nodePath` points to a working `node` executable.
-- Confirm the workspace is trusted in Codex when using workspace `.codex/config.toml`.
+- Confirm the workspace is trusted in the selected MCP client.
 - Run `MD Studio: Initialize Source Graph Workspace` again if `.mps/source-graph.sqlite` is missing.
 - Restart Codex after installing or removing MCP config.
 

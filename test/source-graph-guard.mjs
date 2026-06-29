@@ -63,13 +63,17 @@ const alphaLinks = partialDb.tables.links.filter((link) => link.sourcePath === '
 assert(alphaLinks.some((link) => link.status === 'resolved-by-name' && link.targetPath === 'docs/gamma.md'), 'expected basename wiki link to resolve to gamma');
 assert(!alphaLinks.some((link) => link.targetPath === 'docs/beta.md'), 'expected old beta link to be removed after update-file');
 
-const search = spawnSync(process.execPath, [scriptPath, 'search', '--root', tmpRoot, '--query', 'beta'], {
+const search = spawnSync(process.execPath, [scriptPath, 'search', '--root', tmpRoot, '--query', 'beta', '--links-depth', '2'], {
   cwd: repoRoot,
   encoding: 'utf8',
 });
 if (search.status !== 0) throw new Error(`source graph search failed:\n${search.stderr || search.stdout}`);
 const results = JSON.parse(search.stdout);
 assert(results.some((doc) => doc.path === 'docs/beta.md'), 'expected beta search result');
+const betaResult = results.find((doc) => doc.path === 'docs/beta.md');
+assert(betaResult.linksDepth === 2, 'expected search result links depth');
+assert(betaResult.links.some((link) => link.sourcePath === 'docs/beta.md' && link.targetPath === 'alpha.md'), 'expected beta search result links');
+assert(betaResult.linkedDocuments.some((doc) => doc.path === 'docs/gamma.md'), 'expected depth two linked document');
 
 const neighbors = spawnSync(process.execPath, [scriptPath, 'neighbors', '--root', tmpRoot, '--path', 'alpha.md'], {
   cwd: repoRoot,

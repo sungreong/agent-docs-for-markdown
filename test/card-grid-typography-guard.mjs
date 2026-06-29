@@ -84,6 +84,14 @@ const bundledAdvisorSkill = await fs.readFile(
   path.join(repoRoot, 'vscode-extension', 'ai_skills', 'codex', 'skills', 'document-production-advisor', 'SKILL.md'),
   'utf8',
 );
+const imagePlacementRules = await fs.readFile(
+  path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'md-presentation-composer', 'references', 'image-placement-rules.md'),
+  'utf8',
+);
+const bundledImagePlacementRules = await fs.readFile(
+  path.join(repoRoot, 'vscode-extension', 'ai_skills', 'codex', 'skills', 'md-presentation-composer', 'references', 'image-placement-rules.md'),
+  'utf8',
+);
 
 assert(html.includes('section-feature-grid'), 'feature-grid should render with its section class');
 assert(html.includes('template-columns cols-3'), 'three-column sections should render through the column template');
@@ -102,6 +110,14 @@ assert(composerSkill.includes('Card and grid titles must not split awkwardly'), 
 assert(advisorSkill.includes('For richer cards, prefer bold labels inside list items'), 'advisor skill should show safer feature-grid authoring');
 assert(bundledComposerSkill.includes('Card and grid titles must not split awkwardly'), 'VS Code bundled composer skill should include card title guidance');
 assert(bundledAdvisorSkill.includes('For richer cards, prefer bold labels inside list items'), 'VS Code bundled advisor skill should include safer feature-grid authoring');
+assert(composerSkill.includes('references/image-placement-rules.md'), 'composer skill should route image-heavy documents to image placement rules');
+assert(bundledComposerSkill.includes('references/image-placement-rules.md'), 'VS Code bundled composer skill should route image-heavy documents to image placement rules');
+for (const rules of [imagePlacementRules, bundledImagePlacementRules]) {
+  assert(rules.includes('Placement Decision Matrix'), 'image placement rules should include a decision matrix');
+  assert(rules.includes('`.half-bleed` Rules'), 'image placement rules should include half-bleed guidance');
+  assert(rules.includes('Multi-Image Limits'), 'image placement rules should include multi-image limits');
+  assert(rules.includes('Verification Checklist'), 'image placement rules should include render verification checks');
+}
 
 await fs.rm(tmpDir, { recursive: true, force: true });
 console.log('card grid typography guard ok');

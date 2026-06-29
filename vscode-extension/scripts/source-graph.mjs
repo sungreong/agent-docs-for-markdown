@@ -41,7 +41,11 @@ async function main(argv = process.argv.slice(2)) {
   }
   if (command === 'search') {
     const db = await loadOrUpdateGraph(args);
-    const results = searchSourceGraph(db, String(args.query || args._[0] || ''), Number(args.limit || 20));
+    const results = enrichSearchResultsWithLinks(
+      db,
+      searchSourceGraph(db, String(args.query || args._[0] || ''), Number(args.limit || 20)),
+      args,
+    );
     process.stdout.write(`${JSON.stringify(results, null, 2)}\n`);
     return;
   }
@@ -291,6 +295,35 @@ function summarizeDb(db) {
   };
 }
 
+function enrichSearchResultsWithLinks(db, results = [], args = {}) {
+  const linksDepth = getSearchLinksDepth(args);
+  if (!linksDepth) return results;
+  return results.map((doc) => {
+    const neighborhood = getSourceGraphNeighbors(db, doc.id, linksDepth);
+    return {
+      ...doc,
+      linksDepth,
+      linkedDocuments: neighborhood.documents.filter((item) => item.id !== doc.id),
+      links: neighborhood.links,
+    };
+  });
+}
+
+function getSearchLinksDepth(args = {}) {
+  const includeLinks = args.includeLinks ?? args['include-links'] ?? args.links ?? args['with-links'];
+  const explicitDepth = args.linksDepth ?? args['links-depth'] ?? args.linkDepth ?? args['link-depth'];
+  if (includeLinks === false || includeLinks === 'false' || includeLinks === '0') return 0;
+  if (explicitDepth !== undefined) return clampSearchLinksDepth(explicitDepth);
+  if (includeLinks) return 1;
+  return 0;
+}
+
+function clampSearchLinksDepth(value) {
+  const depth = Number(value);
+  if (!Number.isFinite(depth)) return 1;
+  return Math.max(1, Math.min(3, Math.trunc(depth)));
+}
+
 function findRelatedDocuments(db, args = {}) {
   const limit = Math.max(1, Math.min(50, Number(args.limit || 10)));
   const pathOrId = String(args.path || args.id || '').trim();
@@ -376,7 +409,7 @@ function printHelp() {
 Usage:
   node scripts/source-graph.mjs update [--root <workspace>] [--db .mps/source-graph.sqlite]
   node scripts/source-graph.mjs update-file --path <relative.md>
-  node scripts/source-graph.mjs search --query <text> [--limit 20]
+  node scripts/source-graph.mjs search --query <text> [--limit 20] [--include-links] [--links-depth 1]
   node scripts/source-graph.mjs neighbors --path <relative.md> [--depth 1]
   node scripts/source-graph.mjs related --path <relative.md> [--limit 10]
   node scripts/source-graph.mjs mcp [--root <workspace>]
@@ -463,6 +496,8 @@ function getMcpTools() {
         properties: {
           query: { type: 'string' },
           limit: { type: 'number' },
+          includeLinks: { type: 'boolean' },
+          linksDepth: { type: 'number' },
           update: { type: 'boolean' },
         },
         required: ['query'],
@@ -505,7 +540,11 @@ async function callMcpTool(name, callArgs, readDb) {
   }
   if (name === 'source_graph_search') {
     const db = await readDb(callArgs);
-    return contentResult(searchSourceGraph(db, callArgs.query, Number(callArgs.limit || 20)));
+    return contentResult(enrichSearchResultsWithLinks(
+      db,
+      searchSourceGraph(db, callArgs.query, Number(callArgs.limit || 20)),
+      callArgs,
+    ));
   }
   if (name === 'source_graph_neighbors') {
     const db = await readDb(callArgs);

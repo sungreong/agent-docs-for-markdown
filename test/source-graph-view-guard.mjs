@@ -40,9 +40,36 @@ for (const expected of [
   'function groupHullPath',
   'function groupKeyForNode',
   'function paintGroupDetails',
+  'Source Graph MCP Guide',
+  'showMcpGuide',
+  'launcherSearch',
+  'launcherSearchResults',
+  'Search Markdown body',
+  'retainContextWhenHidden',
+  'vscode.getState',
+  'vscode.setState',
+  'restoreSearchState',
+  'data-open-editor-path',
+  'Real Codex Prompts',
+  'copyGuideText',
+  'Source Graph MCP의 source_graph_search tool',
+  'data-copy-kind',
+  'Source Graph MCP Status',
+  'openSourceGraphMcpStatusPanel',
+  'MCP is ready',
+  'source_graph_search',
+  'linksDepth',
+  'copyMcpConfig',
+  'openSourceGraphMcpGuidePanel',
 ]) {
   assert(source.includes(expected), `expected source graph webview to include ${expected}`);
 }
+const launcherSearchButton = source.indexOf('<button type="button" data-action="toggleSearch">Search</button>');
+const launcherOpenGraphButton = source.indexOf('<button type="button" class="secondary" data-action="openGraph">Open Graph</button>');
+assert(
+  launcherSearchButton >= 0 && launcherOpenGraphButton > launcherSearchButton,
+  'Source Graph launcher should put Search above Open Graph',
+);
 assert(
   source.includes('JSON.stringify(toWebviewSourceGraphDb(db))'),
   'source graph webview should embed only the slim graph DB payload',

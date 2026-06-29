@@ -232,6 +232,20 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('mdStudioFileBrowser.delete', async (commandArg?: unknown) => {
+      const uri = getResourceUri(commandArg) ?? treeView.selection[0]?.resourceUri ?? null;
+      if (!uri) {
+        const language = readMdStudioLanguage();
+        void vscode.window.showWarningMessage(
+          pickLocalized(language, { en: 'Select a file or folder in MD Studio File Browser first.', ko: '먼저 MD Studio File Browser에서 파일이나 폴더를 선택하세요.' }),
+        );
+        return;
+      }
+      await deleteBrowserItem(uri, provider, treeView);
+    }),
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('mdStudioFileBrowser.manageHidden', async () => {
       await manageHiddenItems(provider, treeView);
     }),
@@ -259,6 +273,58 @@ export function registerMarkdownFileBrowser(
       revealInTree(treeView, resourceUri);
     },
   };
+}
+
+async function deleteBrowserItem(
+  uri: vscode.Uri,
+  provider: MarkdownFileBrowserProvider,
+  treeView: vscode.TreeView<MarkdownFileItem>,
+): Promise<void> {
+  const language = readMdStudioLanguage();
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+  if (!workspaceFolder) {
+    void vscode.window.showErrorMessage(
+      pickLocalized(language, { en: 'Only workspace files and folders can be deleted from MD Studio File Browser.', ko: 'MD Studio File Browser에서는 워크스페이스 안의 파일과 폴더만 삭제할 수 있습니다.' }),
+    );
+    return;
+  }
+  if (sameFsPath(uri.fsPath, workspaceFolder.uri.fsPath)) {
+    void vscode.window.showErrorMessage(
+      pickLocalized(language, { en: 'The workspace root cannot be deleted from MD Studio File Browser.', ko: 'MD Studio File Browser에서는 워크스페이스 루트를 삭제할 수 없습니다.' }),
+    );
+    return;
+  }
+
+  let stat: vscode.FileStat;
+  try {
+    stat = await vscode.workspace.fs.stat(uri);
+  } catch {
+    await provider.refresh();
+    updateDescription(treeView, provider);
+    void vscode.window.showWarningMessage(
+      pickLocalized(language, { en: `Already missing: ${formatRelativePath(uri)}`, ko: `이미 없습니다: ${formatRelativePath(uri)}` }),
+    );
+    return;
+  }
+
+  const isDirectory = Boolean(stat.type & vscode.FileType.Directory);
+  const deleteLabel = pickLocalized(language, { en: 'Move to Trash', ko: '휴지통으로 이동' });
+  const confirmed = await vscode.window.showWarningMessage(
+    pickLocalized(language, {
+      en: `Move ${isDirectory ? 'folder' : 'file'} to Trash?\n\n${formatRelativePath(uri)}`,
+      ko: `${isDirectory ? '폴더' : '파일'}를 휴지통으로 이동할까요?\n\n${formatRelativePath(uri)}`,
+    }),
+    { modal: true },
+    deleteLabel,
+  );
+  if (confirmed !== deleteLabel) return;
+
+  await vscode.workspace.fs.delete(uri, { recursive: isDirectory, useTrash: true });
+  await provider.refresh();
+  updateDescription(treeView, provider);
+  void vscode.window.showInformationMessage(
+    pickLocalized(language, { en: `Moved to Trash: ${formatRelativePath(uri)}`, ko: `휴지통으로 이동했습니다: ${formatRelativePath(uri)}` }),
+  );
 }
 
 function updateDescription(
@@ -445,6 +511,10 @@ function getResourceUri(commandArg: unknown): vscode.Uri | null {
   if (!commandArg || typeof commandArg !== 'object') return null;
   const resourceUri = (commandArg as { resourceUri?: unknown }).resourceUri;
   return resourceUri instanceof vscode.Uri ? resourceUri : null;
+}
+
+function sameFsPath(left: string, right: string): boolean {
+  return process.platform === 'win32' ? left.toLowerCase() === right.toLowerCase() : left === right;
 }
 
 function formatRelativePath(uri: vscode.Uri): string {

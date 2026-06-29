@@ -27,6 +27,7 @@
   --font-heading: system-ui, -apple-system, sans-serif;
   --font-body: system-ui, -apple-system, sans-serif;
   color: var(--doc-text);
+  font-family: var(--font-body);
 }
 
 .studio-document.theme-default {
@@ -232,6 +233,101 @@
   --doc-accent-soft: rgba(132, 181, 159, 0.18);
   --font-heading: 'Calibri', 'Candara', sans-serif;
   --font-body: 'Calibri', sans-serif;
+}
+
+.studio-document.theme-alpine {
+  --doc-text: #0d2633;
+  --doc-muted: #476878;
+  --doc-line: rgba(120, 170, 185, 0.82);
+  --doc-line-soft: rgba(158, 198, 207, 0.68);
+  --doc-bg: #f3fbfc;
+  --doc-bg-soft: #e7f4f6;
+  --doc-bg-strong: #d5e9ed;
+  --doc-accent: #277c8c;
+  --doc-accent-soft: rgba(39, 124, 140, 0.14);
+  --font-heading: "Aptos Display", "Segoe UI", sans-serif;
+  --font-body: "Aptos", "Segoe UI", sans-serif;
+}
+
+.studio-document.theme-executive {
+  --doc-text: #111827;
+  --doc-muted: #4b5563;
+  --doc-line: rgba(132, 145, 166, 0.82);
+  --doc-line-soft: rgba(176, 185, 200, 0.68);
+  --doc-bg: #fbfcff;
+  --doc-bg-soft: #eef2f8;
+  --doc-bg-strong: #e1e7f1;
+  --doc-accent: #23406f;
+  --doc-accent-soft: rgba(35, 64, 111, 0.13);
+  --font-heading: "Segoe UI Semibold", "Segoe UI", sans-serif;
+  --font-body: "Segoe UI", Tahoma, sans-serif;
+}
+
+.studio-document.theme-editorial {
+  --doc-text: #261f18;
+  --doc-muted: #67584d;
+  --doc-line: rgba(164, 141, 119, 0.82);
+  --doc-line-soft: rgba(194, 176, 157, 0.68);
+  --doc-bg: #fffaf2;
+  --doc-bg-soft: #f3eadc;
+  --doc-bg-strong: #e8dac5;
+  --doc-accent: #8a4d22;
+  --doc-accent-soft: rgba(138, 77, 34, 0.14);
+  --font-heading: Georgia, "Times New Roman", serif;
+  --font-body: Georgia, "Times New Roman", serif;
+}
+
+.studio-document.theme-classroom {
+  --doc-text: #17251f;
+  --doc-muted: #53685f;
+  --doc-line: rgba(140, 168, 153, 0.82);
+  --doc-line-soft: rgba(176, 199, 187, 0.68);
+  --doc-bg: #f7fbf6;
+  --doc-bg-soft: #eaf4e8;
+  --doc-bg-strong: #dcead9;
+  --doc-accent: #466f3f;
+  --doc-accent-soft: rgba(70, 111, 63, 0.14);
+  --font-heading: Verdana, Geneva, sans-serif;
+  --font-body: Verdana, Geneva, sans-serif;
+}
+
+.studio-document.theme-conference {
+  --doc-text: #f3f7ff;
+  --doc-muted: #bcc8dc;
+  --doc-line: rgba(174, 194, 225, 0.28);
+  --doc-line-soft: rgba(174, 194, 225, 0.16);
+  --doc-bg: #0d1321;
+  --doc-bg-soft: #172033;
+  --doc-bg-strong: #090e18;
+  --doc-accent: #8db7ff;
+  --doc-accent-soft: rgba(141, 183, 255, 0.16);
+  --doc-inverse-bg: #f3f7ff;
+  --doc-inverse-text: #0d1321;
+  --doc-inverse-muted: #28344a;
+  --doc-inverse-subtle: #42536f;
+  --font-heading: Montserrat, "Segoe UI", sans-serif;
+  --font-body: "Source Sans 3", "Source Sans Pro", "Segoe UI", sans-serif;
+}
+
+.studio-document.theme-workshop {
+  --doc-text: #102235;
+  --doc-muted: #4d647d;
+  --doc-line: rgba(114, 151, 182, 0.82);
+  --doc-line-soft: rgba(157, 186, 210, 0.68);
+  --doc-bg: #f2f9ff;
+  --doc-bg-soft: #e5f2fb;
+  --doc-bg-strong: #d5e8f6;
+  --doc-accent: #2f6f9f;
+  --doc-accent-soft: rgba(47, 111, 159, 0.14);
+  --font-heading: Lato, "Segoe UI", sans-serif;
+  --font-body: Lato, "Segoe UI", sans-serif;
+}
+
+.studio-document.theme-conference .md-callout.type-info,
+.studio-document.theme-conference .md-callout.type-success,
+.studio-document.theme-conference .md-callout.type-warning,
+.studio-document.theme-conference .md-callout.type-danger {
+  background: color-mix(in srgb, var(--doc-bg-soft) 86%, var(--doc-accent) 14%);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────── */
@@ -1381,6 +1477,7 @@
 .template-quote-slide .md-blockquote {
   font-size: 22px;
   line-height: 1.6;
+  min-height: clamp(7rem, 22vh, 11rem);
 }
 
 .section-card {
@@ -1559,6 +1656,30 @@
 .document-shell.is-paginated .md-callout,
 .document-shell.is-paginated .md-code {
   margin-top: 1.25rem;
+}
+
+/* Quote blocks are display objects in slide mode, not ordinary body copy. */
+.document-shell.is-paginated .md-blockquote {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 0;
+  padding: clamp(0.95rem, 2vw, 1.35rem) clamp(1.25rem, 3vw, 2.25rem);
+  text-align: center;
+}
+
+.document-shell.is-paginated .md-blockquote .md-paragraph {
+  max-width: 68ch;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.document-shell.is-paginated .md-blockquote .md-list {
+  align-self: stretch;
+  text-align: left;
 }
 
 /* ─── Dark Slide Template ────────────────────────────────────────────────── */
@@ -1818,8 +1939,15 @@
 }
 
 .studio-document.appearance-bg-transparent {
-  --doc-bg-soft: transparent;
-  --doc-bg-strong: transparent;
+  --doc-text: #172033;
+  --doc-muted: #4d5d74;
+  --doc-line: rgba(89, 107, 132, 0.56);
+  --doc-line-soft: rgba(89, 107, 132, 0.28);
+  --doc-bg: transparent;
+  --doc-bg-soft: rgba(255, 255, 255, 0.34);
+  --doc-bg-strong: rgba(255, 255, 255, 0.52);
+  --doc-accent: #235fc5;
+  --doc-accent-soft: rgba(35, 95, 197, 0.14);
 }
 
 .studio-document.appearance-bg-transparent .doc-page,
@@ -1834,6 +1962,342 @@
 .studio-document.appearance-bg-transparent .md-callout,
 .studio-document.appearance-bg-transparent .stat-card {
   background: transparent !important;
+}
+
+.studio-document.appearance-bg-transparent .md-code pre,
+.studio-document.appearance-bg-transparent .md-blockquote,
+.studio-document.appearance-bg-transparent .section-feature-grid > .md-list > li,
+.studio-document.appearance-bg-transparent .section-contrast-pair > .md-paragraph,
+.studio-document.appearance-bg-transparent .section-contrast-pair > .md-list,
+.studio-document.appearance-bg-transparent .section-contrast-pair > .md-callout,
+.studio-document.appearance-bg-transparent .section-contrast-pair > .md-blockquote,
+.studio-document.appearance-bg-transparent code,
+.studio-document.appearance-bg-transparent .doc-page-links a,
+.studio-document.appearance-bg-transparent .code-copy-btn {
+  background: rgba(255, 255, 255, 0.36) !important;
+}
+
+.studio-document.appearance-bg-paper {
+  --doc-text: #2b2118;
+  --doc-muted: #6f5f50;
+  --doc-line: rgba(174, 148, 113, 0.54);
+  --doc-line-soft: rgba(174, 148, 113, 0.28);
+  --doc-bg: #fffaf1;
+  --doc-bg-soft: #f7eddd;
+  --doc-bg-strong: #efe0ca;
+  --doc-accent: #9f5b21;
+  --doc-accent-soft: rgba(159, 91, 33, 0.14);
+}
+
+.studio-document.appearance-bg-mist {
+  --doc-text: #10233d;
+  --doc-muted: #506881;
+  --doc-line: rgba(104, 136, 170, 0.5);
+  --doc-line-soft: rgba(104, 136, 170, 0.26);
+  --doc-bg: #f3f8ff;
+  --doc-bg-soft: #e8f1fb;
+  --doc-bg-strong: #d9e8f7;
+  --doc-accent: #2d6fb3;
+  --doc-accent-soft: rgba(45, 111, 179, 0.14);
+}
+
+.studio-document.appearance-bg-sage {
+  --doc-text: #15281d;
+  --doc-muted: #4f6658;
+  --doc-line: rgba(104, 142, 118, 0.48);
+  --doc-line-soft: rgba(104, 142, 118, 0.26);
+  --doc-bg: #f5faf5;
+  --doc-bg-soft: #e8f2e8;
+  --doc-bg-strong: #dae9dd;
+  --doc-accent: #34724c;
+  --doc-accent-soft: rgba(52, 114, 76, 0.14);
+}
+
+.studio-document.appearance-bg-ink {
+  --doc-text: #edf4ff;
+  --doc-muted: #b6c5d8;
+  --doc-line: rgba(165, 185, 215, 0.28);
+  --doc-line-soft: rgba(165, 185, 215, 0.16);
+  --doc-bg: #101722;
+  --doc-bg-soft: #172132;
+  --doc-bg-strong: #0b111a;
+  --doc-accent: #8eb8ff;
+  --doc-accent-soft: rgba(142, 184, 255, 0.16);
+  --doc-inverse-bg: #edf4ff;
+  --doc-inverse-text: #101722;
+  --doc-inverse-muted: #28364a;
+  --doc-inverse-subtle: #40526d;
+}
+
+.studio-document.appearance-bg-ink .md-callout.type-info,
+.studio-document.appearance-bg-ink .md-callout.type-success,
+.studio-document.appearance-bg-ink .md-callout.type-warning,
+.studio-document.appearance-bg-ink .md-callout.type-danger {
+  background: color-mix(in srgb, var(--doc-bg-soft) 86%, var(--doc-accent) 14%);
+}
+
+.studio-document.appearance-bg-ink .stat-delta.positive {
+  color: #8de5bf;
+}
+
+.studio-document.appearance-bg-ink .stat-delta.negative {
+  color: #ff9fbc;
+}
+
+.studio-document.appearance-bg-linen {
+  --doc-text: #241b14;
+  --doc-muted: #65574c;
+  --doc-line: rgba(165, 142, 120, 0.45);
+  --doc-line-soft: rgba(165, 142, 120, 0.24);
+  --doc-bg: #fbf4ea;
+  --doc-bg-soft: #f2e6d8;
+  --doc-bg-strong: #e9d8c5;
+  --doc-accent: #8b5a2b;
+  --doc-accent-soft: rgba(139, 90, 43, 0.14);
+}
+
+.studio-document.appearance-bg-ivory {
+  --doc-text: #20231c;
+  --doc-muted: #626657;
+  --doc-line: rgba(142, 148, 123, 0.45);
+  --doc-line-soft: rgba(142, 148, 123, 0.24);
+  --doc-bg: #fbfbf2;
+  --doc-bg-soft: #f0f1df;
+  --doc-bg-strong: #e5e7cf;
+  --doc-accent: #657529;
+  --doc-accent-soft: rgba(101, 117, 41, 0.14);
+}
+
+.studio-document.appearance-bg-cloud {
+  --doc-text: #172033;
+  --doc-muted: #566377;
+  --doc-line: rgba(119, 134, 158, 0.45);
+  --doc-line-soft: rgba(119, 134, 158, 0.24);
+  --doc-bg: #f8fafc;
+  --doc-bg-soft: #eef2f6;
+  --doc-bg-strong: #e1e7ef;
+  --doc-accent: #365a96;
+  --doc-accent-soft: rgba(54, 90, 150, 0.14);
+}
+
+.studio-document.appearance-bg-frost {
+  --doc-text: #102932;
+  --doc-muted: #4e6872;
+  --doc-line: rgba(103, 152, 166, 0.44);
+  --doc-line-soft: rgba(103, 152, 166, 0.24);
+  --doc-bg: #f1fbfd;
+  --doc-bg-soft: #e3f3f7;
+  --doc-bg-strong: #d4eaf0;
+  --doc-accent: #28788c;
+  --doc-accent-soft: rgba(40, 120, 140, 0.14);
+}
+
+.studio-document.appearance-bg-sand {
+  --doc-text: #291e12;
+  --doc-muted: #715f49;
+  --doc-line: rgba(184, 151, 101, 0.44);
+  --doc-line-soft: rgba(184, 151, 101, 0.24);
+  --doc-bg: #faf3df;
+  --doc-bg-soft: #f0e3c5;
+  --doc-bg-strong: #e6d2aa;
+  --doc-accent: #956414;
+  --doc-accent-soft: rgba(149, 100, 20, 0.14);
+}
+
+.studio-document.appearance-bg-rose {
+  --doc-text: #32151d;
+  --doc-muted: #794f5b;
+  --doc-line: rgba(185, 116, 137, 0.42);
+  --doc-line-soft: rgba(185, 116, 137, 0.23);
+  --doc-bg: #fff5f7;
+  --doc-bg-soft: #f8e5eb;
+  --doc-bg-strong: #efd2dc;
+  --doc-accent: #a33b5a;
+  --doc-accent-soft: rgba(163, 59, 90, 0.14);
+}
+
+.studio-document.appearance-bg-lavender {
+  --doc-text: #22193d;
+  --doc-muted: #5d5278;
+  --doc-line: rgba(137, 118, 184, 0.42);
+  --doc-line-soft: rgba(137, 118, 184, 0.23);
+  --doc-bg: #f8f5ff;
+  --doc-bg-soft: #ece6fb;
+  --doc-bg-strong: #ddd4f2;
+  --doc-accent: #6546a2;
+  --doc-accent-soft: rgba(101, 70, 162, 0.14);
+}
+
+.studio-document.appearance-bg-mint {
+  --doc-text: #10281f;
+  --doc-muted: #4e6a5e;
+  --doc-line: rgba(91, 156, 125, 0.42);
+  --doc-line-soft: rgba(91, 156, 125, 0.23);
+  --doc-bg: #f1fbf6;
+  --doc-bg-soft: #e2f4eb;
+  --doc-bg-strong: #d1eadc;
+  --doc-accent: #2f7c52;
+  --doc-accent-soft: rgba(47, 124, 82, 0.14);
+}
+
+.studio-document.appearance-bg-sky {
+  --doc-text: #10243a;
+  --doc-muted: #4d6886;
+  --doc-line: rgba(92, 143, 194, 0.42);
+  --doc-line-soft: rgba(92, 143, 194, 0.23);
+  --doc-bg: #f0f8ff;
+  --doc-bg-soft: #dfeefa;
+  --doc-bg-strong: #cee3f6;
+  --doc-accent: #2768ac;
+  --doc-accent-soft: rgba(39, 104, 172, 0.14);
+}
+
+.studio-document.appearance-bg-graphite {
+  --doc-text: #f0f3f7;
+  --doc-muted: #c0c8d2;
+  --doc-line: rgba(204, 214, 226, 0.25);
+  --doc-line-soft: rgba(204, 214, 226, 0.14);
+  --doc-bg: #171a20;
+  --doc-bg-soft: #22262e;
+  --doc-bg-strong: #0f1217;
+  --doc-accent: #a8c7ff;
+  --doc-accent-soft: rgba(168, 199, 255, 0.16);
+  --doc-inverse-bg: #f0f3f7;
+  --doc-inverse-text: #171a20;
+  --doc-inverse-muted: #333b48;
+  --doc-inverse-subtle: #4a5566;
+}
+
+.studio-document.appearance-bg-navy {
+  --doc-text: #eef5ff;
+  --doc-muted: #b9c9dd;
+  --doc-line: rgba(176, 202, 232, 0.25);
+  --doc-line-soft: rgba(176, 202, 232, 0.14);
+  --doc-bg: #0d1b2a;
+  --doc-bg-soft: #14263a;
+  --doc-bg-strong: #08121e;
+  --doc-accent: #91c4ff;
+  --doc-accent-soft: rgba(145, 196, 255, 0.16);
+  --doc-inverse-bg: #eef5ff;
+  --doc-inverse-text: #0d1b2a;
+  --doc-inverse-muted: #26384f;
+  --doc-inverse-subtle: #3d526d;
+}
+
+.studio-document.appearance-bg-sepia {
+  --doc-text: #2b1d13;
+  --doc-muted: #765d48;
+  --doc-line: rgba(170, 133, 94, 0.46);
+  --doc-line-soft: rgba(170, 133, 94, 0.25);
+  --doc-bg: #f6ead7;
+  --doc-bg-soft: #ead9bd;
+  --doc-bg-strong: #ddc49e;
+  --doc-accent: #7d4f1d;
+  --doc-accent-soft: rgba(125, 79, 29, 0.14);
+}
+
+.studio-document.appearance-bg-graphite .md-callout.type-info,
+.studio-document.appearance-bg-graphite .md-callout.type-success,
+.studio-document.appearance-bg-graphite .md-callout.type-warning,
+.studio-document.appearance-bg-graphite .md-callout.type-danger,
+.studio-document.appearance-bg-navy .md-callout.type-info,
+.studio-document.appearance-bg-navy .md-callout.type-success,
+.studio-document.appearance-bg-navy .md-callout.type-warning,
+.studio-document.appearance-bg-navy .md-callout.type-danger {
+  background: color-mix(in srgb, var(--doc-bg-soft) 86%, var(--doc-accent) 14%);
+}
+
+.studio-document.appearance-bg-graphite .stat-delta.positive,
+.studio-document.appearance-bg-navy .stat-delta.positive {
+  color: #8de5bf;
+}
+
+.studio-document.appearance-bg-graphite .stat-delta.negative,
+.studio-document.appearance-bg-navy .stat-delta.negative {
+  color: #ff9fbc;
+}
+
+.studio-document.appearance-font-system {
+  --font-heading: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.studio-document.appearance-font-aptos {
+  --font-heading: "Aptos Display", "Aptos", "Segoe UI", sans-serif;
+  --font-body: "Aptos", "Segoe UI", sans-serif;
+}
+
+.studio-document.appearance-font-calibri {
+  --font-heading: "Calibri Light", Calibri, Candara, sans-serif;
+  --font-body: Calibri, Candara, "Segoe UI", sans-serif;
+}
+
+.studio-document.appearance-font-arial {
+  --font-heading: Arial, Helvetica, sans-serif;
+  --font-body: Arial, Helvetica, sans-serif;
+}
+
+.studio-document.appearance-font-verdana {
+  --font-heading: Verdana, Geneva, sans-serif;
+  --font-body: Verdana, Geneva, sans-serif;
+  --font-size-body: 0.95rem;
+  --font-size-card-body: 0.9rem;
+}
+
+.studio-document.appearance-font-segoe {
+  --font-heading: "Segoe UI Semibold", "Segoe UI", sans-serif;
+  --font-body: "Segoe UI", Tahoma, sans-serif;
+}
+
+.studio-document.appearance-font-helvetica {
+  --font-heading: Helvetica, Arial, sans-serif;
+  --font-body: Helvetica, Arial, sans-serif;
+}
+
+.studio-document.appearance-font-georgia {
+  --font-heading: Georgia, "Times New Roman", serif;
+  --font-body: Georgia, "Times New Roman", serif;
+}
+
+.studio-document.appearance-font-garamond {
+  --font-heading: Garamond, "EB Garamond", Georgia, serif;
+  --font-body: Garamond, "EB Garamond", Georgia, serif;
+  --font-size-body: 1.06rem;
+}
+
+.studio-document.appearance-font-palatino {
+  --font-heading: "Palatino Linotype", Palatino, Georgia, serif;
+  --font-body: "Palatino Linotype", Palatino, Georgia, serif;
+}
+
+.studio-document.appearance-font-lato {
+  --font-heading: Lato, "Segoe UI", sans-serif;
+  --font-body: Lato, "Segoe UI", sans-serif;
+}
+
+.studio-document.appearance-font-montserrat {
+  --font-heading: Montserrat, "Segoe UI", sans-serif;
+  --font-body: Montserrat, "Segoe UI", sans-serif;
+  --font-size-body: 0.96rem;
+  --font-size-card-body: 0.9rem;
+}
+
+.studio-document.appearance-font-poppins {
+  --font-heading: Poppins, "Segoe UI", sans-serif;
+  --font-body: Poppins, "Segoe UI", sans-serif;
+  --font-size-body: 0.96rem;
+  --font-size-card-body: 0.9rem;
+}
+
+.studio-document.appearance-font-source-sans {
+  --font-heading: "Source Sans 3", "Source Sans Pro", "Segoe UI", sans-serif;
+  --font-body: "Source Sans 3", "Source Sans Pro", "Segoe UI", sans-serif;
+}
+
+.studio-document.appearance-font-noto-kr {
+  --font-heading: "Noto Sans KR", "Pretendard", "Malgun Gothic", sans-serif;
+  --font-body: "Noto Sans KR", "Pretendard", "Malgun Gothic", sans-serif;
+  --font-size-body: 0.98rem;
 }
 
 .studio-document.appearance-radius-none .doc-page,

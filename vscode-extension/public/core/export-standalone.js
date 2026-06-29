@@ -1,6 +1,7 @@
 import { escapeHtml } from './engine.js';
 import {
   APPEARANCE_BACKGROUND_OPTIONS,
+  APPEARANCE_FONT_OPTIONS,
   APPEARANCE_FRAME_OPTIONS,
   APPEARANCE_PRESET_OPTIONS,
   APPEARANCE_RADIUS_OPTIONS,
@@ -164,6 +165,7 @@ function buildStyleMenuHtml(appearanceOptions = {}) {
   <div class="style-menu-grid">
     ${select('appearance', 'Preset', APPEARANCE_PRESET_OPTIONS, normalized.appearance)}
     ${select('appearanceBackground', 'Background', APPEARANCE_BACKGROUND_OPTIONS, normalized.appearanceBackground)}
+    ${select('appearanceFont', 'Font', APPEARANCE_FONT_OPTIONS, normalized.appearanceFont)}
     ${select('appearanceRadius', 'Corners', APPEARANCE_RADIUS_OPTIONS, normalized.appearanceRadius)}
     ${select('appearanceFrame', 'Frame', APPEARANCE_FRAME_OPTIONS, normalized.appearanceFrame)}
     ${select('viewerChrome', 'Chrome', VIEWER_CHROME_OPTIONS, normalized.viewerChrome)}
@@ -425,6 +427,7 @@ function buildEnhancementScript({ mermaid = true, appearanceOptions = {} } = {})
   const normalizedAppearance = normalizeAppearanceOptions(appearanceOptions);
   const appearanceValues = APPEARANCE_PRESET_OPTIONS.map((item) => item.value);
   const backgroundValues = APPEARANCE_BACKGROUND_OPTIONS.map((item) => item.value);
+  const fontValues = APPEARANCE_FONT_OPTIONS.map((item) => item.value);
   const radiusValues = APPEARANCE_RADIUS_OPTIONS.map((item) => item.value);
   const frameValues = APPEARANCE_FRAME_OPTIONS.map((item) => item.value);
   const chromeValues = VIEWER_CHROME_OPTIONS.map((item) => item.value);
@@ -445,6 +448,7 @@ function buildEnhancementScript({ mermaid = true, appearanceOptions = {} } = {})
 
     const appearanceValues = ${JSON.stringify(appearanceValues)};
     const backgroundValues = ${JSON.stringify(backgroundValues)};
+    const fontValues = ${JSON.stringify(fontValues)};
     const radiusValues = ${JSON.stringify(radiusValues)};
     const frameValues = ${JSON.stringify(frameValues)};
     const chromeValues = ${JSON.stringify(chromeValues)};
@@ -460,6 +464,7 @@ function buildEnhancementScript({ mermaid = true, appearanceOptions = {} } = {})
       return {
         appearance: normalizeChoice(value.appearance, appearanceValues, 'default'),
         appearanceBackground: normalizeChoice(value.appearanceBackground, backgroundValues, 'default'),
+        appearanceFont: normalizeChoice(value.appearanceFont, fontValues, 'default'),
         appearanceRadius: normalizeChoice(value.appearanceRadius, radiusValues, 'default'),
         appearanceFrame: normalizeChoice(value.appearanceFrame, frameValues, 'default'),
         viewerChrome: normalizeChoice(value.viewerChrome, chromeValues, 'full'),
@@ -487,7 +492,7 @@ function buildEnhancementScript({ mermaid = true, appearanceOptions = {} } = {})
     function applyAppearance(raw) {
       const next = normalizeAppearance(raw);
       const root = document.querySelector('.studio-document');
-      const prefixes = ['appearance', 'appearance-bg', 'appearance-radius', 'appearance-frame'];
+      const prefixes = ['appearance', 'appearance-bg', 'appearance-font', 'appearance-radius', 'appearance-frame'];
       removePrefixedClasses(root, prefixes);
       removePrefixedClasses(document.body, prefixes.concat(['viewer-chrome']));
 
@@ -498,6 +503,10 @@ function buildEnhancementScript({ mermaid = true, appearanceOptions = {} } = {})
       if (next.appearanceBackground !== 'default') {
         root && root.classList.add('appearance-bg-' + next.appearanceBackground);
         document.body.classList.add('appearance-bg-' + next.appearanceBackground);
+      }
+      if (next.appearanceFont !== 'default') {
+        root && root.classList.add('appearance-font-' + next.appearanceFont);
+        document.body.classList.add('appearance-font-' + next.appearanceFont);
       }
       if (next.appearanceRadius !== 'default') {
         root && root.classList.add('appearance-radius-' + next.appearanceRadius);
@@ -513,10 +522,12 @@ function buildEnhancementScript({ mermaid = true, appearanceOptions = {} } = {})
 
       setDataAttr(root, 'data-appearance', next.appearance, 'default');
       setDataAttr(root, 'data-appearance-background', next.appearanceBackground, 'default');
+      setDataAttr(root, 'data-appearance-font', next.appearanceFont, 'default');
       setDataAttr(root, 'data-appearance-radius', next.appearanceRadius, 'default');
       setDataAttr(root, 'data-appearance-frame', next.appearanceFrame, 'default');
       setDataAttr(document.body, 'data-appearance', next.appearance, 'default');
       setDataAttr(document.body, 'data-appearance-background', next.appearanceBackground, 'default');
+      setDataAttr(document.body, 'data-appearance-font', next.appearanceFont, 'default');
       setDataAttr(document.body, 'data-appearance-radius', next.appearanceRadius, 'default');
       setDataAttr(document.body, 'data-appearance-frame', next.appearanceFrame, 'default');
       setDataAttr(document.body, 'data-viewer-chrome', next.viewerChrome, 'full');
@@ -532,6 +543,7 @@ function buildEnhancementScript({ mermaid = true, appearanceOptions = {} } = {})
       return normalizeAppearance({
         appearance: read('appearance') || defaultAppearance.appearance,
         appearanceBackground: read('appearanceBackground') || defaultAppearance.appearanceBackground,
+        appearanceFont: read('appearanceFont') || defaultAppearance.appearanceFont,
         appearanceRadius: read('appearanceRadius') || defaultAppearance.appearanceRadius,
         appearanceFrame: read('appearanceFrame') || defaultAppearance.appearanceFrame,
         viewerChrome: read('viewerChrome') || defaultAppearance.viewerChrome,
@@ -1228,6 +1240,54 @@ export function buildStandaloneHtmlDocument({
     body.appearance-bg-transparent {
       background: transparent;
     }
+    body.appearance-bg-paper {
+      background: #f3e7d5;
+    }
+    body.appearance-bg-linen {
+      background: #efe0ce;
+    }
+    body.appearance-bg-ivory {
+      background: #e7e9d1;
+    }
+    body.appearance-bg-cloud {
+      background: #e1e7ef;
+    }
+    body.appearance-bg-frost {
+      background: #d4eaf0;
+    }
+    body.appearance-bg-sand {
+      background: #e6d2aa;
+    }
+    body.appearance-bg-rose {
+      background: #efd2dc;
+    }
+    body.appearance-bg-lavender {
+      background: #ddd4f2;
+    }
+    body.appearance-bg-mist {
+      background: #e4edf7;
+    }
+    body.appearance-bg-sage {
+      background: #e1ece2;
+    }
+    body.appearance-bg-mint {
+      background: #d1eadc;
+    }
+    body.appearance-bg-sky {
+      background: #cee3f6;
+    }
+    body.appearance-bg-ink {
+      background: #080c12;
+    }
+    body.appearance-bg-graphite {
+      background: #0f1217;
+    }
+    body.appearance-bg-navy {
+      background: #08121e;
+    }
+    body.appearance-bg-sepia {
+      background: #ddc49e;
+    }
     ${cssText}
     body.export-slides {
       background: #edf2f9;
@@ -1236,6 +1296,55 @@ export function buildStandaloneHtmlDocument({
       align-items: center;
       justify-content: center;
       padding: 20px;
+    }
+    body.export-slides.appearance-bg-transparent,
+    body.export-slides.appearance-bg-mist {
+      background: #e4edf7;
+    }
+    body.export-slides.appearance-bg-paper {
+      background: #f3e7d5;
+    }
+    body.export-slides.appearance-bg-linen {
+      background: #efe0ce;
+    }
+    body.export-slides.appearance-bg-ivory {
+      background: #e7e9d1;
+    }
+    body.export-slides.appearance-bg-cloud {
+      background: #e1e7ef;
+    }
+    body.export-slides.appearance-bg-frost {
+      background: #d4eaf0;
+    }
+    body.export-slides.appearance-bg-sand {
+      background: #e6d2aa;
+    }
+    body.export-slides.appearance-bg-rose {
+      background: #efd2dc;
+    }
+    body.export-slides.appearance-bg-lavender {
+      background: #ddd4f2;
+    }
+    body.export-slides.appearance-bg-sage {
+      background: #e1ece2;
+    }
+    body.export-slides.appearance-bg-mint {
+      background: #d1eadc;
+    }
+    body.export-slides.appearance-bg-sky {
+      background: #cee3f6;
+    }
+    body.export-slides.appearance-bg-ink {
+      background: #080c12;
+    }
+    body.export-slides.appearance-bg-graphite {
+      background: #0f1217;
+    }
+    body.export-slides.appearance-bg-navy {
+      background: #08121e;
+    }
+    body.export-slides.appearance-bg-sepia {
+      background: #ddc49e;
     }
     body.export-slides .studio-document {
       width: min(96vw, var(--page-width, ${DEFAULT_PAGE_WIDTH}));
@@ -1525,6 +1634,55 @@ export function buildStandaloneHtmlDocument({
       background: #edf2f9;
       display: block;
       padding: 24px 24px 84px;
+    }
+    body.export-stacked.appearance-bg-transparent,
+    body.export-stacked.appearance-bg-mist {
+      background: #e4edf7;
+    }
+    body.export-stacked.appearance-bg-paper {
+      background: #f3e7d5;
+    }
+    body.export-stacked.appearance-bg-linen {
+      background: #efe0ce;
+    }
+    body.export-stacked.appearance-bg-ivory {
+      background: #e7e9d1;
+    }
+    body.export-stacked.appearance-bg-cloud {
+      background: #e1e7ef;
+    }
+    body.export-stacked.appearance-bg-frost {
+      background: #d4eaf0;
+    }
+    body.export-stacked.appearance-bg-sand {
+      background: #e6d2aa;
+    }
+    body.export-stacked.appearance-bg-rose {
+      background: #efd2dc;
+    }
+    body.export-stacked.appearance-bg-lavender {
+      background: #ddd4f2;
+    }
+    body.export-stacked.appearance-bg-sage {
+      background: #e1ece2;
+    }
+    body.export-stacked.appearance-bg-mint {
+      background: #d1eadc;
+    }
+    body.export-stacked.appearance-bg-sky {
+      background: #cee3f6;
+    }
+    body.export-stacked.appearance-bg-ink {
+      background: #080c12;
+    }
+    body.export-stacked.appearance-bg-graphite {
+      background: #0f1217;
+    }
+    body.export-stacked.appearance-bg-navy {
+      background: #08121e;
+    }
+    body.export-stacked.appearance-bg-sepia {
+      background: #ddc49e;
     }
     body.export-stacked .studio-document {
       width: calc(100% / var(--stacked-zoom, 1));

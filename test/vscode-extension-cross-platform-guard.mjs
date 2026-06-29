@@ -2,9 +2,14 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const extensionPackage = JSON.parse(await readFile(new URL('../vscode-extension/package.json', import.meta.url), 'utf8'));
+const extensionSource = await readFile(new URL('../vscode-extension/src/extension.ts', import.meta.url), 'utf8');
 const sourceGraphSource = await readFile(new URL('../vscode-extension/src/commands/sourceGraph.ts', import.meta.url), 'utf8');
 const fileBrowserProviderSource = await readFile(
   new URL('../vscode-extension/src/providers/markdownFileTreeProvider.ts', import.meta.url),
+  'utf8',
+);
+const fileBrowserRegisterSource = await readFile(
+  new URL('../vscode-extension/src/fileBrowser/registerMarkdownFileBrowser.ts', import.meta.url),
   'utf8',
 );
 const extensionGuide = await readFile(new URL('../vscode-extension/EXTENSION_GUIDE.md', import.meta.url), 'utf8');
@@ -14,9 +19,18 @@ const buildTemplateBuilderSource = await readFile(
   'utf8',
 );
 const syncBundleSource = await readFile(new URL('../vscode-extension/tools/sync-cli-bundle.mjs', import.meta.url), 'utf8');
+const exportSkillFolderSource = await readFile(
+  new URL('../vscode-extension/src/commands/exportSkillFolder.ts', import.meta.url),
+  'utf8',
+);
+const sourceGraphActivityIcon = await readFile(
+  new URL('../vscode-extension/assets/activity-source-graph.svg', import.meta.url),
+  'utf8',
+);
 
 const packagedFiles = new Set(extensionPackage.files || []);
 for (const expected of [
+  'assets/activity-source-graph.svg',
   'dist/**',
   'scripts/md-to-html.mjs',
   'scripts/source-graph.mjs',
@@ -27,6 +41,21 @@ for (const expected of [
 ]) {
   assert(packagedFiles.has(expected), `VSIX files must include ${expected}`);
 }
+assert(
+  extensionPackage.contributes?.viewsContainers?.activitybar?.some(
+    (container) =>
+      container.id === 'mdStudioSourceGraphContainer' &&
+      container.icon === 'assets/activity-source-graph.svg',
+  ),
+  'Source Graph activity bar container should use the custom MD graph icon asset',
+);
+assert(
+  sourceGraphActivityIcon.includes('aria-label="MD Source Graph"') &&
+    sourceGraphActivityIcon.includes('M3.3 16.6V7.2') &&
+    sourceGraphActivityIcon.includes('M13.75 16.6V7.2') &&
+    sourceGraphActivityIcon.includes('opacity=".36"'),
+  'Source Graph activity icon should prioritize large MD letters and keep graph marks secondary',
+);
 
 assert.match(
   sourceGraphSource,
@@ -92,7 +121,57 @@ assert(installStart >= 0 && installEnd > installStart, 'installCodexMcp should b
 assert(
   installBlock.indexOf('await updateSourceGraphIndex(context, workspaceFolder);') <
     installBlock.indexOf('await upsertManagedMcpBlock'),
-  'Install Codex MCP should create/update the graph DB before writing the MCP config block',
+  'Install Source Graph MCP should create/update the graph DB before writing MCP config blocks',
+);
+assert(
+  installBlock.includes("getMcpServerName(workspaceFolder, 'workspace')") &&
+    installBlock.includes("getCodexConfigPath(workspaceFolder, 'workspace')") &&
+    installBlock.includes('getWorkspaceMcpJsonPath(workspaceFolder)') &&
+    installBlock.includes('await pickMcpInstallTarget') &&
+    installBlock.includes("target === 'all' || target === 'mcp-json'") &&
+    installBlock.includes("target === 'all' || target === 'codex'") &&
+    !installBlock.includes('pickCodexConfigTarget'),
+  'Install Source Graph MCP should ask whether to update Claude/generic MCP, Codex, or all clients',
+);
+assert(
+  installBlock.includes('await ensureWorkspaceMcpSkillFolders(context, workspaceFolder);') &&
+    sourceGraphSource.includes("targetPathSegments: ['.claude', 'skills']") &&
+    sourceGraphSource.includes("targetPathSegments: ['.agents', 'skills']") &&
+    sourceGraphSource.includes("targetPathSegments: ['.codex', 'skills']") &&
+    sourceGraphSource.includes('resolveWorkspaceConfiguredSkillsDir'),
+  'Install Source Graph MCP should prepare workspace agent skill roots and the configured skillsDir',
+);
+assert(
+  exportSkillFolderSource.includes('workspaceSkillsDir && await hasExportableSkill(workspaceSkillsDir)'),
+  'Download Skill Folder should not offer a missing or empty workspace skillsDir as a source',
+);
+assert(
+  (extensionPackage.contributes?.commands || []).some(
+    (command) =>
+      command.command === 'mdStudioPreview.downloadSkillFolder' &&
+      command.title === 'MD Studio: Install or Export Skills',
+  ) &&
+    exportSkillFolderSource.includes('async function pickSkillWorkflow') &&
+    exportSkillFolderSource.includes("label: 'Install bundled skills to this workspace'") &&
+    exportSkillFolderSource.includes('async function installBundledSkillsToMatchingWorkspace') &&
+    exportSkillFolderSource.includes('skillAgentProfileForSource(source)') &&
+    exportSkillFolderSource.includes('Choose a skill root folder such as .claude/skills') &&
+    extensionReadme.includes('Install bundled skills to this workspace') &&
+    extensionGuide.includes('Install bundled skills to this workspace'),
+  'Skill install/export UX should lead with bundled-to-matching-workspace install and guard against selecting individual skill folders',
+);
+assert(
+  extensionSource.includes('isSessionAlive(session)') &&
+    extensionSource.includes('isWebviewDisposedError(error)') &&
+    extensionSource.includes('safeSetPanelStatus(session') &&
+    extensionSource.includes('safeSetWebviewHtml(session') &&
+    extensionSource.includes('safeSetWebviewOptions(session'),
+  'Preview rendering should ignore disposed webviews instead of surfacing Webview is disposed errors',
+);
+assert.doesNotMatch(
+  sourceGraphSource,
+  /Codex MCP|Codex Source Graph MCP|Install Codex|Check Codex|connect Codex/,
+  'Source Graph UI should describe generic MCP, not Codex-only MCP',
 );
 
 assert(
@@ -112,6 +191,27 @@ assert(
   'MD Studio File Browser should show the root .mpsignore while filtering files through .mpsignore rules',
 );
 assert(
+  extensionPackage.activationEvents?.includes('onCommand:mdStudioFileBrowser.delete') &&
+    (extensionPackage.contributes?.commands || []).some((command) => command.command === 'mdStudioFileBrowser.delete') &&
+    (extensionPackage.contributes?.keybindings || []).some(
+      (keybinding) =>
+        keybinding.command === 'mdStudioFileBrowser.delete' &&
+        keybinding.key === 'delete' &&
+        /focusedView == mdStudioFileBrowser/.test(keybinding.when || ''),
+    ) &&
+    (extensionPackage.contributes?.menus?.['view/item/context'] || []).some(
+      (item) => item.command === 'mdStudioFileBrowser.delete' && /viewItem == mdFolder/.test(item.when || ''),
+    ),
+  'MD Studio File Browser should contribute Delete key and context-menu deletion for files/folders',
+);
+assert(
+  fileBrowserRegisterSource.includes("registerCommand('mdStudioFileBrowser.delete'") &&
+    fileBrowserRegisterSource.includes('treeView.selection[0]?.resourceUri') &&
+    fileBrowserRegisterSource.includes('vscode.workspace.fs.delete(uri, { recursive: isDirectory, useTrash: true })') &&
+    fileBrowserRegisterSource.includes('vscode.workspace.getWorkspaceFolder(uri)'),
+  'MD Studio File Browser delete should use the selected tree item, stay inside the workspace, and move items to Trash',
+);
+assert(
   sourceGraphSource.includes('isSourceIgnoredUri') && sourceGraphSource.includes('MPS_IGNORE_FILE'),
   'Source Graph watcher should skip ignored markdown and rebuild when .mpsignore changes',
 );
@@ -125,8 +225,10 @@ for (const doc of [extensionGuide, extensionReadme]) {
     'User docs should name the workspace-local graph DB path',
   );
   assert(
-    doc.includes('MD Studio: Install Codex Source Graph MCP'),
-    'User docs should explain Codex MCP setup',
+    doc.includes('MD Studio: Install Source Graph MCP') &&
+      doc.includes('.mcp.json') &&
+      doc.includes('.codex/config.toml'),
+    'User docs should explain selectable Source Graph MCP client setup',
   );
   assert(
     doc.includes('source-graph-search'),

@@ -6,15 +6,107 @@ English documentation is available in [README.md](README.md).
 
 Markdown 중심으로 문서를 작성하고, 템플릿/속성 문법으로 보고서·슬라이드 스타일 HTML을 빠르게 렌더링하는 도구입니다.
 
-## 실행
+이 문서는 상세 한국어 가이드입니다. 루트 [README.md](README.md)는 가벼운 프로젝트 소개와 문서 링크 중심으로 유지하고, 세부 사용법·VS Code 확장·Source Graph·AI Skills 설명은 이 파일과 관련 문서로 나눠 관리합니다.
+
+변경 이력은 별도 문서인 [CHANGELOG.md](CHANGELOG.md)에서 관리합니다.
+
+## 추천: VS Code 확장으로 사용
+
+일반 사용자는 VS Code 확장으로 쓰는 흐름을 추천합니다. 저장소를 clone하지 않아도 Markdown 파일을 열고, 미리보기, HTML export, Source Graph, AI 스킬 다운로드를 VS Code 안에서 처리할 수 있습니다.
+
+설치:
+
+```text
+ext install datanewbie-labs.markdown-pattern-studio-preview
+```
+
+기본 흐름:
+
+1. VS Code에서 Markdown workspace를 엽니다.
+2. Activity Bar의 MD Studio 아이콘 또는 Command Palette에서 `Markdown Studio: Open Preview`를 실행합니다.
+3. Markdown을 저장하면 Preview가 자동 갱신됩니다.
+4. `MD Studio: Transform Markdown to Styled HTML`로 standalone/blog-embed/fragment HTML을 export합니다.
+5. `MD Studio: Open Source Graph`로 문서 링크와 관련 문서를 확인합니다.
+6. `MD Studio: Download Skill Folder`로 에이전트용 문서 작성 스킬을 내려받거나 workspace에 업데이트합니다.
+
+자세한 확장 사용법은 [vscode-extension/README.md](vscode-extension/README.md)와 [vscode-extension/EXTENSION_GUIDE.md](vscode-extension/EXTENSION_GUIDE.md)를 참고하세요.
+
+## AI 에이전트로 문서 만들기
+
+VS Code 확장에서 스킬을 다운로드하거나 workspace 스킬 폴더로 업데이트한 뒤, Claude/Codex/Agents 같은 에이전트에게 아래처럼 요청하면 Markdown Pattern Studio 문서 구조에 맞춰 초안을 만들 수 있습니다. 이 기능도 VS Code 확장 사용 흐름에 포함되어 있으므로, 처음에는 clone보다 VS Code 확장 방식으로 시작하는 것을 권장합니다.
+
+### 1. 스킬 다운로드 또는 업데이트
+
+1. VS Code에서 Markdown workspace를 엽니다.
+2. Command Palette에서 `MD Studio: Download Skill Folder`를 실행합니다.
+3. 사용할 source를 선택합니다.
+   - `Bundled Claude`: Claude용 `.claude/skills`에 맞는 스킬
+   - `Bundled Agents`: `.agents/skills`에 맞는 스킬
+   - `Bundled Codex`: `.codex/skills`에 맞는 스킬
+   - `Bundled Gemini`: `.gemini/skills`에 맞는 스킬(번들 source가 있을 때)
+   - `Bundled Cursor`: `.cursor/skills`에 맞는 스킬(번들 source가 있을 때)
+   - `Workspace`: 설정된 `mdStudioPreview.skillsDir` 기준 스킬
+4. ZIP 저장, 매칭 폴더 업데이트, 또는 선택/전체 스킬을 모든 에이전트 폴더에 반영하는 액션을 선택합니다. 대상 폴더가 없으면 자동으로 생성됩니다.
+5. 문서 제작용으로는 보통 `md-presentation-composer`와 `document-production-advisor`를 함께 사용합니다.
+
+### 2. 에이전트에게 입력할 프롬프트
+
+새 문서를 만들 때:
+
+```text
+md-presentation-composer와 document-production-advisor를 사용해서
+아래 내용을 Markdown Pattern Studio 문서로 만들어줘.
+
+목적: 임원 보고용 8페이지 요약 보고서
+톤: 전문적이고 간결하게
+출력: Markdown만
+조건:
+- frontmatter에 title, theme, intent, appearance를 넣어줘
+- 페이지는 {: .page-break }로 나눠줘
+- KPI는 .stats 또는 .metrics-dashboard로 구성해줘
+- 마지막에 렌더링/가독성 체크리스트를 간단히 붙여줘
+
+내용:
+[여기에 원문, 회의록, 기획 메모, 표 데이터 등을 붙여넣기]
+```
+
+기존 Markdown을 재구성할 때:
+
+```text
+md-presentation-composer를 사용해서 @파일명.md를 발표/보고서 형태로 재구성해줘.
+먼저 문서 목적, 추천 theme/intent, 페이지 구성안만 보여주고,
+승인 후 최종 Markdown을 만들어줘.
+```
+
+품질 점검까지 맡길 때:
+
+```text
+document-production-advisor를 사용해서 이 Markdown이
+HTML export와 blog-embed export에서 깨지지 않을지 점검해줘.
+표, 카드, 다크 슬라이드 대비, 모바일 stack, 이미지 경로를 확인하고
+수정이 필요한 부분은 패치 형태로 제안해줘.
+```
+
+### 3. 어떤 스킬을 쓰면 좋은가
+
+- `md-presentation-composer`: 원문을 보고서, 제안서, 기술 문서, 튜토리얼, 발표형 Markdown으로 재구성할 때 사용합니다.
+- `document-production-advisor`: 요청 충족 여부, 렌더 UX, HTML/blog/DOCX/PPTX식 handoff 안정성을 점검할 때 사용합니다.
+- `source-graph-search`: 여러 Markdown 파일 사이의 관련 문서, backlink, citation, neighbor를 찾아야 할 때 사용합니다.
+
+## 일반/개발: clone해서 사용
+
+clone해서 사용하는 방식은 웹 스튜디오를 직접 띄우거나, CLI 변환을 자동화하거나, 확장/렌더러 개발을 할 때 적합합니다.
 
 요구사항: Node.js 18+
 
-Windows에서는 `dev.bat`을 더블클릭해서 바로 실행할 수 있습니다.
-
 ```bash
+git clone https://github.com/sungreong/md-pattern-studio.git
+cd md-pattern-studio
+npm install
 npm start
 ```
+
+Windows에서는 이미 clone한 폴더에서 `dev.bat`을 더블클릭해 실행할 수도 있습니다.
 
 브라우저에서 아래 주소를 엽니다.
 
@@ -22,9 +114,17 @@ npm start
 http://localhost:3188
 ```
 
+CLI만 사용할 때:
+
+```bash
+npm run md2html -- test/notes.md
+npm run md2html -- test/notes.md --out test/notes.blog-embed.html --export-target blog-embed
+```
+
 ## 핵심 기능
 
-- Markdown 편집 + 실시간 HTML 미리보기
+- VS Code 확장 기반 Markdown 미리보기, export, Source Graph, AI 스킬 다운로드
+- clone 후 웹 스튜디오에서 Markdown 편집 + 실시간 HTML 미리보기
 - 섹션 템플릿 클래스 14종 (`.cover`, `.dark`, `.half-bleed`, `.icon-list`, `.card`, `.two-column`, `.three-column`, `.stats`, `.compare`, `.timeline`, `.agenda`, `.message`, `.spotlight`, `.quote-slide`)
 - 블록 속성 문법 `{: ...}` 지원
 - 페이지 분리(`{: .page-break}`) 기반 Slides 모드
@@ -61,9 +161,21 @@ MD Studio File Browser에서 폴더 FOCUS, 정렬/필터, Markdown 미리보기,
 
 Standalone export는 Outline, 줌, Slide/Stack 전환, 코드 복사, 로컬 이미지 내장을 포함해 HTML 파일 하나로 공유하기 좋게 만듭니다.
 
-## 화면 구성과 사용 방법
+### 4. VS Code Extension 0.1.34 업데이트
 
-처음 사용할 때는 아래 순서로 진행하면 됩니다.
+![VS Code Extension 0.1.34 업데이트 화면](assets/images/vscode-extension-0.1.34-updates.png)
+
+0.1.32 이후 Source Graph, Codex MCP 설정 명령, Blog Embed/Fragment export, 렌더 품질 가드, MD 책 아이콘이 추가되었습니다.
+
+### 5. Source Graph Webview
+
+![Source Graph Webview 화면](assets/images/source-graph-vsix-preview.png)
+
+워크스페이스 Markdown 문서, heading, link, citation, related neighbor를 로컬 SQLite 그래프로 인덱싱하고 VS Code 안에서 시각적으로 탐색합니다.
+
+## 웹 스튜디오 화면 구성과 사용 방법
+
+clone해서 웹 스튜디오를 직접 실행할 때는 아래 순서로 사용하면 됩니다.
 
 1. 왼쪽 `패턴 가이드`에서 문법을 확인하고, `빠른 삽입` 버튼으로 자주 쓰는 블록을 넣습니다.
 2. 가운데 `Markdown Editor`에서 문서를 작성합니다.
@@ -250,7 +362,7 @@ pageHeight: 720px
 - 삽입 위치는 현재 커서 기준 섹션 직후로 자동 설정
 - VS Code Extension에서는 Webview 내 패널로 제공되며 저장 시 에디터에 반영
 
-## CLI: Markdown -> HTML
+## clone/CLI: Markdown -> HTML
 
 ```bash
 npm run md2html -- <input.md>
@@ -337,7 +449,7 @@ npm run md2html -- test/notes.md --out test/notes.fragment.html --export-target 
 npm run test:embed-images
 ```
 
-## VS Code Extension: CLI Preview
+## VS Code 확장 상세 기능
 
 `vscode-extension/` 폴더에는 CLI 렌더 결과를 VS Code Webview에서 보여주는 확장 소스가 포함되어 있습니다.
 
@@ -346,7 +458,7 @@ npm run test:embed-images
 - `md-presentation-composer`: Markdown을 보고서, 제안서, 기술 문서, 튜토리얼, 발표형 문서로 재구성
 - `document-production-advisor`: 사용자 요청을 acceptance criteria와 trace로 정리하고 HTML/blog/DOCX/PPTX식 handoff, 렌더 UX, 표현 클래스, heading/list/table/image 구조, export 안정성을 점검하며 렌더 테스트 예제를 포함
 
-`MD Studio: Download Skill Folder`는 스킬 ZIP을 저장하거나 현재 workspace에서 선택한 source와 매칭되는 스킬 폴더만 업데이트합니다. Bundled Codex는 `.codex/skills`, Bundled Agents는 `.agents/skills`, Bundled Claude는 `.claude/skills`, workspace source는 설정된 `mdStudioPreview.skillsDir`로 업데이트합니다. ZIP을 Claude, Codex, 또는 호환되는 다른 에이전트에게 전달하면, 해당 에이전트가 같은 Markdown Pattern Studio 구조, 문서 디자인 클래스, export 규칙, 렌더 검증 체크리스트를 기준으로 문서를 작성하도록 지시할 수 있습니다.
+`MD Studio: Download Skill Folder`는 스킬 ZIP을 저장하거나 현재 workspace의 스킬 폴더를 업데이트합니다. 선택한 source와 매칭되는 폴더만 업데이트할 수도 있고, 선택/전체 스킬을 `.claude/skills`, `.agents/skills`, `.codex/skills`, `.gemini/skills`, `.cursor/skills` 같은 알려진 에이전트 폴더 전체에 한 번에 반영할 수도 있습니다. 대상 폴더가 없으면 자동으로 생성됩니다. ZIP을 Claude, Codex, 또는 호환되는 다른 에이전트에게 전달하면, 해당 에이전트가 같은 Markdown Pattern Studio 구조, 문서 디자인 클래스, export 규칙, 렌더 검증 체크리스트를 기준으로 문서를 작성하도록 지시할 수 있습니다.
 
 확장 동작 예시 화면:
 
@@ -354,38 +466,7 @@ npm run test:embed-images
 
 이 화면은 VS Code에서 Markdown을 저장했을 때, 확장이 CLI 렌더링 결과를 Webview로 보여주고 Outline/페이지 네비게이션을 제공하는 상태입니다.
 
-### 최근 VS Code Extension 배포 준비 (0.1.34 — 2026-06-24)
-
-- **다크/액센트 슬라이드 대비 개선**: 어두운 배경에서 본문, muted 문맥, 링크, inline code가 안 보이는 문제를 줄이도록 inverse 색상 토큰과 `.message .dark` 보정을 강화했습니다.
-- **색상/폰트 대비 하네스 추가**: 문서 작성 스킬이 렌더 후 dark/accent 표면의 heading/body/muted/link/code 대비를 점검하고, 실패하면 색상/폰트를 다시 수정하도록 검증 단계를 추가했습니다.
-- **회귀 테스트 추가**: `.message .dark`와 일반 `.dark` 슬라이드가 VS Code 번들에서도 읽기 가능한 대비를 유지하는지 확인합니다.
-
-### VS Code Extension 배포 준비 (0.1.33 — 2026-06-24)
-
-- **카드/feature-grid 타이포그래피 개선**: VS Code Webview에서도 긴 카드 제목이 과하게 커지거나 글자 단위로 쪼개지지 않도록 보정했습니다.
-- **반응형 카드 그리드 개선**: 좁은 preview panel에서는 카드/컬럼이 자연스럽게 1열로 쌓이고, 넓은 화면에서는 적절한 최소 폭을 유지합니다.
-- **번들 스킬 가이드 보강**: 카드형 문서 표현은 짧은 라벨과 본문 설명을 쓰도록 `md-presentation-composer`, `document-production-advisor` 지침을 보강했습니다.
-
-### VS Code Extension 배포 준비 (0.1.32 — 2026-06-22)
-
-- **Blog Embed export 추가**: Tistory/WordPress/Velog 같은 기존 사이트에 복붙할 때 fixed viewer chrome과 전역 CSS 충돌을 줄이는 scoped fragment를 지원합니다.
-- **HTML Viewer 개선**: `.html`/`.htm` 파일을 MD Studio Viewer에서 열고 Edit Source, Refresh, 저장 시 자동 갱신을 유지합니다.
-- **스킬 다운로드/업데이트 개선**: `MD Studio: Download Skill Folder`에서 ZIP 저장 또는 선택한 source와 매칭되는 workspace skill root 업데이트를 지원합니다.
-- **문서 생성 스킬 추가**: `document-production-advisor`로 요청 충족 trace, 렌더 UX 검증, DOCX/PPTX식 handoff 기준을 제공합니다.
-
-### VS Code Extension 업데이트 (0.1.20 — 2026-06-13)
-
-- **Inline `<small>` 지원**: Markdown 문장 안의 `<small>...</small>`을 caption 스타일로 렌더링하고, 내부의 굵게/코드/링크 같은 인라인 Markdown도 함께 처리합니다.
-- **CLI/VS Code 번들 동기화**: 웹 렌더러와 VS Code 확장 번들 렌더러에 동일한 small 텍스트 처리와 스타일을 반영했습니다.
-
-### VS Code Extension 업데이트 (0.1.19 — 2026-05-24)
-
-- **Style 메뉴 연동**: VS Code Preview와 `MD Studio: Transform Markdown to Styled HTML`이 같은 외형 옵션을 사용합니다.
-- **Fill 줌 추가**: Slides 모드에서 `Fill` 또는 `Ctrl+9`로 페이지를 가로폭에 맞춰 크게 볼 수 있고, Stack 전환 시 줌 상태가 자동 정리됩니다.
-- **MD Studio File Browser 확장**: Markdown 외에 `.txt`, `.html`, `.json` 같은 추가 확장자를 표시할 수 있으며 비-Markdown 파일은 `Open in Editor`로 엽니다.
-- **폴더 FOCUS 정리**: 우클릭 `FOCUS`는 MD Studio File Browser 안에서만 범위를 좁히며 VS Code Explorer의 `files.exclude`를 건드리지 않습니다. 이전 실험 빌드가 남긴 Explorer 제외 규칙은 `FOCUS 해제` 시 정리합니다.
-- **Raw HTML 가드**: `<details>/<summary>`는 정적 note callout으로 변환하고, `<div>`, `<iframe>` 같은 지원하지 않는 raw HTML은 품질 경고로 노출합니다.
-- **번들 렌더러 우선 사용**: 기본 CLI 설정에서는 확장에 포함된 최신 렌더러를 먼저 사용해 Style/Fill 컨트롤이 누락되지 않게 했습니다.
+릴리스별 변경 이력은 [CHANGELOG.md](CHANGELOG.md)에서 따로 관리합니다.
 
 사용 흐름:
 
@@ -563,7 +644,9 @@ code --install-extension .\markdown-pattern-studio-preview-0.1.34.vsix
 - 샘플 문서: `public/examples/sample.md`
 - 경로 예시: `![로컬 KPI 샘플](./public/examples/assets/local-kpi-card.svg)`
 
-## AI Skills 사용법
+## AI Skills 원본 관리
+
+이 섹션은 저장소를 clone해서 스킬 원본을 직접 관리할 때 참고합니다. 단순히 에이전트에게 문서를 작성시키는 목적이라면 앞쪽의 `AI 에이전트로 문서 만들기` 흐름처럼 VS Code 확장에서 `MD Studio: Download Skill Folder`를 사용하는 방식을 권장합니다.
 
 이 저장소에는 Claude / Codex / Agents용 스킬 번들이 `ai_skills/`에 포함되어 있습니다.
 
@@ -653,88 +736,8 @@ npm run md2html -- public/examples/design-showcase.md --theme midnight --intent 
 - 디자인 쇼케이스: `public/examples/design-showcase.md`
 - 샘플 자산: `public/examples/assets/local-kpi-card.svg`
 - AI 스킬: `ai_skills/claude/skills/md-presentation-composer/`
+- 변경 이력: [CHANGELOG.md](CHANGELOG.md)
 
 ## 변경 이력
 
-### VS Code Extension 0.1.34 — 2026-06-24
-
-- 다크/액센트 슬라이드의 본문, muted 문맥, 링크, inline code 대비 개선
-- 문서 생성 스킬에 렌더 후 색상/폰트 대비 하네스 추가
-- `.message .dark`와 일반 `.dark` 슬라이드 대비 회귀 테스트 추가
-- 최신 VSIX: `vscode-extension/markdown-pattern-studio-preview-0.1.34.vsix`
-
-### VS Code Extension 0.1.33 — 2026-06-24
-
-- VS Code Webview 카드/feature-grid 제목 크기와 줄바꿈 개선
-- 좁은 preview panel용 반응형 카드/컬럼 grid 보정
-- 카드형 문서 작성 스킬 가이드와 회귀 테스트 추가
-- 당시 VSIX: `vscode-extension/markdown-pattern-studio-preview-0.1.33.vsix`
-
-### VS Code Extension 0.1.32 — 2026-06-22
-
-- Blog Embed HTML, Content Fragment export target 추가
-- `.html`/`.htm` Viewer 열기와 HTML source 편집/새로고침 지원
-- `mdStudioPreview.language`로 영어 기본값과 한국어 UI 선택 지원
-- `document-production-advisor` bundled skill 추가
-- Download Skill Folder에서 source와 매칭되는 workspace skill root 업데이트 지원
-- 당시 VSIX: `vscode-extension/markdown-pattern-studio-preview-0.1.32.vsix`
-
-### VS Code Extension 0.1.31 — 2026-06-20
-
-- Marketplace 대표 아이콘을 추가하고 `package.json`의 `icon` 필드에 연결
-- VSIX 패키지에 `assets/icon.png` 포함
-- 당시 VSIX: `vscode-extension/markdown-pattern-studio-preview-0.1.31.vsix`
-
-### VS Code Extension 0.1.30 — 2026-06-20
-
-- Marketplace publisher를 `datanewbie-labs`로 지정
-- repository/bugs/homepage 링크를 실제 GitHub 저장소로 정리
-- 설치 가이드와 확장 ID 안내를 `datanewbie-labs.markdown-pattern-studio-preview` 기준으로 갱신
-- 당시 VSIX: `vscode-extension/markdown-pattern-studio-preview-0.1.30.vsix`
-
-### VS Code Extension 0.1.20 — 2026-06-13
-
-- 문장 안의 `<small>...</small>`을 안전한 caption HTML로 렌더링하고, 내부 Markdown 인라인 서식을 지원
-- standalone HTML과 VS Code 번들 CSS에 `.studio-document small` 스타일 추가
-- CLI/렌더러 회귀 테스트로 raw HTML details 및 small 텍스트 처리 검증 보강
-- 당시 VSIX: `vscode-extension/markdown-pattern-studio-preview-0.1.20.vsix`
-
-### VS Code Extension 0.1.19 — 2026-05-24
-
-- 웹/CLI/VS Code Preview에 공통 `appearance` 옵션을 추가하고, standalone HTML에도 Style 메뉴를 포함
-- Slides 뷰어에 `Fill` 줌을 추가하고 Stack/Slides 전환 시 줌 overflow 상태를 초기화
-- MD Studio File Browser에서 추가 확장자 표시, 비-Markdown `Open in Editor`, 폴더 FOCUS, FOCUS 해제를 지원
-- 기본 CLI 설정에서 확장 번들 렌더러를 우선 사용해 최신 뷰어 컨트롤을 안정적으로 제공
-- `<details>/<summary>`를 정적 note callout으로 변환하고 지원하지 않는 raw HTML 품질 경고를 추가
-- `md-presentation-composer` 스킬에 raw HTML 금지와 details 대체 작성 규칙을 보강
-
-### v0.3.1 — 2026-05-01 (PPTX-skill Design System)
-
-**참조:** [Anthropic PPTX Skill](https://github.com/anthropics/skills/tree/main/skills/pptx), [Theme Factory Skill](https://github.com/anthropics/skills/blob/main/skills/theme-factory/SKILL.md), [Frontend Design Skill](https://github.com/anthropics/skills/blob/main/skills/frontend-design/SKILL.md), [Canvas Design Skill](https://github.com/anthropics/skills/blob/main/skills/canvas-design/SKILL.md)
-
-**신규 기능**
-
-- **팔레트 8종 추가** — `midnight`, `coral`, `terracotta`, `charcoal`, `teal-trust`, `berry`, `cherry`, `sage`. 각 테마에 컬러 변수 + 폰트 페어링(`--font-heading`, `--font-body`) 내장
-- **타이포그래피 스케일** — `--font-size-title: 2.6rem` / `--font-size-section: 1.45rem` / `--font-size-body: 1rem` / `--font-size-caption: 0.78rem` (PPTX pt 크기 기준)
-- **`.dark` 템플릿** — 액센트 컬러를 배경으로 쓰는 다크 슬라이드. 샌드위치 구조(다크 커버 → 라이트 본문 → 다크 클로즈)에 사용
-- **`.half-bleed` 템플릿** — 첫 번째 이미지가 슬라이드 절반을 `object-fit: cover`로 꽉 채움. `side="right"` 속성으로 방향 전환
-- **`.icon-list` 템플릿** — `🚀 | 제목 | 설명` 파이프 형식으로 아이콘 원형 + 헤더 + 설명 렌더링
-- **`intent:` 프론트매터** — `report / pitch / reference / narrative`. CLI `--intent` 플래그로도 지정 가능
-
-**디자인 안티패턴 수정 (슬라이드 모드)**
-
-- 섹션 제목 하단 장식선(`border-bottom`) 제거
-- 본문 텍스트/목록 좌측 정렬 강제
-- 슬라이드 내부 최소 패딩 `2rem` 보장
-- 콘텐츠 블록 간격 `1.25rem`으로 표준화
-
-**AI 스킬 강화**
-
-- `SKILL.md` 전면 재작성 — Audit → Map → Commit → Verify 프레임워크 도입
-- `quick-insert-catalog.md` — 항목 수 기반 템플릿 선택 테이블 추가, `.compare` 3개 이상 사용 금지 명시
-- `validation-rules.md` — 20개 항목 시각적 QA 체크리스트 추가
-- `ai_skills/sync.sh` — claude → agents / codex 동기화
-
-**VSIX**
-
-- `vscode-extension/markdown-pattern-studio-preview-0.1.8.vsix` 빌드 완료 (98.68 KB)
+변경 이력은 [CHANGELOG.md](CHANGELOG.md)에서 별도로 관리합니다.

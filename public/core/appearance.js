@@ -10,6 +10,41 @@ export const APPEARANCE_BACKGROUND_OPTIONS = [
   { value: 'default', label: 'Default' },
   { value: 'plain', label: 'Plain' },
   { value: 'transparent', label: 'Transparent' },
+  { value: 'paper', label: 'Paper' },
+  { value: 'mist', label: 'Mist' },
+  { value: 'sage', label: 'Sage' },
+  { value: 'ink', label: 'Ink' },
+  { value: 'linen', label: 'Linen' },
+  { value: 'ivory', label: 'Ivory' },
+  { value: 'cloud', label: 'Cloud' },
+  { value: 'frost', label: 'Frost' },
+  { value: 'sand', label: 'Sand' },
+  { value: 'rose', label: 'Rose' },
+  { value: 'lavender', label: 'Lavender' },
+  { value: 'mint', label: 'Mint' },
+  { value: 'sky', label: 'Sky' },
+  { value: 'graphite', label: 'Graphite' },
+  { value: 'navy', label: 'Navy' },
+  { value: 'sepia', label: 'Sepia' },
+];
+
+export const APPEARANCE_FONT_OPTIONS = [
+  { value: 'default', label: 'Default' },
+  { value: 'system', label: 'System UI' },
+  { value: 'aptos', label: 'Aptos' },
+  { value: 'calibri', label: 'Calibri' },
+  { value: 'arial', label: 'Arial' },
+  { value: 'verdana', label: 'Verdana' },
+  { value: 'segoe', label: 'Segoe UI' },
+  { value: 'helvetica', label: 'Helvetica' },
+  { value: 'georgia', label: 'Georgia' },
+  { value: 'garamond', label: 'Garamond' },
+  { value: 'palatino', label: 'Palatino' },
+  { value: 'lato', label: 'Lato' },
+  { value: 'montserrat', label: 'Montserrat' },
+  { value: 'poppins', label: 'Poppins' },
+  { value: 'source-sans', label: 'Source Sans' },
+  { value: 'noto-kr', label: 'Noto Sans KR' },
 ];
 
 export const APPEARANCE_RADIUS_OPTIONS = [
@@ -32,6 +67,7 @@ export const VIEWER_CHROME_OPTIONS = [
 
 const APPEARANCE_VALUES = APPEARANCE_PRESET_OPTIONS.map((item) => item.value);
 const BACKGROUND_VALUES = APPEARANCE_BACKGROUND_OPTIONS.map((item) => item.value);
+const FONT_VALUES = APPEARANCE_FONT_OPTIONS.map((item) => item.value);
 const RADIUS_VALUES = APPEARANCE_RADIUS_OPTIONS.map((item) => item.value);
 const FRAME_VALUES = APPEARANCE_FRAME_OPTIONS.map((item) => item.value);
 const CHROME_VALUES = VIEWER_CHROME_OPTIONS.map((item) => item.value);
@@ -39,6 +75,7 @@ const CHROME_VALUES = VIEWER_CHROME_OPTIONS.map((item) => item.value);
 export const DEFAULT_APPEARANCE_OPTIONS = Object.freeze({
   appearance: 'default',
   appearanceBackground: 'default',
+  appearanceFont: 'default',
   appearanceRadius: 'default',
   appearanceFrame: 'default',
   viewerChrome: 'full',
@@ -55,6 +92,11 @@ export function normalizeAppearanceOptions(options = {}, meta = {}) {
       readOptionValue(options, meta, ['appearanceBackground', 'appearance-background']),
       BACKGROUND_VALUES,
       DEFAULT_APPEARANCE_OPTIONS.appearanceBackground,
+    ),
+    appearanceFont: normalizeChoice(
+      readOptionValue(options, meta, ['appearanceFont', 'appearance-font']),
+      FONT_VALUES,
+      DEFAULT_APPEARANCE_OPTIONS.appearanceFont,
     ),
     appearanceRadius: normalizeChoice(
       readOptionValue(options, meta, ['appearanceRadius', 'appearance-radius']),
@@ -83,6 +125,9 @@ export function getAppearanceClassNames(options = {}, settings = {}) {
   if (normalized.appearanceBackground !== DEFAULT_APPEARANCE_OPTIONS.appearanceBackground) {
     classes.push(`appearance-bg-${normalized.appearanceBackground}`);
   }
+  if (normalized.appearanceFont !== DEFAULT_APPEARANCE_OPTIONS.appearanceFont) {
+    classes.push(`appearance-font-${normalized.appearanceFont}`);
+  }
   if (normalized.appearanceRadius !== DEFAULT_APPEARANCE_OPTIONS.appearanceRadius) {
     classes.push(`appearance-radius-${normalized.appearanceRadius}`);
   }
@@ -103,6 +148,9 @@ export function getAppearanceDataAttributes(options = {}, settings = {}) {
   }
   if (normalized.appearanceBackground !== DEFAULT_APPEARANCE_OPTIONS.appearanceBackground) {
     attrs.push(`data-appearance-background="${normalized.appearanceBackground}"`);
+  }
+  if (normalized.appearanceFont !== DEFAULT_APPEARANCE_OPTIONS.appearanceFont) {
+    attrs.push(`data-appearance-font="${normalized.appearanceFont}"`);
   }
   if (normalized.appearanceRadius !== DEFAULT_APPEARANCE_OPTIONS.appearanceRadius) {
     attrs.push(`data-appearance-radius="${normalized.appearanceRadius}"`);
@@ -142,6 +190,9 @@ export function buildAppearanceCliArgs(options = {}) {
   }
   if (normalized.appearanceBackground !== DEFAULT_APPEARANCE_OPTIONS.appearanceBackground) {
     args.push('--appearance-background', normalized.appearanceBackground);
+  }
+  if (normalized.appearanceFont !== DEFAULT_APPEARANCE_OPTIONS.appearanceFont) {
+    args.push('--appearance-font', normalized.appearanceFont);
   }
   if (normalized.appearanceRadius !== DEFAULT_APPEARANCE_OPTIONS.appearanceRadius) {
     args.push('--appearance-radius', normalized.appearanceRadius);

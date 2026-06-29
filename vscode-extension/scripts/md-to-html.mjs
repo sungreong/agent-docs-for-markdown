@@ -30,7 +30,7 @@ const EMAIL_DISCLAIMER_CONFIRM_RE =
 
 function printUsage() {
   console.log(`Usage:
-  node scripts/md-to-html.mjs <input.md> [--out output.html] [--theme report] [--design vercel] [--appearance clean] [--appearance-background plain] [--appearance-radius none] [--appearance-frame lines] [--viewer-chrome minimal] [--mode web] [--export-target standalone|blog-embed|fragment] [--standalone] [--base-dir path] [--embed-local-images|--no-embed-local-images] [--strip-email-disclaimer] [--mermaid|--no-mermaid]
+  node scripts/md-to-html.mjs <input.md> [--out output.html] [--theme report] [--design vercel] [--appearance clean] [--appearance-background plain] [--appearance-font aptos] [--appearance-radius none] [--appearance-frame lines] [--viewer-chrome minimal] [--mode web] [--export-target standalone|blog-embed|fragment] [--standalone] [--base-dir path] [--embed-local-images|--no-embed-local-images] [--strip-email-disclaimer] [--mermaid|--no-mermaid]
 
 Examples:
   node scripts/md-to-html.mjs test/notes.md
@@ -50,6 +50,7 @@ function parseArgs(argv) {
     intent: '',
     appearance: '',
     appearanceBackground: '',
+    appearanceFont: '',
     appearanceRadius: '',
     appearanceFrame: '',
     viewerChrome: '',
@@ -95,6 +96,10 @@ function parseArgs(argv) {
     }
     if (token === '--appearance-background') {
       result.appearanceBackground = args.shift() || '';
+      continue;
+    }
+    if (token === '--appearance-font') {
+      result.appearanceFont = args.shift() || '';
       continue;
     }
     if (token === '--appearance-radius') {
@@ -670,6 +675,7 @@ async function main() {
       intent: args.intent,
       appearance: args.appearance,
       appearanceBackground: args.appearanceBackground,
+      appearanceFont: args.appearanceFont,
       appearanceRadius: args.appearanceRadius,
       appearanceFrame: args.appearanceFrame,
       viewerChrome: args.viewerChrome,

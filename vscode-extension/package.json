@@ -2,7 +2,7 @@
   "name": "markdown-pattern-studio-preview",
   "displayName": "Markdown Pattern Studio Preview",
   "description": "Preview Markdown Pattern Studio CLI output in a VS Code webview.",
-  "version": "0.1.34",
+  "version": "0.1.37",
   "publisher": "datanewbie-labs",
   "license": "MIT",
   "icon": "assets/icon.png",
@@ -58,6 +58,7 @@
     "onCommand:mdStudioFileBrowser.copyRelativePath",
     "onCommand:mdStudioFileBrowser.copyFileName",
     "onCommand:mdStudioFileBrowser.hideItem",
+    "onCommand:mdStudioFileBrowser.delete",
     "onCommand:mdStudioFileBrowser.manageHidden",
     "onCommand:mdStudioFileBrowser.search"
   ],
@@ -73,7 +74,7 @@
         {
           "id": "mdStudioSourceGraphContainer",
           "title": "MD Studio Source Graph",
-          "icon": "$(graph)"
+          "icon": "assets/activity-source-graph.svg"
         }
       ]
     },
@@ -150,27 +151,27 @@
       },
       {
         "command": "mdStudioPreview.copyCodexMcpConfig",
-        "title": "MD Studio: Copy Codex Source Graph MCP Config",
+        "title": "MD Studio: Copy Source Graph MCP Config",
         "icon": "$(settings-gear)"
       },
       {
         "command": "mdStudioPreview.installCodexMcp",
-        "title": "MD Studio: Install Codex Source Graph MCP",
+        "title": "MD Studio: Install Source Graph MCP",
         "icon": "$(plug)"
       },
       {
         "command": "mdStudioPreview.checkCodexMcpStatus",
-        "title": "MD Studio: Check Codex Source Graph MCP Status",
+        "title": "MD Studio: Check Source Graph MCP Status",
         "icon": "$(pulse)"
       },
       {
         "command": "mdStudioPreview.removeCodexMcp",
-        "title": "MD Studio: Remove Codex Source Graph MCP",
+        "title": "MD Studio: Remove Source Graph MCP",
         "icon": "$(trash)"
       },
       {
         "command": "mdStudioPreview.downloadSkillFolder",
-        "title": "MD Studio: Download Skill Folder",
+        "title": "MD Studio: Install or Export Skills",
         "icon": "$(cloud-download)"
       },
       {
@@ -264,6 +265,11 @@
         "icon": "$(eye-closed)"
       },
       {
+        "command": "mdStudioFileBrowser.delete",
+        "title": "Delete",
+        "icon": "$(trash)"
+      },
+      {
         "command": "mdStudioFileBrowser.manageHidden",
         "title": "MD Studio: Manage Hidden Items",
         "icon": "$(eye)"
@@ -347,6 +353,14 @@
         }
       }
     },
+    "keybindings": [
+      {
+        "command": "mdStudioFileBrowser.delete",
+        "key": "delete",
+        "mac": "delete",
+        "when": "focusedView == mdStudioFileBrowser && !inputFocus"
+      }
+    ],
     "menus": {
       "view/title": [
         {
@@ -542,6 +556,11 @@
           "command": "mdStudioFileBrowser.hideItem",
           "when": "view == mdStudioFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
           "group": "navigation@7"
+        },
+        {
+          "command": "mdStudioFileBrowser.delete",
+          "when": "view == mdStudioFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
+          "group": "navigation@8"
         }
       ],
       "explorer/context": [
@@ -565,6 +584,7 @@
     "assets/icon.png",
     "assets/icon.svg",
     "assets/activity-md.svg",
+    "assets/activity-source-graph.svg",
     "dist/**",
     "README.md",
     "CHANGELOG.md",

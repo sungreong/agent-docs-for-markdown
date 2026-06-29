@@ -11,6 +11,12 @@ Transform Markdown into purpose-driven, visually structured documents that rival
 
 This skill also includes a curated DESIGN.md knowledge base from 70 public brand-inspired design systems. Use it to decide the visual direction, not to blindly copy brands. Start from the synthesized insight files, then open raw brand DESIGN.md files only when a specific brand or archetype is relevant.
 
+## Setup Preflight
+
+Before transforming Markdown, use `$install-diagnostics` when available to verify that the local environment can run the requested workflow. Check baseline tools (`node`, `npm`, `python`, `git`, `rg`) and any task-specific renderer, browser, PDF, image, or package dependency implied by the request.
+
+Do not install, upgrade, remove, or globally configure anything without explicit user approval. If a missing dependency blocks the work, report the exact OS-specific command, scope, and reason, then continue only after approval. After an approved install, verify it and record the result through `$install-diagnostics` so the user is not asked again when the dependency still verifies.
+
 ## Design Framework (Audit → Map → Commit → Verify)
 
 Before writing a single line of output, work through four phases:
@@ -43,6 +49,7 @@ Then define a component system for the whole document:
 - Who is the reader? executive / technical / general / student
 - What action should they take after reading?
 - Is a brand or visual archetype requested? If yes, use `references/design-md/manifest.json` and the synthesis files before writing content.
+- Are screenshots, diagrams, photos, generated images, or visual evidence present? If yes, read `references/image-placement-rules.md` before choosing templates.
 - **For each section: count the items.** A slide is 1120×720px with ~656px usable height. Content is vertically centered. A section with only 2–3 items or 1 short paragraph will feel sparse — decide whether to merge it with adjacent content, add supporting body text, or use a visually heavier template (`.half-bleed` always fills the canvas). See `references/environment-guide.md` for per-template height footprints.
 
 **Phase 2 — Map**: Assign content to layout archetypes, accounting for item count.
@@ -339,6 +346,7 @@ Do not damage these during transformation:
 
 - **Rendering environment guide** (read first): `references/environment-guide.md` — canvas dimensions, per-template height footprints, density rules, template pairing, what the renderer does NOT support
 - Component selection rules: `references/component-selection-rules.md` — when to use KPI cards, tables, comparison matrices, callouts, and evidence slides
+- Image placement rules: `references/image-placement-rules.md` — screenshot, diagram, photo, half-bleed, caption, crop, and multi-image placement rules
 - Design decision rules: `references/document-design-rules.md`
 - PPT-style Markdown deck rules: `references/ppt-like-markdown-rules.md`
 - Quick insert catalog: `references/quick-insert-catalog.md`
