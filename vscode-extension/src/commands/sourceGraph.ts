@@ -2266,13 +2266,15 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     const docById = new Map((db.tables.documents || []).map((doc) => [doc.id, doc]));
     const documentNodes = (db.graph.nodes || []).filter((node) => documentNodeIds.has(node.id)).map((node) => ({ ...node, kind: 'document', layer: 'file' }));
     const rawFileEdges = (db.graph.edges || []).filter((edge) => documentNodeIds.has(edge.source) && documentNodeIds.has(edge.target));
-    const fileEdges = Array.from(rawFileEdges.reduce((map, edge) => {
+    const allFileEdges = Array.from(rawFileEdges.reduce((map, edge) => {
       const key = edge.source + '->' + edge.target;
       const existing = map.get(key);
       if (existing) existing.count = (existing.count || 1) + 1;
       else map.set(key, { ...edge, count: 1, layer: 'file' });
       return map;
     }, new Map()).values());
+    const fileEdges = allFileEdges.filter(isMeaningfulDocumentEdge);
+    const localAnchorEdgeCount = allFileEdges.length - fileEdges.length;
     const linksBySource = groupByKey(db.tables.links || [], 'sourceDocumentId');
     const linksByTarget = groupByKey(db.tables.links || [], 'targetDocumentId');
     const layerControls = {
@@ -2358,7 +2360,8 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const active = Object.entries(state.layers).filter(([, enabled]) => enabled).map(([layer]) => layer);
       const layerSummary = active.length ? 'Layers: ' + active.join(', ') : 'Markdown files only';
       const groupSummary = state.activeGroupKey ? 'Group: ' + state.activeGroupLabel : (state.groupsEnabled ? 'Groups on' : 'Groups off');
-      document.getElementById('meta').textContent = db.tables.documents.length + ' docs · ' + fileEdges.length + ' doc links · ' + connectedNodeIds.size + ' connected · ' + layerSummary + ' · ' + groupSummary + ' · Updated ' + new Date(db.updatedAt).toLocaleString();
+      const localAnchorSummary = localAnchorEdgeCount ? ' · ' + localAnchorEdgeCount + ' local anchors separate' : '';
+      document.getElementById('meta').textContent = db.tables.documents.length + ' docs · ' + fileEdges.length + ' doc-to-doc links' + localAnchorSummary + ' · ' + connectedNodeIds.size + ' connected · ' + layerSummary + ' · ' + groupSummary + ' · Updated ' + new Date(db.updatedAt).toLocaleString();
     }
     function setSearchMode(mode) {
       if (state.searchMode === mode) return;
@@ -2436,7 +2439,14 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     function progressBlock() {
       const active = Object.entries(state.layers).filter(([, enabled]) => enabled).map(([layer]) => layer);
       if (active.length || state.groupsEnabled || state.activeGroupKey) return '';
+      if (!fileEdges.length) {
+        const suffix = localAnchorEdgeCount ? ' Local anchor jumps stay in the link details instead of counting as document-to-document connections.' : '';
+        return '<div class="block stage"><span class="kicker">Markdown files only</span><strong>No document-to-document links yet</strong><small>Showing Markdown files as a starting map. Turn on URLs, Images, Missing, or Groups when you need extra references.' + suffix + '</small></div>';
+      }
       return '<div class="block stage"><span class="kicker">Markdown files only</span><strong>Extra layers are off</strong><small>The canvas starts with Markdown files and document-to-document links. Turn on URLs, Images, Missing, or Groups when you need those layers.</small></div>';
+    }
+    function isMeaningfulDocumentEdge(edge) {
+      return Boolean(edge && edge.source && edge.target && edge.source !== edge.target && edge.status !== 'local-anchor');
     }
     function supplementalGraph() {
       const nodes = new Map();

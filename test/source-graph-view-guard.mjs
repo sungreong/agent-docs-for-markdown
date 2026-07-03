@@ -21,7 +21,10 @@ for (const expected of [
   'Groups off',
   'Markdown files only',
   'Extra layers are off',
+  'No document-to-document links yet',
   'document-to-document links',
+  'local anchors separate',
+  'function isMeaningfulDocumentEdge',
   '#meta { min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }',
   '@media (max-width: 1120px)',
   '@media (max-width: 860px)',
@@ -330,6 +333,7 @@ const extracted = [
   'linkCategory',
   'linkTargetNodeId',
   'linkFocusEdgeKey',
+  'isMeaningfulDocumentEdge',
 ].map(extractFunction).join('\n\n');
 
 const script = `
@@ -382,6 +386,9 @@ const urlLink = {
 const urlNode = linkTargetNodeId(urlLink, 'target');
 if (urlNode !== 'url:https://example.com/docs?a=1') throw new Error('expected URL links to resolve to supplemental URL node ids');
 if (linkFocusEdgeKey(urlLink, urlNode, 'target') !== 'doc:a->url:https://example.com/docs?a=1') throw new Error('expected URL links to focus the supplemental URL edge');
+if (isMeaningfulDocumentEdge({ source: 'doc:a', target: 'doc:b', status: 'resolved' }) !== true) throw new Error('expected document-to-document links to remain meaningful');
+if (isMeaningfulDocumentEdge({ source: 'doc:a', target: 'doc:a', status: 'local-anchor' }) !== false) throw new Error('expected local anchors to be excluded from meaningful document connections');
+if (isMeaningfulDocumentEdge({ source: 'doc:a', target: 'doc:a', status: 'resolved' }) !== false) throw new Error('expected self loops to be excluded from meaningful document connections');
 `;
 
 vm.runInNewContext(script, {}, { timeout: 1000 });
