@@ -37,5 +37,9 @@ Thumbs.db
 .codegraph/
 .gemini
 .agents
+.codex-remote-attachments/
+.impeccable.md
+.skillbridge/
+outputs/
 ai_docs
 templates
