@@ -2200,6 +2200,11 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     line.highlighted { stroke:#dbe6ff; stroke-width:2.8; filter:drop-shadow(0 0 5px rgba(126,160,255,.75)); }
     line.pulse { animation: edgePulse .7s ease-in-out infinite alternate; }
     line.unresolved { stroke-dasharray:5 5; }
+    circle.edge-cue { fill:rgba(220,230,248,.78); stroke:rgba(8,12,19,.9); stroke-width:1.4; pointer-events:none; }
+    circle.edge-cue.layer-url { fill:#5fc4a8; }
+    circle.edge-cue.layer-image { fill:#c69cff; }
+    circle.edge-cue.layer-missing { fill:#ff8f8f; }
+    circle.edge-cue.highlighted { fill:#f6d67a; filter:drop-shadow(0 0 5px rgba(246,214,122,.72)); }
     g.node { cursor:pointer; }
     g.node circle { fill:#182237; stroke:rgba(126,160,255,.7); stroke-width:1.4; }
     g.node.external circle { fill:#1c2e2e; stroke:rgba(95,196,168,.72); }
@@ -3261,7 +3266,8 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const isPulsing = Date.now() < state.pulseUntil;
       graph.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
       const t = 'translate(' + state.transform.x.toFixed(2) + ' ' + state.transform.y.toFixed(2) + ') scale(' + state.transform.scale.toFixed(4) + ')';
-      graph.innerHTML = '<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="rgba(154,171,195,.72)"></path></marker></defs><g transform="' + t + '">' +
+      const nodeById = new Map(nodes.map((node) => [node.id, node]));
+      graph.innerHTML = '<g transform="' + t + '">' +
         hulls.map((group) => {
           const active = state.activeGroupKey === group.key;
           return '<g class="cluster-hull' + (active ? ' active' : '') + '" data-group-key="' + escapeHtml(group.key) + '" data-group-label="' + escapeHtml(group.label) + '" style="--cluster:' + escapeHtml(group.color) + '"><path class="cluster-fill" d="' + groupHullPath(group) + '"></path><text class="cluster-label" x="' + round(group.x + 18) + '" y="' + round(group.y + 22) + '">' + escapeHtml(compact(group.label)) + ' · ' + group.points.length + '</text></g>';
@@ -3272,11 +3278,11 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
           const key = edgeKey(edge);
           const adjacent = edge.source === selectedId || edge.target === selectedId;
           const active = state.highlightedEdge === key || adjacent || state.highlightedNodeIds.has(edge.source) && state.highlightedNodeIds.has(edge.target);
-          return '<line class="' + escapeHtml(edge.status) + ' layer-' + escapeHtml(edge.layer || 'file') + (active ? ' highlighted' : '') + (adjacent && isPulsing ? ' pulse' : '') + '" x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" marker-end="url(#arrow)"></line>';
+          return '<line class="' + escapeHtml(edge.status) + ' layer-' + escapeHtml(edge.layer || 'file') + (active ? ' highlighted' : '') + (adjacent && isPulsing ? ' pulse' : '') + '" x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '"></line>' + edgeDirectionCue(edge, a, b, nodeById, active);
         }).join('') +
         nodes.map((node) => {
           const p = pos.get(node.id);
-          const r = Math.min(30, Math.max(13, 10 + Math.sqrt(node.weight || 1) * 4));
+          const r = nodeRadius(node);
           const active = node.id === selectedId || state.highlightedNodeIds.has(node.id);
           return '<g class="node ' + escapeHtml(node.kind) + (active ? ' selected' : '') + (state.highlightedNodeIds.has(node.id) ? ' related' : '') + (state.highlightedNodeIds.has(node.id) && isPulsing ? ' pulse' : '') + '" data-node="' + escapeHtml(node.id) + '" data-node-kind="' + escapeHtml(node.kind || 'document') + '" data-virtual-node="' + String(isSupplementalNode(node)) + '" transform="translate(' + p.x + ' ' + p.y + ')"><title>' + escapeHtml(nodeKindLabel(node) + ': ' + (node.path || node.label || node.id)) + '</title><circle r="' + r + '"></circle><text y="' + (r + 15) + '" text-anchor="middle">' + escapeHtml(compact(fileLabel(node))) + '</text></g>';
         }).join('') + '</g>';
@@ -3287,6 +3293,23 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     }
     function edgeKey(edge) {
       return edge.source + '->' + edge.target;
+    }
+    function nodeRadius(node) {
+      return Math.min(30, Math.max(13, 10 + Math.sqrt(node?.weight || 1) * 4));
+    }
+    function edgeDirectionCue(edge, sourcePoint, targetPoint, nodeById, active) {
+      const dx = targetPoint.x - sourcePoint.x;
+      const dy = targetPoint.y - sourcePoint.y;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      if (!Number.isFinite(length) || length < 24) return '';
+      const ux = dx / length;
+      const uy = dy / length;
+      const targetNode = nodeById.get(edge.target);
+      const offset = (targetNode ? nodeRadius(targetNode) : 14) + 7;
+      const x = targetPoint.x - ux * offset;
+      const y = targetPoint.y - uy * offset;
+      const radius = active ? 3.3 : 2.5;
+      return '<circle class="edge-cue layer-' + escapeHtml(edge.layer || 'file') + (active ? ' highlighted' : '') + '" cx="' + round(x) + '" cy="' + round(y) + '" r="' + radius + '"></circle>';
     }
     function paintDetails() {
       const started = performance.now();

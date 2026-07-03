@@ -65,6 +65,8 @@ for (const expected of [
   'function isSupplementalNode',
   'function nodeKindLabel',
   'function selectedNodeLinks',
+  'function edgeDirectionCue',
+  'circle.edge-cue',
   'Virtual link node',
   'virtual link node',
   'data-virtual-node',
@@ -286,6 +288,13 @@ assert(
 assert(
   source.includes("vscode.postMessage({ type: 'openUrl'"),
   'URL rows should post an openUrl message instead of behaving like missing file rows',
+);
+assert(
+  source.includes('edgeDirectionCue(edge, a, b, nodeById, active)') &&
+    source.includes('function nodeRadius') &&
+    !source.includes('marker-end="url(#arrow)"') &&
+    !source.includes('<marker id="arrow"'),
+  'Source Graph should use lightweight endpoint dots instead of oversized SVG arrow markers',
 );
 assert(
   source.includes("await vscode.commands.executeCommand('simpleBrowser.show', value)"),
