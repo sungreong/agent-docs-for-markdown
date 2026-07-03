@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Markdown-first live preview studio with CodeMirror editor and pattern-based HTML rendering",
+  "description": "Markdown source graph, preview, export, and AI agent skills for local document workspaces",
   "scripts": {
     "start": "node server.js",
     "md2html": "node scripts/md-to-html.mjs",

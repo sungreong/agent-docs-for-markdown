@@ -1,6 +1,6 @@
-﻿# Markdown Pattern Studio
+﻿# Agent Docs for Markdown
 
-[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Markdown%20Pattern%20Studio%20Preview-0078d4?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Agent%20Docs%20for%20Markdown-0078d4?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
 
 English documentation is available in [README.md](README.md).
 
@@ -592,7 +592,7 @@ npm run package:vsix
 설치:
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.34.vsix
+code --install-extension .\markdown-pattern-studio-preview-0.1.38.vsix
 ```
 
 ### 커서 동기화 동작 (Ctrl+S)

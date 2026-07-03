@@ -1,8 +1,8 @@
-# Markdown Pattern Studio
+# Agent Docs for Markdown
 
-[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Markdown%20Pattern%20Studio%20Preview-0078d4?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Agent%20Docs%20for%20Markdown-0078d4?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
 
-Markdown Pattern Studio is a Markdown-first renderer for polished reports, slide-style documents, blog-ready HTML, and VS Code-based document navigation.
+Agent Docs for Markdown turns a local Markdown workspace into source graph evidence, packaged context, agent-ready writing skills, and polished HTML exports.
 
 For the full Korean guide, see [README.ko.md](README.ko.md).
 For VS Code extension details, see [vscode-extension/README.md](vscode-extension/README.md) and [vscode-extension/EXTENSION_GUIDE.md](vscode-extension/EXTENSION_GUIDE.md).
@@ -40,7 +40,7 @@ This is the easiest path for normal use. Install the extension, open a Markdown 
 
 Install from the Visual Studio Marketplace:
 
-[Markdown Pattern Studio Preview](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
+[Agent Docs for Markdown](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
 
 Or from VS Code Quick Open:
 

@@ -1,4 +1,4 @@
-# Markdown Pattern Studio Extension Guide
+# Agent Docs for Markdown Extension Guide
 
 This guide explains how to install, use, and troubleshoot the `markdown-pattern-studio-preview` extension.
 
@@ -16,7 +16,7 @@ npm run package:vsix
 ### Install
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.34.vsix --force
+code --install-extension .\markdown-pattern-studio-preview-0.1.38.vsix --force
 ```
 
 ### Basic Usage
@@ -254,7 +254,7 @@ Example (absolute path):
 - Source: `vscode-extension/src/extension.ts`
 - Build: `npm run build`
 - Package: `npm run package:vsix`
-- Install test: `code --install-extension .\markdown-pattern-studio-preview-0.1.34.vsix --force`
+- Install test: `code --install-extension .\markdown-pattern-studio-preview-0.1.38.vsix --force`
 
 ## 11) Uninstall / Cleanup Guide
 
@@ -277,7 +277,7 @@ Find `datanewbie-labs.markdown-pattern-studio-preview@...` in the list.
 If you no longer need the package file, delete:
 
 ```text
-vscode-extension/markdown-pattern-studio-preview-0.1.34.vsix
+vscode-extension/markdown-pattern-studio-preview-0.1.38.vsix
 ```
 
 ### Optional: remove local extension folder manually
@@ -285,5 +285,5 @@ vscode-extension/markdown-pattern-studio-preview-0.1.34.vsix
 If needed, remove this folder:
 
 ```text
-%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-pattern-studio-preview-0.1.34
+%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-pattern-studio-preview-0.1.38
 ```

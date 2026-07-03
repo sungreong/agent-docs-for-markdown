@@ -1,8 +1,8 @@
-# Markdown Pattern Studio Preview Extension
+# Agent Docs for Markdown
 
 [Install from the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
 
-This extension runs the repository CLI (`scripts/md-to-html.mjs`) and opens the rendered HTML in a VS Code webview.
+Browse Markdown as a source graph, package context, and write better docs with AI agent skills. The extension also previews and exports Markdown through the bundled CLI.
 
 ## 0.1.34 Update Preview
 
@@ -237,5 +237,5 @@ npm run package:vsix
 Then install:
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.34.vsix
+code --install-extension .\markdown-pattern-studio-preview-0.1.38.vsix
 ```

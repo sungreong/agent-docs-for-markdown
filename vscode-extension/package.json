@@ -1,8 +1,8 @@
 {
   "name": "markdown-pattern-studio-preview",
-  "displayName": "Markdown Pattern Studio Preview",
-  "description": "Preview Markdown Pattern Studio CLI output in a VS Code webview.",
-  "version": "0.1.37",
+  "displayName": "Agent Docs for Markdown",
+  "description": "Browse Markdown as a source graph, package context, and write better docs with AI agent skills.",
+  "version": "0.1.38",
   "publisher": "datanewbie-labs",
   "license": "MIT",
   "icon": "assets/icon.png",
@@ -68,12 +68,12 @@
       "activitybar": [
         {
           "id": "mdStudioFileBrowserContainer",
-          "title": "MD Studio File Browser",
+          "title": "Agent Docs",
           "icon": "assets/activity-md.svg"
         },
         {
           "id": "mdStudioSourceGraphContainer",
-          "title": "MD Studio Source Graph",
+          "title": "Agent Docs Source Graph",
           "icon": "assets/activity-source-graph.svg"
         }
       ]
@@ -276,7 +276,7 @@
       }
     ],
     "configuration": {
-      "title": "Markdown Studio Preview",
+      "title": "Agent Docs for Markdown",
       "properties": {
         "mdStudioPreview.autoOnSave": {
           "type": "boolean",
