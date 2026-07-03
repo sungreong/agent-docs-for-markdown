@@ -2390,6 +2390,8 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     let visualGraphCacheKey = '';
     let visualGraphCache = null;
     const connectedNodeIds = new Set(fileEdges.flatMap((edge) => [edge.source, edge.target]));
+    const largeGraphThreshold = 1000;
+    const largeGraphPreviewBudget = 42;
     let selectedId = '';
     const graph = document.getElementById('graph');
     const details = document.getElementById('details');
@@ -2425,6 +2427,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       searchMode: 'body',
       searchRequestId: 0,
       searchMatchCount: 0,
+      fullGraphConfirmed: db.tables.documents.length <= largeGraphThreshold,
       bodySearch: { query: '', ids: null, pending: false, error: '' },
     };
     const groupToggle = document.getElementById('toggleGroups');
@@ -2466,7 +2469,8 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const layerSummary = active.length ? 'Layers: ' + active.join(', ') : 'Markdown files only';
       const groupSummary = state.activeGroupKey ? 'Group: ' + state.activeGroupLabel : (state.groupsEnabled ? 'Groups on' : 'Groups off');
       const localAnchorSummary = localAnchorEdgeCount ? ' · ' + localAnchorEdgeCount + ' local anchors separate' : '';
-      document.getElementById('meta').textContent = db.tables.documents.length + ' docs · ' + fileEdges.length + ' doc-to-doc links' + localAnchorSummary + ' · ' + connectedNodeIds.size + ' connected · ' + layerSummary + ' · ' + groupSummary + ' · Updated ' + new Date(db.updatedAt).toLocaleString();
+      const previewSummary = isLargeGraphPreview() ? ' · Preview mode' : '';
+      document.getElementById('meta').textContent = db.tables.documents.length + ' docs · ' + fileEdges.length + ' doc-to-doc links' + localAnchorSummary + ' · ' + connectedNodeIds.size + ' connected · ' + layerSummary + ' · ' + groupSummary + previewSummary + ' · Updated ' + new Date(db.updatedAt).toLocaleString();
     }
     function setSearchMode(mode) {
       if (state.searchMode === mode) return;
@@ -2542,6 +2546,9 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       searchStatus.textContent = state.searchMatchCount + ' matches';
     }
     function progressBlock() {
+      if (isLargeGraphPreview()) {
+        return '<div class="block stage"><span class="kicker">Performance preview</span><strong>Large workspace detected</strong><small>This workspace has ' + escapeHtml(String(db.tables.documents.length)) + ' indexed Markdown files, so Source Graph opened a smaller preview first. Load the fuller graph only when you need the broader map.</small><button data-show-full-graph type="button" title="Load the fuller graph view" aria-label="Load the fuller graph view">Show Full Graph</button></div>';
+      }
       const active = Object.entries(state.layers).filter(([, enabled]) => enabled).map(([layer]) => layer);
       if (active.length || state.groupsEnabled || state.activeGroupKey) return '';
       if (!fileEdges.length) {
@@ -2761,6 +2768,11 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
         showGraphOverview();
         return;
       }
+      const fullGraph = event.target.closest && event.target.closest('[data-show-full-graph]');
+      if (fullGraph) {
+        showFullGraph();
+        return;
+      }
       const overviewPage = event.target.closest && event.target.closest('[data-overview-page]');
       if (overviewPage) {
         const delta = Number(overviewPage.getAttribute('data-overview-page') || 0);
@@ -2908,6 +2920,8 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       return visualGraph().degreeByNode.get(id) || 0;
     }
     function graphNodeBudget(kind = 'default') {
+      const previewActive = typeof state !== 'undefined' && db.tables.documents.length > 1000 && !state.fullGraphConfirmed && !state.activeGroupKey;
+      if (previewActive) return kind === 'search' ? 60 : 42;
       if (kind === 'search') return 120;
       const docs = db.tables.documents.length;
       if (docs > 5000) return 80;
@@ -2919,6 +2933,19 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       if (docs > 5000) return Math.min(preferred, 20);
       if (docs > 1000) return Math.min(preferred, 28);
       return preferred;
+    }
+    function isLargeGraphPreview() {
+      return db.tables.documents.length > largeGraphThreshold && !state.fullGraphConfirmed && !state.activeGroupKey;
+    }
+    function showFullGraph() {
+      state.fullGraphConfirmed = true;
+      state.overviewPage = 0;
+      selectedId = '';
+      rebuildGraphState();
+      updateMeta();
+      fitGraph();
+      paint();
+      requestAnimationFrame(() => settleLayout(autoSettleIterations(48), { defer: true }));
     }
     function selectGroup(key, label) {
       if (!key) return;
@@ -3578,7 +3605,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     function startProgressiveRender() {
       setLoadingStage('Rendering Markdown files...', 'Showing file nodes and resolved Markdown-to-Markdown edges first.');
       rebuildGraphState();
-      if (!selectedId) {
+      if (!selectedId && !isLargeGraphPreview()) {
         selectedId = pickInitialNodeId();
         highlightNeighborhood(selectedId, false);
       }
@@ -3586,7 +3613,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       paint();
       requestAnimationFrame(() => {
         setLoadingStage('Settling Markdown graph...', 'The graph is already usable; layout is being refined in small steps.');
-        settleLayout(autoSettleIterations(36), { defer: true });
+        settleLayout(isLargeGraphPreview() ? 8 : autoSettleIterations(36), { defer: true });
       });
     }
     try {

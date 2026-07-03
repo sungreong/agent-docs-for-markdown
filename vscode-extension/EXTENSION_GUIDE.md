@@ -16,7 +16,7 @@ npm run package:vsix
 ### Install
 
 ```bash
-code --install-extension .\markdown-agent-docs-0.1.45.vsix --force
+code --install-extension .\markdown-agent-docs-0.1.46.vsix --force
 ```
 
 ### Basic Usage
@@ -125,7 +125,7 @@ This is the Source Graph equivalent of a project-local init step such as `codegr
 
 ### Ignoring documents
 
-Run `Agent Docs: Edit Source Ignore` to open the workspace `.mps/.mpsignore` file. The file uses gitignore-style glob lines and affects both Source Graph indexing and the Agent Docs File Browser list. Existing root `.mpsignore` files are still read as a legacy fallback.
+Run `Agent Docs: Edit Source Ignore` to open the workspace `.mps/.mpsignore` file. The file uses gitignore-style glob lines and affects both Source Graph indexing and the Agent Docs File Browser list. `.mps/.mpsignore` is the canonical ignore file; root `.mpsignore` is not used as a fallback.
 
 Example:
 
@@ -143,6 +143,7 @@ After editing `.mpsignore`, run `Agent Docs: Update Source Graph` or reopen Sour
 
 - `Agent Docs: Open Source Graph` refreshes the DB before showing the graph.
 - `Agent Docs: Update Source Graph` rebuilds the DB manually.
+- Workspaces with more than 1000 indexed Markdown files open in a lightweight performance preview first. Use `Show Full Graph` in the details panel when you want to load the broader map.
 - Saving an existing Markdown file updates that file's graph rows and recomputes resolved edges.
 - Creating or deleting a Markdown file triggers a full rebuild after a short debounce.
 - Creating, editing, or deleting `.mpsignore` triggers a full rebuild after a short debounce.
@@ -253,7 +254,7 @@ Example (absolute path):
 - Source: `vscode-extension/src/extension.ts`
 - Build: `npm run build`
 - Package: `npm run package:vsix`
-- Install test: `code --install-extension .\markdown-agent-docs-0.1.45.vsix --force`
+- Install test: `code --install-extension .\markdown-agent-docs-0.1.46.vsix --force`
 
 ## 11) Uninstall / Cleanup Guide
 
@@ -276,7 +277,7 @@ Find `datanewbie-labs.markdown-agent-docs@...` in the list.
 If you no longer need the package file, delete:
 
 ```text
-vscode-extension/markdown-agent-docs-0.1.45.vsix
+vscode-extension/markdown-agent-docs-0.1.46.vsix
 ```
 
 ### Optional: remove local extension folder manually
@@ -284,5 +285,5 @@ vscode-extension/markdown-agent-docs-0.1.45.vsix
 If needed, remove this folder:
 
 ```text
-%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-agent-docs-0.1.45
+%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-agent-docs-0.1.46
 ```

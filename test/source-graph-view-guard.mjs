@@ -58,6 +58,10 @@ for (const expected of [
   'function currentGroupNodeIds',
   'function currentGroupEntries',
   'function graphNodeBudget',
+  'Performance preview',
+  'Show Full Graph',
+  'data-show-full-graph',
+  'fullGraphConfirmed',
   'function autoSettleIterations',
   'function reportGraphMetric',
   'function visibleNodePositions',
@@ -186,10 +190,10 @@ assert(
   'source graph interactions should use cached node/document maps instead of repeated full-array find calls',
 );
 assert(
-  source.includes('.slice(0, graphNodeBudget())') &&
+    source.includes('.slice(0, graphNodeBudget())') &&
     source.includes(".slice(0, graphNodeBudget('search'))") &&
     source.includes('settleLayout(autoSettleIterations(80), { defer: true })') &&
-    source.includes('settleLayout(autoSettleIterations(36), { defer: true })'),
+    source.includes('settleLayout(isLargeGraphPreview() ? 8 : autoSettleIterations(36), { defer: true })'),
   'source graph webview should reduce automatic render and settle budgets for larger workspaces',
 );
 assert(
@@ -374,15 +378,20 @@ const extracted = [
 const script = `
 ${extracted}
 const db = { tables: { documents: Array.from({ length: 1500 }, (_, index) => ({ id: 'doc:' + index })) } };
+let state = { fullGraphConfirmed: true, activeGroupKey: '' };
 if (graphNodeBudget() !== 120) throw new Error('expected 1000+ doc workspaces to use a 120-node graph budget');
 if (graphNodeBudget('search') !== 120) throw new Error('expected search graphs to cap at 120 nodes');
 if (autoSettleIterations(80) !== 28) throw new Error('expected 1000+ doc workspaces to shorten automatic settle passes');
+state.fullGraphConfirmed = false;
+if (graphNodeBudget() !== 42) throw new Error('expected large unconfirmed workspaces to open in a 42-node preview');
+if (graphNodeBudget('search') !== 60) throw new Error('expected large unconfirmed searches to open in a 60-node preview');
+state.fullGraphConfirmed = true;
 db.tables.documents = Array.from({ length: 5200 }, (_, index) => ({ id: 'doc:' + index }));
 if (graphNodeBudget() !== 80) throw new Error('expected 5000+ doc workspaces to use an 80-node graph budget');
 if (autoSettleIterations(80) !== 20) throw new Error('expected 5000+ doc workspaces to shorten automatic settle passes further');
 db.tables.documents = [{ id: 'doc:small' }];
 if (graphNodeBudget() !== 160) throw new Error('expected small workspaces to keep the rich 160-node graph budget');
-const state = {
+state = {
   groupsEnabled: true,
   activeGroupKey: '',
   nodes: [
