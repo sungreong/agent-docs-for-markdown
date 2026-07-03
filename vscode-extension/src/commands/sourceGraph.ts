@@ -333,17 +333,17 @@ function renderSourceGraphLauncherView(webviewView: vscode.WebviewView): void {
       <div class="toolbar-grid">
         <button id="primaryGraphAction" type="button" data-action="initializeGraphGuided">Start Graph</button>
         <button id="auditAction" type="button" class="secondary" data-action="runAudit" disabled>Run Workspace Audit</button>
-        <button type="button" class="secondary" data-action="editIgnore">Open .mpsignore</button>
-        <button type="button" class="secondary" data-action="openAuditManager">Open Audit Manager</button>
+        <button type="button" class="secondary" data-action="editIgnore">Open .mps/.mpsignore</button>
+        <button type="button" class="secondary" data-action="openAuditManager">Open Cleanup Audit</button>
       </div>
     </div>
     <div id="auditPanel" class="audit-panel" aria-live="polite">
       <div id="auditMeta" class="search-meta">Review the search corpus before asking agents to update Markdown documents.</div>
       <div id="auditSummary" class="audit-summary"></div>
       <div class="audit-cta">
-        <div class="audit-section-title">Audit Manager</div>
-        <div id="auditSelectionCopy" class="audit-copy">Open the dedicated audit manager when you need table rows, pagination, and batch apply.</div>
-        <button id="openAuditManager" type="button" class="secondary" data-action="openAuditManager">Open Audit Manager</button>
+        <div class="audit-section-title">Cleanup Audit</div>
+        <div id="auditSelectionCopy" class="audit-copy">Review ignore suggestions, broken links, and unlinked docs before handing this workspace to an agent.</div>
+        <button id="openAuditManager" type="button" class="secondary" data-action="openAuditManager">Open Cleanup Audit</button>
       </div>
       <div id="auditRecommendations" class="audit-copy"></div>
       <div id="auditReviewItems" class="audit-copy"></div>
@@ -440,7 +440,7 @@ function renderSourceGraphLauncherView(webviewView: vscode.WebviewView): void {
         auditSummary.innerHTML = '';
         auditRecommendations.innerHTML = '<div class="hint">' + escapeHtml(message.error) + '</div>';
         auditReviewItems.innerHTML = '';
-        if (auditSelectionCopy) auditSelectionCopy.textContent = 'The detailed audit manager could not be prepared.';
+        if (auditSelectionCopy) auditSelectionCopy.textContent = 'The cleanup audit could not be prepared.';
         saveSearchState();
         return;
       }
@@ -449,7 +449,7 @@ function renderSourceGraphLauncherView(webviewView: vscode.WebviewView): void {
         auditSummary.innerHTML = '';
         auditRecommendations.innerHTML = '<div class="hint">Run Workspace Audit to inspect ignore candidates and graph quality.</div>';
         auditReviewItems.innerHTML = '';
-        if (auditSelectionCopy) auditSelectionCopy.textContent = 'Open the dedicated audit manager when you need table rows, pagination, and batch apply.';
+        if (auditSelectionCopy) auditSelectionCopy.textContent = 'Open Cleanup Audit to review ignore suggestions, broken links, and unlinked docs.';
         saveSearchState();
         return;
       }
@@ -465,12 +465,12 @@ function renderSourceGraphLauncherView(webviewView: vscode.WebviewView): void {
       const visibleRecommendations = recommendations.filter((item) => item && item.status !== 'already-ignored');
       const hiddenCount = Math.max(0, recommendations.length - visibleRecommendations.length);
       auditRecommendations.innerHTML = visibleRecommendations.length
-        ? escapeHtml(visibleRecommendations.length + ' ignore candidates are ready in the Audit Manager.')
+        ? escapeHtml(visibleRecommendations.length + ' ignore suggestions are ready in Cleanup Audit.')
         : '<span class="hint">No visible ignore candidates remain.</span>';
       auditReviewItems.innerHTML = hiddenCount > 0
         ? escapeHtml(hiddenCount + ' already-applied recommendations are hidden automatically.')
-        : '<span class="hint">Open the Audit Manager for the full table and review queue.</span>';
-      if (auditSelectionCopy) auditSelectionCopy.textContent = 'Open the dedicated audit manager for table rows, pagination, compact review, and batch apply.';
+        : '<span class="hint">Open Cleanup Audit for the full review queue.</span>';
+      if (auditSelectionCopy) auditSelectionCopy.textContent = 'Open Cleanup Audit for ignore suggestions, link review, pagination, and batch apply.';
       saveSearchState();
     }
     function runSearch() {
@@ -815,7 +815,7 @@ async function openSourceGraphAuditManager(context: vscode.ExtensionContext): Pr
     return;
   }
   const panel = ensureSourceGraphAuditPanel(context, workspaceFolder);
-  panel.webview.html = renderSourceGraphAuditLoadingHtml('Opening Audit Manager', 'Checking ignore candidates, duplicate copies, and graph weak spots...');
+  panel.webview.html = renderSourceGraphAuditLoadingHtml('Opening Cleanup Audit', 'Checking ignore suggestions, duplicate copies, broken links, and unlinked docs...');
   let audit: SourceGraphAuditResult;
   try {
     audit = await runSourceGraphAudit(context, workspaceFolder);
@@ -834,7 +834,7 @@ function ensureSourceGraphAuditPanel(
   if (!sourceGraphAuditPanel) {
     sourceGraphAuditPanel = vscode.window.createWebviewPanel(
       'markdownAgentDocsSourceGraphAudit',
-      'MPS Audit Manager',
+      'MPS Cleanup Audit',
       vscode.ViewColumn.Beside,
       {
         enableScripts: true,
@@ -866,7 +866,7 @@ function ensureSourceGraphAuditPanel(
   } else {
     sourceGraphAuditPanel.reveal(vscode.ViewColumn.Beside, false);
   }
-  sourceGraphAuditPanel.title = `MPS Audit Manager: ${workspaceFolder.name}`;
+  sourceGraphAuditPanel.title = `MPS Cleanup Audit: ${workspaceFolder.name}`;
   return sourceGraphAuditPanel;
 }
 
@@ -1865,7 +1865,7 @@ function renderSourceGraphAuditLoadingHtml(title: string, detail: string): strin
 </head>
 <body>
   <div class="card">
-    <span class="kicker">Source Graph Audit Manager</span>
+    <span class="kicker">Workspace Cleanup Audit</span>
     <strong>${escapeHtmlText(title)}</strong>
     <small>${escapeHtmlText(detail)}</small>
     <div class="bar"><i></i></div>
@@ -1885,11 +1885,15 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';" />
   <style>
     :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
     body { margin: 0; font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-editor-background); }
-    .page { display: grid; gap: 16px; padding: 18px; }
+    .page { display: grid; gap: 16px; padding: 18px; max-width: 1180px; margin: 0 auto; }
     .hero { display: grid; gap: 6px; }
     .hero h1 { margin: 0; font-size: 22px; }
     .hero p { margin: 0; color: var(--vscode-descriptionForeground); line-height: 1.45; }
+    .guidance { display: grid; gap: 5px; padding: 12px 14px; border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.2)); border-radius: 10px; background: color-mix(in srgb, var(--vscode-editorWidget-background, #1f2430) 78%, transparent); }
+    .guidance strong { font-size: 13px; }
+    .guidance span { color: var(--vscode-descriptionForeground); font-size: 12px; line-height: 1.45; }
     .toolbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
     button { min-height: 32px; border: 1px solid var(--vscode-button-border, transparent); border-radius: 6px; padding: 7px 10px; color: var(--vscode-button-foreground); background: var(--vscode-button-background); cursor: pointer; font: inherit; }
     button:hover { background: var(--vscode-button-hoverBackground); }
@@ -1906,14 +1910,17 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
     .section-head span { color: var(--vscode-descriptionForeground); font-size: 12px; }
     .tab-row { display: flex; gap: 8px; flex-wrap: wrap; }
     .tab-row button[aria-pressed="true"] { outline: 1px solid var(--vscode-focusBorder); }
-    .table-wrap { border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.2)); border-radius: 10px; overflow: hidden; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    th, td { padding: 10px 9px; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,.15)); vertical-align: top; text-align: left; font-size: 12px; }
+    .table-wrap { max-width: 100%; border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.2)); border-radius: 10px; overflow: auto; }
+    table { width: 100%; min-width: 760px; border-collapse: collapse; table-layout: auto; }
+    th, td { padding: 10px 9px; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,.15)); vertical-align: top; text-align: left; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
     th { color: var(--vscode-descriptionForeground); background: rgba(128,128,128,.06); font-weight: 700; }
     tr:last-child td { border-bottom: none; }
     .compact th, .compact td { padding-top: 7px; padding-bottom: 7px; font-size: 11px; }
     .pattern { font-weight: 700; overflow-wrap: anywhere; }
     .muted { color: var(--vscode-descriptionForeground); }
+    .reason-cell { max-width: 52ch; color: var(--vscode-foreground); }
+    .match-cell { white-space: nowrap; }
+    .action-cell button { width: 100%; white-space: nowrap; }
     .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
     .tag { display: inline-flex; align-items: center; border-radius: 999px; padding: 1px 7px; font-size: 11px; font-weight: 700; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
     .tag.subtle { background: transparent; border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.25)); color: var(--vscode-descriptionForeground); }
@@ -1925,35 +1932,52 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
     .mini-card strong { display: block; margin-bottom: 4px; overflow-wrap: anywhere; }
     .mini-card span { color: var(--vscode-descriptionForeground); font-size: 12px; line-height: 1.45; }
     @media (max-width: 1100px) { .toolbar, .summary, .mini-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 860px) {
+      .table-wrap { overflow: hidden; }
+      table, tbody, tr, td { display: block; width: 100%; min-width: 0; }
+      table { min-width: 0; }
+      thead { display: none; }
+      tr { padding: 10px; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,.18)); }
+      tr:last-child { border-bottom: 0; }
+      td { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 6px 0; border-bottom: 0; }
+      td::before { content: attr(data-label); color: var(--vscode-descriptionForeground); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+      .reason-cell { max-width: none; }
+      .match-cell { white-space: normal; }
+      .action-cell button { width: auto; }
+    }
     @media (max-width: 720px) { .toolbar, .summary, .mini-grid { grid-template-columns: 1fr; } .pager { flex-direction: column; align-items: stretch; } }
   </style>
 </head>
 <body>
   <div class="page">
     <div class="hero">
-      <h1>Source Graph Audit Manager</h1>
-      <p>Use the sidebar for quick status only. This manager is the dense review surface for table rows, pagination, compact scanning, and batch apply.</p>
+      <h1>Workspace Cleanup Audit</h1>
+      <p>Review what should be hidden, repaired, or inspected before asking an AI agent to search, rewrite, or reorganize this Markdown workspace.</p>
+    </div>
+    <div class="guidance">
+      <strong>What this screen does</strong>
+      <span>Ignore suggestions add patterns to <code>.mps/.mpsignore</code> so duplicate skill copies, generated folders, and support files stop crowding Source Graph search. Review items point at broken Markdown links and unlinked documents that may need a human decision.</span>
     </div>
     <div class="toolbar">
       <button type="button" data-action="refreshAuditPanel">Refresh Audit</button>
-      <button type="button" class="secondary" data-action="editIgnore">Open .mpsignore</button>
+      <button type="button" class="secondary" data-action="editIgnore">Open .mps/.mpsignore</button>
       <button id="toggleCompact" type="button" class="secondary" data-action="toggleCompact" aria-pressed="false">Compact View</button>
       <button id="applySelected" type="button" class="secondary" data-action="applySelected" disabled>Apply Selected</button>
     </div>
     <div class="summary">
       <div class="metric"><strong>${audit.summary.markdownFiles}</strong><span>Markdown files</span></div>
-      <div class="metric"><strong>${audit.summary.duplicateCopyGroups}</strong><span>Duplicate groups</span></div>
+      <div class="metric"><strong>${audit.summary.duplicateCopyGroups}</strong><span>Duplicate copy groups</span></div>
       <div class="metric"><strong>${audit.summary.unresolvedInternalLinks}</strong><span>Broken Markdown links</span></div>
-      <div class="metric"><strong>${audit.summary.orphanDocuments}</strong><span>Review unlinked docs</span></div>
+      <div class="metric"><strong>${audit.summary.orphanDocuments}</strong><span>Unlinked Markdown docs</span></div>
     </div>
     <div class="section">
       <div class="section-head">
-        <h2>Review Queue</h2>
+        <h2>Cleanup Queue</h2>
         <span id="queueMeta"></span>
       </div>
       <div class="tab-row">
-        <button type="button" class="secondary" data-tab="ignore" aria-pressed="true">Ignore Candidates</button>
-        <button type="button" class="secondary" data-tab="review" aria-pressed="false">Review Items</button>
+        <button type="button" class="secondary" data-tab="ignore" aria-pressed="true">Ignore Suggestions</button>
+        <button type="button" class="secondary" data-tab="review" aria-pressed="false">Link/File Review</button>
       </div>
       <div id="tableMount" class="table-wrap"></div>
       <div class="pager">
@@ -1966,8 +1990,8 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
     </div>
     <div class="section">
       <div class="section-head">
-        <h2>Graph Weak Spots</h2>
-        <span>High-signal follow-up items</span>
+        <h2>Follow-up Review</h2>
+        <span>High-signal items from the graph audit</span>
       </div>
       <div id="weakSpots" class="mini-grid"></div>
     </div>
@@ -2006,7 +2030,7 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
       const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
       if (page >= totalPages) page = totalPages - 1;
       const visible = pagedRows();
-      queueMeta.textContent = activeTab === 'ignore' ? rows.length + ' visible ignore candidates' : rows.length + ' review rows';
+      queueMeta.textContent = activeTab === 'ignore' ? rows.length + ' ignore suggestions to review' : rows.length + ' link/file review items';
       pageMeta.textContent = rows.length ? 'Page ' + (page + 1) + ' of ' + totalPages + ' • ' + rows.length + ' total' : 'Nothing to review';
       applySelected.disabled = !(activeTab === 'ignore' && selectedPatterns.size > 0);
       compactToggle.setAttribute('aria-pressed', String(compact));
@@ -2015,14 +2039,14 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
         return;
       }
       if (activeTab === 'ignore') {
-        tableMount.innerHTML = '<table class="' + (compact ? 'compact' : '') + '"><thead><tr><th style="width:42px;">Pick</th><th style="width:180px;">Pattern</th><th style="width:110px;">Signal</th><th>Reason</th><th style="width:170px;">Matched</th><th style="width:160px;">Action</th></tr></thead><tbody>' + visible.map((item) => {
+        tableMount.innerHTML = '<table class="ignore-table ' + (compact ? 'compact' : '') + '"><thead><tr><th style="width:48px;">Pick</th><th style="width:190px;">Pattern</th><th style="width:120px;">Signal</th><th>Why suggested</th><th style="width:120px;">Matched</th><th style="width:112px;">Action</th></tr></thead><tbody>' + visible.map((item) => {
           const pattern = String(item.pattern || '');
           const checked = selectedPatterns.has(pattern) ? ' checked' : '';
-          return '<tr><td><input type="checkbox" data-pattern="' + escapeHtml(pattern) + '"' + checked + ' /></td><td><div class="pattern">' + escapeHtml(pattern) + '</div><div class="muted">' + escapeHtml(item.kind || '') + '</div></td><td><span class="tag">' + escapeHtml(item.confidence || 'review') + '</span> <span class="tag subtle">' + escapeHtml(item.status || 'candidate') + '</span></td><td>' + escapeHtml(item.reason || '') + '<div class="muted">' + escapeHtml(Array.isArray(item.examples) && item.examples[0] ? 'Example: ' + item.examples[0] : '') + '</div></td><td>' + escapeHtml(String(item.indexedCount || 0)) + ' indexed<br /><span class="muted">' + escapeHtml(String(item.totalMatches || 0)) + ' matched</span></td><td><div class="row-actions"><button type="button" class="secondary" data-apply-one="' + escapeHtml(pattern) + '">Apply now</button></div></td></tr>';
+          return '<tr><td data-label="Pick"><input type="checkbox" data-pattern="' + escapeHtml(pattern) + '"' + checked + ' /></td><td data-label="Pattern"><div class="pattern">' + escapeHtml(pattern) + '</div><div class="muted">' + escapeHtml(item.kind || '') + '</div></td><td data-label="Signal"><span class="tag">' + escapeHtml(item.confidence || 'review') + '</span> <span class="tag subtle">' + escapeHtml(item.status || 'candidate') + '</span></td><td data-label="Why" class="reason-cell">' + escapeHtml(item.reason || '') + '<div class="muted">' + escapeHtml(Array.isArray(item.examples) && item.examples[0] ? 'Example: ' + item.examples[0] : '') + '</div></td><td data-label="Matched" class="match-cell">' + escapeHtml(String(item.indexedCount || 0)) + ' indexed<br /><span class="muted">' + escapeHtml(String(item.totalMatches || 0)) + ' matched</span></td><td data-label="Action" class="action-cell"><div class="row-actions"><button type="button" class="secondary" data-apply-one="' + escapeHtml(pattern) + '">Apply</button></div></td></tr>';
         }).join('') + '</tbody></table>';
         return;
       }
-      tableMount.innerHTML = '<table class="' + (compact ? 'compact' : '') + '"><thead><tr><th style="width:280px;">Path</th><th style="width:140px;">Category</th><th>Reason</th><th style="width:160px;">Action</th></tr></thead><tbody>' + visible.map((item) => '<tr><td><div class="pattern">' + escapeHtml(item.path) + '</div><div class="muted">' + escapeHtml(item.suggestedPattern || '') + '</div></td><td><span class="tag subtle">' + escapeHtml(item.category || 'review') + '</span></td><td>' + escapeHtml(item.reason || '') + '</td><td><div class="row-actions"><button type="button" class="secondary" data-open-path="' + escapeHtml(item.path) + '">View</button><button type="button" class="secondary" data-open-editor-path="' + escapeHtml(item.path) + '">Edit</button></div></td></tr>').join('') + '</tbody></table>';
+      tableMount.innerHTML = '<table class="review-table ' + (compact ? 'compact' : '') + '"><thead><tr><th style="width:260px;">Path</th><th style="width:120px;">Category</th><th>Why review</th><th style="width:128px;">Action</th></tr></thead><tbody>' + visible.map((item) => '<tr><td data-label="Path"><div class="pattern">' + escapeHtml(item.path) + '</div><div class="muted">' + escapeHtml(item.suggestedPattern || '') + '</div></td><td data-label="Category"><span class="tag subtle">' + escapeHtml(item.category || 'review') + '</span></td><td data-label="Why" class="reason-cell">' + escapeHtml(item.reason || '') + '</td><td data-label="Action" class="action-cell"><div class="row-actions"><button type="button" class="secondary" data-open-path="' + escapeHtml(item.path) + '">View</button><button type="button" class="secondary" data-open-editor-path="' + escapeHtml(item.path) + '">Edit</button></div></td></tr>').join('') + '</tbody></table>';
     }
     function setTab(nextTab) {
       activeTab = nextTab;

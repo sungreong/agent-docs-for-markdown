@@ -82,7 +82,7 @@ for (const expected of [
   'function trimSourceGraphDbCache',
   'Workspace Controls',
   'Apply Selected',
-  'Open .mpsignore',
+  'Open .mps/.mpsignore',
   'Search Markdown body',
   'retainContextWhenHidden',
   'vscode.getState',
@@ -93,8 +93,14 @@ for (const expected of [
   'ensureSourceGraphAuditPanel',
   'renderSourceGraphAuditLoadingHtml',
   'ensureSourceWorkspaceFiles',
-  'Opening Audit Manager',
-  'Checking ignore candidates',
+  'Opening Cleanup Audit',
+  'Checking ignore suggestions',
+  'Workspace Cleanup Audit',
+  'What this screen does',
+  'Cleanup Queue',
+  'Why suggested',
+  'data-label="Why"',
+  '@media (max-width: 860px)',
   'const auditView = ${json};',
   'recommendations: visibleRecommendations',
   'reviewRows',
@@ -198,16 +204,16 @@ assert(
 );
 assert(
   source.includes('JSON.stringify(toAuditManagerViewModel(audit))'),
-  'Audit Manager webview should embed only its slim review view model',
+  'Workspace Cleanup Audit webview should embed only its slim review view model',
 );
 const auditManagerStart = source.indexOf('async function openSourceGraphAuditManager');
 const auditManagerEnd = source.indexOf('function ensureSourceGraphAuditPanel', auditManagerStart);
 const auditManagerBlock = source.slice(auditManagerStart, auditManagerEnd);
-assert(auditManagerStart >= 0 && auditManagerEnd > auditManagerStart, 'Audit Manager opener should be present');
+assert(auditManagerStart >= 0 && auditManagerEnd > auditManagerStart, 'Workspace Cleanup Audit opener should be present');
 assert(
   auditManagerBlock.indexOf('renderSourceGraphAuditLoadingHtml') >= 0 &&
     auditManagerBlock.indexOf('renderSourceGraphAuditLoadingHtml') < auditManagerBlock.indexOf('await runSourceGraphAudit'),
-  'Audit Manager should open a loading webview before waiting for the full audit process',
+  'Workspace Cleanup Audit should open a loading webview before waiting for the full audit process',
 );
 assert(
   source.includes('async function ensureSourceWorkspaceFiles') &&
@@ -217,16 +223,16 @@ assert(
 );
 assert(
   !source.includes('const json = JSON.stringify(audit)'),
-  'Audit Manager webview must not embed the full audit object',
+  'Workspace Cleanup Audit webview must not embed the full audit object',
 );
 const auditPanelStart = source.indexOf('function renderSourceGraphAuditHtml');
 const auditPanelEnd = source.indexOf('function renderSourceGraphLoadingHtml', auditPanelStart);
 const auditPanelBlock = source.slice(auditPanelStart, auditPanelEnd);
-assert(auditPanelStart >= 0 && auditPanelEnd > auditPanelStart, 'Audit Manager renderer should be present');
+assert(auditPanelStart >= 0 && auditPanelEnd > auditPanelStart, 'Workspace Cleanup Audit renderer should be present');
 assert(
   !auditPanelBlock.includes('audit.ignore && audit.ignore.recommendations') &&
     !auditPanelBlock.includes('audit.graph && Array.isArray(audit.graph.duplicateCopyGroups)'),
-  'Audit Manager client should render pre-shaped rows instead of traversing the full audit object',
+  'Workspace Cleanup Audit client should render pre-shaped rows instead of traversing the full audit object',
 );
 assert(
   source.includes("let selectedId = '';"),

@@ -48,7 +48,7 @@ Or from VS Code Quick Open:
 ext install datanewbie-labs.markdown-agent-docs
 ```
 
-Current repository extension version: `0.1.40`.
+Current repository extension version: `0.1.41`.
 
 Common VS Code flows:
 
@@ -56,7 +56,7 @@ Common VS Code flows:
 - Run `Agent Docs: Preview` for a live preview.
 - Run `Agent Docs: Export Styled HTML` and choose by destination: a complete HTML file, blog paste HTML, or a body-only content fragment.
 - Run `Agent Docs: Open Source Graph` to inspect document links.
-- Run the `Source Graph` launcher at the top of the sidebar, then use `Start Graph` for guided setup or `Run Workspace Audit` to open the dedicated audit manager with table rows, pagination, compact view, and batch apply before handing Markdown graph work to an agent.
+- Run the `Source Graph` launcher at the top of the sidebar, then use `Start Graph` for guided setup or `Run Workspace Audit` to open Workspace Cleanup Audit for ignore suggestions, broken-link review, unlinked docs, pagination, compact view, and batch apply before handing Markdown graph work to an agent.
 - Run `Agent Docs: Download Skill Folder` to export/update AI writing skills.
 
 ### Markdown Graph Skills

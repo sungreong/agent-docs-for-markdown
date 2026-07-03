@@ -28,7 +28,7 @@ The Source Graph webview indexes local Markdown into a workspace SQLite graph so
 - `Agent Docs: Initialize Source Graph` creates a workspace-local `.mps/source-graph.sqlite` document graph DB
 - `Agent Docs: Edit Source Ignore` opens `.mps/.mpsignore` so noisy folders can be excluded from both the graph and file browser
 - The Source Graph launcher sits above the file tree in the Agent Docs sidebar so setup and audit controls stay visible
-- The Source Graph launcher stays lightweight and opens a dedicated `Source Graph Audit Manager` webview when you need table rows, pagination, compact scanning, and batch apply
+- The Source Graph launcher stays lightweight and opens a dedicated `Workspace Cleanup Audit` webview for ignore suggestions, broken-link review, unlinked docs, pagination, compact scanning, and batch apply
 - The bundled Source Graph CLI also exposes `node scripts/source-graph.mjs audit --root .` so agents can diagnose ignore candidates, duplicate skill copies, orphan docs, and unresolved internal links before editing or analyzing Markdown documents
 - The Markdown workspace search skill is installed through `Agent Docs: Install or Export Skills` -> `Install bundled skills to this workspace`
 - `FOCUS` command on a folder narrows only the Agent Docs File Browser to that folder
@@ -140,8 +140,8 @@ Use this when a workspace has many Markdown documents and you want graph navigat
 
 1. Open the Markdown workspace in VS Code.
 2. Open the `Source Graph` launcher at the top of the Agent Docs sidebar.
-3. Use `Start Graph` when you want the guided setup flow. Start Graph will build the first index, open `.mpsignore`, and then show ignore candidates so you can clean the corpus immediately.
-4. Use `Run Workspace Audit` when you want to refresh the corpus review later. The launcher opens the dedicated `Source Graph Audit Manager`, where you can scan table rows, move through pages, switch to compact view, and use `Apply Selected`.
+3. Use `Start Graph` when you want the guided setup flow. Start Graph will build the first index, open `.mps/.mpsignore`, and then show ignore suggestions so you can clean the corpus immediately.
+4. Use `Run Workspace Audit` when you want to refresh the corpus review later. The launcher opens `Workspace Cleanup Audit`, where you can review ignore suggestions, broken Markdown links, and unlinked docs before asking an agent to work on the corpus. Select useful ignore suggestions and use `Apply Selected` to append them to `.mps/.mpsignore`.
 5. Run `Agent Docs: Install or Export Skills`, then choose `Install bundled skills to this workspace`.
 6. Confirm `markdown-workspace-search` appears under the matching workspace skill roots such as `.codex/skills`, `.agents/skills`, or `.claude/skills`.
 7. In Codex, ask it to use the `markdown-workspace-search` skill for a document question. The skill should run `node scripts/source-graph.mjs search --root . --query "README" --limit 3 --include-links --links-depth 1 --include-headings`.
@@ -160,9 +160,9 @@ Use the Markdown graph skills by intent:
 | `markdown-canonicalizer` | Choose a primary Markdown source when several pages overlap. |
 | `markdown-link-repair` | Prioritize broken internal links, stale URL references, backlink gaps, and graph-quality fixes. |
 
-The DB is workspace-local, similar to a project init command. `Open Source Graph`, `Update Source Graph Index`, `Initialize Source Graph Workspace`, and the sidebar `Run Workspace Audit` flow all refresh or create it. The launcher keeps `.mpsignore` nearby, while the dedicated audit manager handles dense candidate review with pagination and batch apply. Saving an existing Markdown file updates that document's graph rows; creating or deleting a Markdown file triggers a full rebuild.
+The DB is workspace-local, similar to a project init command. `Open Source Graph`, `Update Source Graph Index`, `Initialize Source Graph Workspace`, and the sidebar `Run Workspace Audit` flow all refresh or create it. The launcher keeps `.mps/.mpsignore` nearby, while Workspace Cleanup Audit handles dense candidate review with pagination and batch apply. Saving an existing Markdown file updates that document's graph rows; creating or deleting a Markdown file triggers a full rebuild.
 
-Use `Agent Docs: Edit Source Ignore` to create `.mps/.mpsignore` in the workspace control folder. Patterns such as `.codex/**`, `.agents/**`, `.claude/**`, `.gemini/**`, `ai_skills/**`, `vscode-extension/ai_skills/**`, `test/**`, `raw/**`, `**/drafts/**`, or `*.draft.md` are excluded from both Source Graph and the Agent Docs File Browser. Existing root `.mpsignore` files are still read as a legacy fallback.
+Use `Agent Docs: Edit Source Ignore` to create `.mps/.mpsignore` in the workspace control folder. Patterns such as `.codex/**`, `.agents/**`, `.claude/**`, `.gemini/**`, `ai_skills/**`, `vscode-extension/ai_skills/**`, `test/**`, `raw/**`, `**/drafts/**`, or `*.draft.md` are excluded from both Source Graph and the Agent Docs File Browser. The canonical ignore file is `.mps/.mpsignore`; root `.mpsignore` is not used as a fallback.
 
 CLI `search` and `related` collapse duplicate skill copies by default so agent answers are less noisy. Use `--include-copies` only when auditing whether workspace and bundled skill folders are synced.
 
@@ -256,5 +256,5 @@ npm run package:vsix
 Then install:
 
 ```bash
-code --install-extension .\markdown-agent-docs-0.1.40.vsix
+code --install-extension .\markdown-agent-docs-0.1.41.vsix
 ```
