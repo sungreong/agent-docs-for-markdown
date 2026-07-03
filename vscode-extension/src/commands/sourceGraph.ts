@@ -1887,20 +1887,20 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-editor-background); }
-    .page { display: grid; gap: 16px; padding: 18px; max-width: 1180px; margin: 0 auto; }
+    .page { display: grid; gap: 16px; padding: clamp(10px, 2vw, 18px); max-width: 1180px; margin: 0 auto; container-type: inline-size; }
     .hero { display: grid; gap: 6px; }
     .hero h1 { margin: 0; font-size: 22px; }
     .hero p { margin: 0; color: var(--vscode-descriptionForeground); line-height: 1.45; }
     .guidance { display: grid; gap: 5px; padding: 12px 14px; border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.2)); border-radius: 10px; background: color-mix(in srgb, var(--vscode-editorWidget-background, #1f2430) 78%, transparent); }
     .guidance strong { font-size: 13px; }
     .guidance span { color: var(--vscode-descriptionForeground); font-size: 12px; line-height: 1.45; }
-    .toolbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .toolbar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
     button { min-height: 32px; border: 1px solid var(--vscode-button-border, transparent); border-radius: 6px; padding: 7px 10px; color: var(--vscode-button-foreground); background: var(--vscode-button-background); cursor: pointer; font: inherit; }
     button:hover { background: var(--vscode-button-hoverBackground); }
     button.secondary { color: var(--vscode-foreground); background: var(--vscode-button-secondaryBackground); }
     button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
     button[disabled] { opacity: .55; cursor: default; }
-    .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
     .metric { padding: 12px; border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.2)); border-radius: 10px; background: var(--vscode-editorWidget-background, rgba(128,128,128,.06)); }
     .metric strong { display: block; font-size: 22px; }
     .metric span { display: block; margin-top: 4px; color: var(--vscode-descriptionForeground); font-size: 12px; }
@@ -1908,21 +1908,28 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
     .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .section-head h2 { margin: 0; font-size: 15px; }
     .section-head span { color: var(--vscode-descriptionForeground); font-size: 12px; }
-    .tab-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .queue-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .tab-row, .batch-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .tab-row button[aria-pressed="true"] { outline: 1px solid var(--vscode-focusBorder); }
+    .batch-actions button { min-height: 28px; padding: 5px 8px; }
+    .selection-meta { color: var(--vscode-descriptionForeground); font-size: 12px; }
     .table-wrap { max-width: 100%; border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.2)); border-radius: 10px; overflow: auto; }
     table { width: 100%; min-width: 760px; border-collapse: collapse; table-layout: auto; }
     th, td { padding: 10px 9px; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,.15)); vertical-align: top; text-align: left; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
     th { color: var(--vscode-descriptionForeground); background: rgba(128,128,128,.06); font-weight: 700; }
     tr:last-child td { border-bottom: none; }
     .compact th, .compact td { padding-top: 7px; padding-bottom: 7px; font-size: 11px; }
+    .compact .example { display: none; }
     .pattern { font-weight: 700; overflow-wrap: anywhere; }
     .muted { color: var(--vscode-descriptionForeground); }
+    .pick-cell input { width: 16px; height: 16px; margin: 0; }
+    .signal-cell { white-space: nowrap; }
+    .signal-cell .tag + .tag { margin-left: 4px; }
     .reason-cell { max-width: 52ch; color: var(--vscode-foreground); }
     .match-cell { white-space: nowrap; }
     .action-cell button { width: 100%; white-space: nowrap; }
     .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-    .tag { display: inline-flex; align-items: center; border-radius: 999px; padding: 1px 7px; font-size: 11px; font-weight: 700; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
+    .tag { display: inline-flex; width: max-content; max-width: 100%; align-items: center; border-radius: 999px; padding: 1px 7px; font-size: 11px; font-weight: 700; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
     .tag.subtle { background: transparent; border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.25)); color: var(--vscode-descriptionForeground); }
     .pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .pager-actions { display: flex; gap: 8px; }
@@ -1931,21 +1938,40 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
     .mini-card { padding: 10px; border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.18)); border-radius: 10px; background: var(--vscode-editor-background); }
     .mini-card strong { display: block; margin-bottom: 4px; overflow-wrap: anywhere; }
     .mini-card span { color: var(--vscode-descriptionForeground); font-size: 12px; line-height: 1.45; }
-    @media (max-width: 1100px) { .toolbar, .summary, .mini-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 860px) {
-      .table-wrap { overflow: hidden; }
+    body.auto-compact .page { gap: 10px; }
+    body.auto-compact .hero, body.auto-compact .guidance { display: none; }
+    body.auto-compact .section { padding: 10px; }
+    body.auto-compact .metric { padding: 8px 10px; }
+    body.auto-compact .metric strong { font-size: 18px; }
+    @media (max-width: 980px) { .mini-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) {
+      .table-wrap { overflow: visible; border: 0; border-radius: 0; }
       table, tbody, tr, td { display: block; width: 100%; min-width: 0; }
-      table { min-width: 0; }
+      table { min-width: 0; border-collapse: separate; }
       thead { display: none; }
-      tr { padding: 10px; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,.18)); }
-      tr:last-child { border-bottom: 0; }
-      td { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 6px 0; border-bottom: 0; }
-      td::before { content: attr(data-label); color: var(--vscode-descriptionForeground); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+      tbody { display: grid; gap: 8px; }
+      tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "pattern pick" "signal action" "reason reason" "match match"; gap: 8px 10px; padding: 10px; border: 1px solid var(--vscode-panel-border, rgba(128,128,128,.18)); border-radius: 8px; background: var(--vscode-editor-background); }
+      tr:last-child { border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,.18)); }
+      td { padding: 0; border-bottom: 0; }
+      td::before { display: none; }
+      .pick-cell { grid-area: pick; justify-self: end; }
+      .pattern-cell { grid-area: pattern; }
+      .signal-cell { grid-area: signal; white-space: normal; }
       .reason-cell { max-width: none; }
-      .match-cell { white-space: normal; }
+      .match-cell { grid-area: match; white-space: normal; font-size: 11px; color: var(--vscode-descriptionForeground); }
+      .action-cell { grid-area: action; justify-self: end; }
       .action-cell button { width: auto; }
+      .review-table tr { grid-template-areas: "pattern action" "signal signal" "reason reason"; }
     }
-    @media (max-width: 720px) { .toolbar, .summary, .mini-grid { grid-template-columns: 1fr; } .pager { flex-direction: column; align-items: stretch; } }
+    @media (max-width: 560px) {
+      .toolbar, .summary, .mini-grid { grid-template-columns: 1fr; }
+      .section-head, .pager { flex-direction: column; align-items: stretch; }
+      .queue-controls { align-items: stretch; }
+      .tab-row, .batch-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      tr { grid-template-columns: 1fr; grid-template-areas: "pick" "pattern" "signal" "reason" "match" "action"; }
+      .pick-cell, .action-cell { justify-self: stretch; }
+      .action-cell button, .row-actions button { width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -1975,10 +2001,18 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
         <h2>Cleanup Queue</h2>
         <span id="queueMeta"></span>
       </div>
-      <div class="tab-row">
-        <button type="button" class="secondary" data-tab="ignore" aria-pressed="true">Ignore Suggestions</button>
-        <button type="button" class="secondary" data-tab="review" aria-pressed="false">Link/File Review</button>
+      <div class="queue-controls">
+        <div class="tab-row">
+          <button type="button" class="secondary" data-tab="ignore" aria-pressed="true">Ignore Suggestions</button>
+          <button type="button" class="secondary" data-tab="review" aria-pressed="false">Link/File Review</button>
+        </div>
+        <div class="batch-actions">
+          <button id="selectPage" type="button" class="secondary" data-action="selectPage">Select Page</button>
+          <button id="selectAll" type="button" class="secondary" data-action="selectAll">Select All</button>
+          <button id="clearSelection" type="button" class="secondary" data-action="clearSelection">Clear</button>
+        </div>
       </div>
+      <span id="selectionMeta" class="selection-meta"></span>
       <div id="tableMount" class="table-wrap"></div>
       <div class="pager">
         <span id="pageMeta" class="muted"></span>
@@ -2005,10 +2039,15 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
     const weakSpots = document.getElementById('weakSpots');
     const applySelected = document.getElementById('applySelected');
     const compactToggle = document.getElementById('toggleCompact');
+    const selectPageButton = document.getElementById('selectPage');
+    const selectAllButton = document.getElementById('selectAll');
+    const clearSelectionButton = document.getElementById('clearSelection');
+    const selectionMeta = document.getElementById('selectionMeta');
     const pageSize = 20;
     let activeTab = 'ignore';
     let page = 0;
-    let compact = false;
+    let userCompact = false;
+    let autoCompact = false;
     let selectedPatterns = new Set();
     function escapeHtml(value) {
       return String(value || '').replace(/[&<>"']/g, (ch) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
@@ -2021,6 +2060,22 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
     }
     function currentRows() { return activeTab === 'ignore' ? visibleRecommendations() : reviewRows(); }
     function pagedRows() { const rows = currentRows(); const start = page * pageSize; return rows.slice(start, start + pageSize); }
+    function pagePatterns() { return pagedRows().map((item) => String(item.pattern || '')).filter(Boolean); }
+    function allPatterns() { return visibleRecommendations().map((item) => String(item.pattern || '')).filter(Boolean); }
+    function isCompact() { return userCompact || autoCompact; }
+    function applySelectedPatterns() {
+      const patterns = Array.from(selectedPatterns).filter(Boolean);
+      if (!patterns.length) return;
+      applySelected.disabled = true;
+      vscode.postMessage({ type: 'applyAuditPatterns', patterns });
+    }
+    function updateDensity(width) {
+      const nextAutoCompact = Number.isFinite(width) && width < 760;
+      if (nextAutoCompact === autoCompact) return;
+      autoCompact = nextAutoCompact;
+      document.body.classList.toggle('auto-compact', autoCompact);
+      renderTable();
+    }
     function renderWeakSpots() {
       const cards = Array.isArray(auditView.weakSpots) ? auditView.weakSpots : [];
       weakSpots.innerHTML = cards.map((item) => '<div class="mini-card"><strong>' + escapeHtml(item.title) + '</strong><span>' + escapeHtml(item.detail) + '</span></div>').join('') || '<div class="empty">No high-signal follow-up items were found.</div>';
@@ -2030,10 +2085,20 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
       const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
       if (page >= totalPages) page = totalPages - 1;
       const visible = pagedRows();
+      const compact = isCompact();
+      const selectedCount = selectedPatterns.size;
       queueMeta.textContent = activeTab === 'ignore' ? rows.length + ' ignore suggestions to review' : rows.length + ' link/file review items';
       pageMeta.textContent = rows.length ? 'Page ' + (page + 1) + ' of ' + totalPages + ' • ' + rows.length + ' total' : 'Nothing to review';
-      applySelected.disabled = !(activeTab === 'ignore' && selectedPatterns.size > 0);
+      selectionMeta.textContent = activeTab === 'ignore'
+        ? (selectedCount ? selectedCount + ' selected for .mps/.mpsignore' : 'Select page or all suggestions, then apply once.')
+        : 'Review rows open files; ignore patterns are applied from the Ignore Suggestions tab.';
+      applySelected.disabled = !(activeTab === 'ignore' && selectedCount > 0);
+      applySelected.textContent = selectedCount ? 'Apply ' + selectedCount : 'Apply Selected';
+      selectPageButton.disabled = activeTab !== 'ignore' || !pagePatterns().length;
+      selectAllButton.disabled = activeTab !== 'ignore' || !allPatterns().length;
+      clearSelectionButton.disabled = selectedCount === 0;
       compactToggle.setAttribute('aria-pressed', String(compact));
+      compactToggle.textContent = autoCompact && !userCompact ? 'Auto Compact' : (userCompact ? 'Compact On' : 'Compact View');
       if (!rows.length) {
         tableMount.innerHTML = '<div class="empty">' + (activeTab === 'ignore' ? 'No visible ignore candidates remain. Already applied entries are hidden automatically.' : 'No review rows remain.') + '</div>';
         return;
@@ -2042,11 +2107,11 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
         tableMount.innerHTML = '<table class="ignore-table ' + (compact ? 'compact' : '') + '"><thead><tr><th style="width:48px;">Pick</th><th style="width:190px;">Pattern</th><th style="width:120px;">Signal</th><th>Why suggested</th><th style="width:120px;">Matched</th><th style="width:112px;">Action</th></tr></thead><tbody>' + visible.map((item) => {
           const pattern = String(item.pattern || '');
           const checked = selectedPatterns.has(pattern) ? ' checked' : '';
-          return '<tr><td data-label="Pick"><input type="checkbox" data-pattern="' + escapeHtml(pattern) + '"' + checked + ' /></td><td data-label="Pattern"><div class="pattern">' + escapeHtml(pattern) + '</div><div class="muted">' + escapeHtml(item.kind || '') + '</div></td><td data-label="Signal"><span class="tag">' + escapeHtml(item.confidence || 'review') + '</span> <span class="tag subtle">' + escapeHtml(item.status || 'candidate') + '</span></td><td data-label="Why" class="reason-cell">' + escapeHtml(item.reason || '') + '<div class="muted">' + escapeHtml(Array.isArray(item.examples) && item.examples[0] ? 'Example: ' + item.examples[0] : '') + '</div></td><td data-label="Matched" class="match-cell">' + escapeHtml(String(item.indexedCount || 0)) + ' indexed<br /><span class="muted">' + escapeHtml(String(item.totalMatches || 0)) + ' matched</span></td><td data-label="Action" class="action-cell"><div class="row-actions"><button type="button" class="secondary" data-apply-one="' + escapeHtml(pattern) + '">Apply</button></div></td></tr>';
+          return '<tr><td data-label="Pick" class="pick-cell"><input type="checkbox" aria-label="Select ' + escapeHtml(pattern) + '" data-pattern="' + escapeHtml(pattern) + '"' + checked + ' /></td><td data-label="Pattern" class="pattern-cell"><div class="pattern">' + escapeHtml(pattern) + '</div><div class="muted">' + escapeHtml(item.kind || '') + '</div></td><td data-label="Signal" class="signal-cell"><span class="tag">' + escapeHtml(item.confidence || 'review') + '</span><span class="tag subtle">' + escapeHtml(item.status || 'candidate') + '</span></td><td data-label="Why" class="reason-cell">' + escapeHtml(item.reason || '') + '<div class="muted example">' + escapeHtml(Array.isArray(item.examples) && item.examples[0] ? 'Example: ' + item.examples[0] : '') + '</div></td><td data-label="Matched" class="match-cell">' + escapeHtml(String(item.indexedCount || 0)) + ' indexed<br /><span class="muted">' + escapeHtml(String(item.totalMatches || 0)) + ' matched</span></td><td data-label="Action" class="action-cell"><div class="row-actions"><button type="button" class="secondary" data-apply-one="' + escapeHtml(pattern) + '">Apply</button></div></td></tr>';
         }).join('') + '</tbody></table>';
         return;
       }
-      tableMount.innerHTML = '<table class="review-table ' + (compact ? 'compact' : '') + '"><thead><tr><th style="width:260px;">Path</th><th style="width:120px;">Category</th><th>Why review</th><th style="width:128px;">Action</th></tr></thead><tbody>' + visible.map((item) => '<tr><td data-label="Path"><div class="pattern">' + escapeHtml(item.path) + '</div><div class="muted">' + escapeHtml(item.suggestedPattern || '') + '</div></td><td data-label="Category"><span class="tag subtle">' + escapeHtml(item.category || 'review') + '</span></td><td data-label="Why" class="reason-cell">' + escapeHtml(item.reason || '') + '</td><td data-label="Action" class="action-cell"><div class="row-actions"><button type="button" class="secondary" data-open-path="' + escapeHtml(item.path) + '">View</button><button type="button" class="secondary" data-open-editor-path="' + escapeHtml(item.path) + '">Edit</button></div></td></tr>').join('') + '</tbody></table>';
+      tableMount.innerHTML = '<table class="review-table ' + (compact ? 'compact' : '') + '"><thead><tr><th style="width:260px;">Path</th><th style="width:120px;">Category</th><th>Why review</th><th style="width:128px;">Action</th></tr></thead><tbody>' + visible.map((item) => '<tr><td data-label="Path" class="pattern-cell"><div class="pattern">' + escapeHtml(item.path) + '</div><div class="muted">' + escapeHtml(item.suggestedPattern || '') + '</div></td><td data-label="Category" class="signal-cell"><span class="tag subtle">' + escapeHtml(item.category || 'review') + '</span></td><td data-label="Why" class="reason-cell">' + escapeHtml(item.reason || '') + '</td><td data-label="Action" class="action-cell"><div class="row-actions"><button type="button" class="secondary" data-open-path="' + escapeHtml(item.path) + '">View</button><button type="button" class="secondary" data-open-editor-path="' + escapeHtml(item.path) + '">Edit</button></div></td></tr>').join('') + '</tbody></table>';
     }
     function setTab(nextTab) {
       activeTab = nextTab;
@@ -2060,8 +2125,11 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
         const type = action.getAttribute('data-action');
         if (type === 'refreshAuditPanel') vscode.postMessage({ type: 'refreshAuditPanel' });
         if (type === 'editIgnore') vscode.postMessage({ type: 'editIgnore' });
-        if (type === 'toggleCompact') { compact = !compact; renderTable(); }
-        if (type === 'applySelected') vscode.postMessage({ type: 'applyAuditPatterns', patterns: Array.from(selectedPatterns) });
+        if (type === 'toggleCompact') { userCompact = !userCompact; renderTable(); }
+        if (type === 'selectPage') { pagePatterns().forEach((pattern) => selectedPatterns.add(pattern)); renderTable(); }
+        if (type === 'selectAll') { allPatterns().forEach((pattern) => selectedPatterns.add(pattern)); renderTable(); }
+        if (type === 'clearSelection') { selectedPatterns.clear(); renderTable(); }
+        if (type === 'applySelected') applySelectedPatterns();
         if (type === 'prevPage') { page = Math.max(0, page - 1); renderTable(); }
         if (type === 'nextPage') { page += 1; renderTable(); }
         return;
@@ -2086,6 +2154,14 @@ function renderSourceGraphAuditHtml(audit: SourceGraphAuditResult, webview: vsco
     });
     renderWeakSpots();
     renderTable();
+    const densityRoot = document.querySelector('.page');
+    if ('ResizeObserver' in window && densityRoot) {
+      updateDensity(densityRoot.getBoundingClientRect().width);
+      new ResizeObserver((entries) => updateDensity(entries[0]?.contentRect?.width || window.innerWidth)).observe(densityRoot);
+    } else {
+      window.addEventListener('resize', () => updateDensity(window.innerWidth));
+      updateDensity(window.innerWidth);
+    }
   </script>
 </body>
 </html>`;
