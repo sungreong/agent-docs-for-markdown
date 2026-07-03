@@ -65,6 +65,11 @@ interface BundledInstallPlan {
   source: SkillSource;
   target: SkillTarget;
   skills: ExportableSkill[];
+  usesFallbackSource: boolean;
+}
+
+interface BundledInstallPick extends vscode.QuickPickItem {
+  plan: BundledInstallPlan;
 }
 
 interface SkillInstallRecord {
@@ -212,15 +217,25 @@ async function installBundledSkillsToMatchingWorkspace(
   }
 
   const workspaceRoot = workspaceFolder.uri.fsPath;
-  const plans: BundledInstallPlan[] = [];
+  const bundledSourcesByProfile = new Map<string, SkillSource>();
   for (const source of sources.filter((candidate) => candidate.id.startsWith(bundledSourceIdPrefix))) {
     const profile = skillAgentProfileForSource(source);
-    if (!profile) continue;
-    const skills = await scanExportableSkills(source);
+    if (profile) bundledSourcesByProfile.set(profile.id, source);
+  }
+  const fallbackSource = bundledSourcesByProfile.get('codex') ?? bundledSourcesByProfile.get('agents') ?? bundledSourcesByProfile.get('claude') ?? null;
+  const skillsBySource = new Map<string, ExportableSkill[]>();
+  const plans: BundledInstallPlan[] = [];
+  for (const profile of skillAgentProfiles) {
+    const source = bundledSourcesByProfile.get(profile.id) ?? fallbackSource;
+    if (!source) continue;
+    const cachedSkills = skillsBySource.get(source.id);
+    const skills = cachedSkills ?? await scanExportableSkills(source);
+    skillsBySource.set(source.id, skills);
     if (skills.length === 0) continue;
     plans.push({
       source,
       skills,
+      usesFallbackSource: !bundledSourcesByProfile.has(profile.id),
       target: {
         id: workspaceTargetIdForAgent(profile.id),
         label: profile.workspaceLabel,
@@ -235,21 +250,25 @@ async function installBundledSkillsToMatchingWorkspace(
     return;
   }
 
-  const summary = plans
+  const selectedPlans = await pickBundledInstallPlans(plans);
+  if (!selectedPlans || selectedPlans.length === 0) return;
+
+  const summary = selectedPlans
     .map((plan) => {
       const relativeTarget = vscode.workspace.asRelativePath(vscode.Uri.file(plan.target.rootDir), false);
-      return `${plan.source.label} -> ${relativeTarget} (${plan.skills.length} skill${plan.skills.length === 1 ? '' : 's'})`;
+      const fallbackText = plan.usesFallbackSource ? ' fallback' : '';
+      return `${plan.source.label}${fallbackText} -> ${relativeTarget} (${plan.skills.length} skill${plan.skills.length === 1 ? '' : 's'})`;
     })
     .join('\n');
   const confirm = await vscode.window.showWarningMessage(
-    `Agent Docs will install/update bundled skills into matching workspace agent folders.\n\n${summary}`,
+    `Agent Docs will install/update bundled skills into the selected workspace agent folders.\n\n${summary}`,
     { modal: true },
-    'Install / Update',
+    'Install / Update Selected',
   );
-  if (confirm !== 'Install / Update') return;
+  if (confirm !== 'Install / Update Selected') return;
 
   try {
-    const totalOperations = plans.reduce((total, plan) => total + plan.skills.length, 0);
+    const totalOperations = selectedPlans.reduce((total, plan) => total + plan.skills.length, 0);
     const installed: SkillInstallRecord[] = [];
     await vscode.window.withProgress(
       {
@@ -259,7 +278,7 @@ async function installBundledSkillsToMatchingWorkspace(
       },
       async (progress) => {
         let done = 0;
-        for (const plan of plans) {
+        for (const plan of selectedPlans) {
           await fs.mkdir(plan.target.rootDir, { recursive: true });
           for (const skill of plan.skills) {
             progress.report({
@@ -285,10 +304,33 @@ async function installBundledSkillsToMatchingWorkspace(
     return;
   }
 
-  const installedTargets = plans
+  const installedTargets = selectedPlans
     .map((plan) => vscode.workspace.asRelativePath(vscode.Uri.file(plan.target.rootDir), false))
     .join(', ');
   void vscode.window.showInformationMessage(`Agent Docs: Installed bundled skills into ${installedTargets}.`);
+}
+
+async function pickBundledInstallPlans(plans: BundledInstallPlan[]): Promise<BundledInstallPlan[] | null> {
+  const picks: BundledInstallPick[] = await Promise.all(plans.map(async (plan) => {
+    const relativeTarget = vscode.workspace.asRelativePath(vscode.Uri.file(plan.target.rootDir), false);
+    const fallbackText = plan.usesFallbackSource ? `Uses ${plan.source.label} because no matching bundled set exists yet.` : 'Uses the matching bundled skill set.';
+    return {
+      label: plan.target.label,
+      description: `${plan.skills.length} skill${plan.skills.length === 1 ? '' : 's'} -> ${relativeTarget}`,
+      detail: `${fallbackText} Target: ${plan.target.rootDir}`,
+      picked: !plan.usesFallbackSource || await directoryExists(plan.target.rootDir),
+      plan,
+    };
+  }));
+  const selected = await vscode.window.showQuickPick<BundledInstallPick>(picks, {
+    canPickMany: true,
+    ignoreFocusOut: true,
+    matchOnDescription: true,
+    matchOnDetail: true,
+    placeHolder: 'Select workspace agent folders to install/update. Use the checkbox menu to select all if needed.',
+    title: 'Install bundled skills to selected agent folders',
+  });
+  return selected?.map((pick) => pick.plan) ?? null;
 }
 
 async function downloadSkillAsZip(
@@ -394,8 +436,8 @@ async function pickSkillWorkflow(
   if (hasBundledSources) {
     items.push({
       label: 'Install bundled skills to this workspace',
-      description: workspaceFolder ? '.claude/skills, .agents/skills, .codex/skills' : 'Open a workspace first',
-      detail: 'Recommended: copy each VSIX bundled skill set into its matching workspace agent folder.',
+      description: workspaceFolder ? 'Choose Claude, Agents, Codex, Gemini, Cursor targets' : 'Open a workspace first',
+      detail: 'Recommended: multi-select the workspace agent folders you want to update from bundled skills.',
       action: 'install-bundled-matching',
     });
   }

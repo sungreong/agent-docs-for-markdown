@@ -126,7 +126,7 @@ A dedicated sidebar for navigating markdown files as a reader:
 
 Use `Agent Docs: Install or Export Skills` from the Command Palette or Agent Docs File Browser sidebar title bar.
 
-1. Choose `Install bundled skills to this workspace` for the normal setup flow. The extension copies each bundled source into its matching workspace target: Bundled Claude -> `.claude/skills`, Bundled Agents -> `.agents/skills`, Bundled Codex -> `.codex/skills`.
+1. Choose `Install bundled skills to this workspace` for the normal setup flow. The extension opens a multi-select target picker so you can update only the agent folders you want, or select all. Matching bundles update Claude, Agents, and Codex directly; Gemini and Cursor targets can use the bundled Codex-compatible skill set when no dedicated bundle exists yet.
 2. Choose `Export one skill as ZIP` when you want a portable archive for manual installation in another tool.
 3. Choose `Advanced: choose source and target` only when you need to update one selected skill, update every skill from one source, or pick a custom workspace skill root.
 4. Missing target folders are created automatically before the skill files are copied.
@@ -256,5 +256,5 @@ npm run package:vsix
 Then install:
 
 ```bash
-code --install-extension .\markdown-agent-docs-0.1.44.vsix
+code --install-extension .\markdown-agent-docs-0.1.45.vsix
 ```

@@ -16,7 +16,7 @@ npm run package:vsix
 ### Install
 
 ```bash
-code --install-extension .\markdown-agent-docs-0.1.44.vsix --force
+code --install-extension .\markdown-agent-docs-0.1.45.vsix --force
 ```
 
 ### Basic Usage
@@ -96,7 +96,7 @@ Outline state:
 `Agent Docs: Install or Export Skills` is available from the Command Palette and the Agent Docs File Browser sidebar title bar.
 
 1. Choose `Install bundled skills to this workspace` for the normal setup flow.
-2. The extension installs each available bundled source into its matching workspace agent target: Bundled Claude -> `.claude/skills`, Bundled Agents -> `.agents/skills`, Bundled Codex -> `.codex/skills`, Bundled Gemini -> `.gemini/skills`, Bundled Cursor -> `.cursor/skills`.
+2. Select the workspace agent targets you want to update. Claude, Agents, and Codex use matching bundled skill sets; Gemini and Cursor can use the bundled Codex-compatible skill set when no dedicated bundle exists yet.
 3. Choose `Export one skill as ZIP` when you want a portable archive for manual installation in another tool.
 4. Choose `Advanced: choose source and target` when you need source-by-source updates, selected-skill updates, or a custom workspace skill root.
 5. Missing target folders are created automatically before files are copied.
@@ -253,7 +253,7 @@ Example (absolute path):
 - Source: `vscode-extension/src/extension.ts`
 - Build: `npm run build`
 - Package: `npm run package:vsix`
-- Install test: `code --install-extension .\markdown-agent-docs-0.1.44.vsix --force`
+- Install test: `code --install-extension .\markdown-agent-docs-0.1.45.vsix --force`
 
 ## 11) Uninstall / Cleanup Guide
 
@@ -276,7 +276,7 @@ Find `datanewbie-labs.markdown-agent-docs@...` in the list.
 If you no longer need the package file, delete:
 
 ```text
-vscode-extension/markdown-agent-docs-0.1.44.vsix
+vscode-extension/markdown-agent-docs-0.1.45.vsix
 ```
 
 ### Optional: remove local extension folder manually
@@ -284,5 +284,5 @@ vscode-extension/markdown-agent-docs-0.1.44.vsix
 If needed, remove this folder:
 
 ```text
-%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-agent-docs-0.1.44
+%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-agent-docs-0.1.45
 ```

@@ -273,6 +273,11 @@ assert(
   ) &&
     exportSkillFolderSource.includes('async function pickSkillWorkflow') &&
     exportSkillFolderSource.includes("label: 'Install bundled skills to this workspace'") &&
+    exportSkillFolderSource.includes('async function pickBundledInstallPlans') &&
+    exportSkillFolderSource.includes('canPickMany: true') &&
+    exportSkillFolderSource.includes("bundledSourcesByProfile.get('codex')") &&
+    exportSkillFolderSource.includes('Uses ${plan.source.label} because no matching bundled set exists yet.') &&
+    exportSkillFolderSource.includes('Choose Claude, Agents, Codex, Gemini, Cursor targets') &&
     exportSkillFolderSource.includes('async function installBundledSkillsToMatchingWorkspace') &&
     exportSkillFolderSource.includes('skillAgentProfileForSource(source)') &&
     exportSkillFolderSource.includes("createOutputChannel('Agent Docs Skills')") &&
