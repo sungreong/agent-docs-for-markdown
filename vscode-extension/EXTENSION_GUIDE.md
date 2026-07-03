@@ -22,20 +22,20 @@ code --install-extension .\markdown-agent-docs-0.1.38.vsix --force
 ### Basic Usage
 
 1. Open a `.md` file inside the workspace.
-2. Run `Markdown Studio: Open Preview` from Command Palette (`Ctrl+Shift+P`).
+2. Run `Agent Docs: Open Preview` from Command Palette (`Ctrl+Shift+P`).
 3. Save the file (`Ctrl+S`) to auto-refresh preview.
-4. Use `Markdown Studio: Refresh Preview` for manual force refresh.
-5. Use `MD Studio: Transform Markdown to Styled HTML` to export the currently open markdown file as styled HTML.
-6. Use `MD Studio: Open in Viewer` from the MD Studio File Browser sidebar or Command Palette. From the palette it falls back to the active markdown document and shows a clear message if no markdown target is available.
-7. Use `MD Studio: Install or Export Skills` to install bundled skills into workspace agent folders or export a skill as a ready-to-share ZIP folder.
-8. Right-click a folder in the MD Studio File Browser sidebar and choose `FOCUS` to narrow only that browser until `MD Studio: Clear Folder Focus` is run.
+4. Use `Agent Docs: Refresh` for manual force refresh.
+5. Use `Agent Docs: Export Styled HTML` to export the currently open markdown file as styled HTML.
+6. Use `Agent Docs: Open in Viewer` from the Agent Docs File Browser sidebar or Command Palette. From the palette it falls back to the active markdown document and shows a clear message if no markdown target is available.
+7. Use `Agent Docs: Install or Export Skills` to install bundled skills into workspace agent folders or export a skill as a ready-to-share ZIP folder.
+8. Right-click a folder in the Agent Docs File Browser sidebar and choose `Focus This Folder` to narrow only that browser until `Agent Docs: Clear Folder Focus` is run.
 9. Use the preview `Style` menu to switch document appearance; the selected style is reused for preview refresh and HTML transform.
-10. Use `MD Studio: Initialize Source Graph Workspace` once per workspace when you want a document graph DB at `.mps/source-graph.sqlite`.
-11. Use `MD Studio: Edit Source Ignore` when generated folders or low-signal documents should be excluded from both the graph and the MD Studio File Browser.
+10. Use `Agent Docs: Initialize Source Graph` once per workspace when you want a document graph DB at `.mps/source-graph.sqlite`.
+11. Use `Agent Docs: Edit Source Ignore` when generated folders or low-signal documents should be excluded from both the graph and the Agent Docs File Browser.
 
 ## 2) Cursor Sync on Save (Ctrl+S)
 
-When `mdStudioPreview.cursorSyncOnSave=true`, save triggers this sequence:
+When `markdownAgentDocs.cursorSyncOnSave=true`, save triggers this sequence:
 
 1. Render markdown through the CLI.
 2. Resolve current cursor line.
@@ -51,32 +51,32 @@ Notes:
 
 ## 3) Settings
 
-- `mdStudioPreview.autoOnSave`
+- `markdownAgentDocs.autoOnSave`
   - Controls auto render on save.
   - Default: `true`
-- `mdStudioPreview.cursorSyncOnSave`
+- `markdownAgentDocs.cursorSyncOnSave`
   - Controls section sync after save render.
   - Default: `true`
-- `mdStudioPreview.nodePath`
+- `markdownAgentDocs.nodePath`
   - Node executable path used to run CLI.
   - Default: `"node"`
-- `mdStudioPreview.cliScriptPath`
+- `markdownAgentDocs.cliScriptPath`
   - CLI script path.
   - Default value uses the extension-bundled CLI first.
   - Custom relative path: resolved from workspace root.
   - Absolute path: used as-is.
   - Default: `"scripts/md-to-html.mjs"`
-- `mdStudioPreview.extraArgs`
+- `markdownAgentDocs.extraArgs`
   - Extra CLI arguments.
   - Default: `["--standalone"]`
-- `mdStudioPreview.preferredViewMode`
+- `markdownAgentDocs.preferredViewMode`
   - Preview presentation mode.
   - `auto`: switch to stack on narrow webview.
   - `slides`: always prefer slides.
   - `stack`: always prefer stack.
   - Default: `"stack"`
-- `mdStudioFileBrowser.extraExtensions`
-  - Additional file extensions shown in the MD Studio File Browser.
+- `markdownAgentDocsFileBrowser.extraExtensions`
+  - Additional file extensions shown in the Agent Docs File Browser.
   - Markdown extensions are always included.
   - Default: `[]`
 
@@ -93,7 +93,7 @@ Outline state:
 
 ## 4) Skill Install / Export
 
-`MD Studio: Install or Export Skills` is available from the Command Palette and the MD Studio File Browser sidebar title bar.
+`Agent Docs: Install or Export Skills` is available from the Command Palette and the Agent Docs File Browser sidebar title bar.
 
 1. Choose `Install bundled skills to this workspace` for the normal setup flow.
 2. The extension installs each available bundled source into its matching workspace agent target: Bundled Claude -> `.claude/skills`, Bundled Agents -> `.agents/skills`, Bundled Codex -> `.codex/skills`, Bundled Gemini -> `.gemini/skills`, Bundled Cursor -> `.cursor/skills`.
@@ -114,19 +114,19 @@ Source Graph is the document-link index for one VS Code workspace. It creates `.
 
 1. Install the VSIX.
 2. Open the folder that contains your Markdown documents in VS Code.
-3. Run `MD Studio: Initialize Source Graph Workspace`.
+3. Run `Agent Docs: Initialize Source Graph`.
 4. Confirm `.mps/source-graph.sqlite` exists in that workspace.
-5. Run `MD Studio: Install Source Graph MCP`.
+5. Run `Agent Docs: Install Source Graph MCP`.
 6. Choose whether to update `.mcp.json`, `.codex/config.toml`, or all supported client configs.
-7. Run `MD Studio: Install or Export Skills`, then choose `Install bundled skills to this workspace` if workspace skill folders are missing or stale.
+7. Run `Agent Docs: Install or Export Skills`, then choose `Install bundled skills to this workspace` if workspace skill folders are missing or stale.
 8. Restart the selected MCP client or start a fresh trusted workspace session.
-9. Run `MD Studio: Check Source Graph MCP Status` to verify Node, the bundled MCP script, graph DB, and config registration.
+9. Run `Agent Docs: Check Source Graph MCP Status` to verify Node, the bundled MCP script, graph DB, and config registration.
 
 This is the Source Graph equivalent of a project-local init step such as `codegraph init`: each workspace owns its own `.mps/source-graph.sqlite`.
 
 ### Ignoring documents
 
-Run `MD Studio: Edit Source Ignore` to open the workspace `.mpsignore` file. The file uses gitignore-style glob lines and affects both Source Graph indexing and the MD Studio File Browser list.
+Run `Agent Docs: Edit Source Ignore` to open the workspace `.mpsignore` file. The file uses gitignore-style glob lines and affects both Source Graph indexing and the Agent Docs File Browser list.
 
 Example:
 
@@ -138,22 +138,22 @@ raw/**
 *.draft.md
 ```
 
-After editing `.mpsignore`, run `MD Studio: Update Source Graph Index` or reopen Source Graph. The file browser refreshes automatically when `.mpsignore` changes.
+After editing `.mpsignore`, run `Agent Docs: Update Source Graph` or reopen Source Graph. The file browser refreshes automatically when `.mpsignore` changes.
 
 ### Updating behavior
 
-- `MD Studio: Open Source Graph` refreshes the DB before showing the graph.
-- `MD Studio: Update Source Graph Index` rebuilds the DB manually.
+- `Agent Docs: Open Source Graph` refreshes the DB before showing the graph.
+- `Agent Docs: Update Source Graph` rebuilds the DB manually.
 - Saving an existing Markdown file updates that file's graph rows and recomputes resolved edges.
 - Creating or deleting a Markdown file triggers a full rebuild after a short debounce.
 - Creating, editing, or deleting `.mpsignore` triggers a full rebuild after a short debounce.
-- `MD Studio: Install Source Graph MCP` also creates or updates the DB before writing selected MCP client config.
+- `Agent Docs: Install Source Graph MCP` also creates or updates the DB before writing selected MCP client config.
 
 ### How to verify updates
 
 1. Create two files, `a.md` and `b.md`.
 2. Add `[B](b.md)` in `a.md`.
-3. Run `MD Studio: Initialize Source Graph Workspace`.
+3. Run `Agent Docs: Initialize Source Graph`.
 4. Open Source Graph and select `a.md`; `b.md` should appear as an outbound linked file.
 5. Change the link to another Markdown file and save.
 6. Reopen or update Source Graph; the outbound edge should change.
@@ -169,15 +169,15 @@ The bundled Codex skill `source-graph-search` tells Codex when to prefer these M
 
 ## 6) Folder Focus
 
-`FOCUS` is available from folder items in the MD Studio File Browser sidebar.
+`FOCUS` is available from folder items in the Agent Docs File Browser sidebar.
 
-1. Pick a folder and run `FOCUS`.
-2. The extension stores that folder as the MD Studio File Browser focus root.
-3. The MD Studio File Browser tree shows configured files under that folder and hides sibling branches inside the extension view only.
+1. Pick a folder and run `Focus This Folder`.
+2. The extension stores that folder as the Agent Docs File Browser focus root.
+3. The Agent Docs File Browser tree shows configured files under that folder and hides sibling branches inside the extension view only.
 4. VS Code Explorer and workspace `files.exclude` are not modified.
-5. `MD Studio: Clear Folder Focus` clears the browser focus and also removes legacy Explorer exclude rules if an older experimental build recorded them.
+5. `Agent Docs: Clear Folder Focus` clears the browser focus and also removes legacy Explorer exclude rules if an older experimental build recorded them.
 
-For a nested folder such as `docs/guides`, the MD Studio File Browser sidebar keeps the path to that folder visible and omits sibling branches from the MD Studio tree.
+For a nested folder such as `docs/guides`, the Agent Docs File Browser sidebar keeps the path to that folder visible and omits sibling branches from the Agent Docs tree.
 
 ## 7) Viewer Appearance
 
@@ -195,8 +195,8 @@ Detail controls override the preset: background (`default | plain | transparent`
 
 1. Extension receives preview command or save event.
 2. Resolves CLI path in this order:
-   - bundled CLI (`<extension>/scripts/md-to-html.mjs`) when `mdStudioPreview.cliScriptPath` is the default value
-   - custom `mdStudioPreview.cliScriptPath` when a relative or absolute path is configured
+   - bundled CLI (`<extension>/scripts/md-to-html.mjs`) when `markdownAgentDocs.cliScriptPath` is the default value
+   - custom `markdownAgentDocs.cliScriptPath` when a relative or absolute path is configured
    - manual picker (`Select Script`) as final fallback
 3. Resolves parser path for cursor sync:
    - workspace `public/core/engine.js`
@@ -210,9 +210,9 @@ Detail controls override the preset: background (`default | plain | transparent`
 ### Preview does not open
 
 - Confirm the file is a markdown file in the current workspace.
-- If `MD Studio: Open in Viewer` is run from Command Palette, keep a markdown editor active or select a markdown file from the sidebar first.
-- Confirm `mdStudioPreview.cliScriptPath` points to an existing script path.
-- Confirm `mdStudioPreview.nodePath` points to a valid Node executable.
+- If `Agent Docs: Open in Viewer` is run from Command Palette, keep a markdown editor active or select a markdown file from the sidebar first.
+- Confirm `markdownAgentDocs.cliScriptPath` points to an existing script path.
+- Confirm `markdownAgentDocs.nodePath` points to a valid Node executable.
 - If `cliScriptPath` is default, extension tries the bundled CLI first.
 - If `cliScriptPath` is customized, that path is used as-is (no bundled auto override).
 - If script is still missing, click `Select Script` in the popup and choose `md-to-html.mjs`.
@@ -221,7 +221,7 @@ Example (absolute path):
 
 ```json
 {
-  "mdStudioPreview.cliScriptPath": "C:\\Users\\leesu\\Documents\\ProjectCode\\01_2026_EXP\\markdown-pattern-studio\\scripts\\md-to-html.mjs"
+  "markdownAgentDocs.cliScriptPath": "C:\\Users\\leesu\\Documents\\ProjectCode\\01_2026_EXP\\agent-docs-for-markdown\\scripts\\md-to-html.mjs"
 }
 ```
 
@@ -239,14 +239,14 @@ Example (absolute path):
 ### Skill download has no sources
 
 - Run `npm run build` before testing from source so bundled `ai_skills` are copied into `vscode-extension/ai_skills`.
-- Confirm `mdStudioPreview.skillsDir` points to a directory whose children contain `SKILL.md`.
+- Confirm `markdownAgentDocs.skillsDir` points to a directory whose children contain `SKILL.md`.
 
 ### Source Graph DB or MCP does not appear
 
-- Run `MD Studio: Check Source Graph MCP Status`.
-- Confirm Node.js is installed and `mdStudioPreview.nodePath` points to a working `node` executable.
+- Run `Agent Docs: Check Source Graph MCP Status`.
+- Confirm Node.js is installed and `markdownAgentDocs.nodePath` points to a working `node` executable.
 - Confirm the workspace is trusted in the selected MCP client.
-- Run `MD Studio: Initialize Source Graph Workspace` again if `.mps/source-graph.sqlite` is missing.
+- Run `Agent Docs: Initialize Source Graph` again if `.mps/source-graph.sqlite` is missing.
 - Restart Codex after installing or removing MCP config.
 
 ## 10) Development Notes

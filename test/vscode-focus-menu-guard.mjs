@@ -5,34 +5,34 @@ const packageJson = JSON.parse(await readFile(new URL('../vscode-extension/packa
 const menus = packageJson.contributes?.menus ?? {};
 
 const explorerCommands = (menus['explorer/context'] ?? []).map((item) => item.command);
-assert(!explorerCommands.includes('mdStudioPreview.focusFolder'), 'FOCUS must not appear in the VS Code Explorer context menu');
+assert(!explorerCommands.includes('markdownAgentDocs.focusFolder'), 'FOCUS must not appear in the VS Code Explorer context menu');
 assert(
-  !explorerCommands.includes('mdStudioPreview.clearFolderFocus'),
+  !explorerCommands.includes('markdownAgentDocs.clearFolderFocus'),
   'Clear Folder Focus must not appear in the VS Code Explorer context menu',
 );
 
 const browserFocusItem = (menus['view/item/context'] ?? []).find(
-  (item) => item.command === 'mdStudioPreview.focusFolder',
+  (item) => item.command === 'markdownAgentDocs.focusFolder',
 );
 const browserClearFocusItem = (menus['view/item/context'] ?? []).find(
-  (item) => item.command === 'mdStudioPreview.clearFolderFocus',
+  (item) => item.command === 'markdownAgentDocs.clearFolderFocus',
 );
-assert(browserFocusItem, 'FOCUS should remain available in the MD Studio File Browser context menu');
-assert(browserClearFocusItem, 'Clear FOCUS should be available in the MD Studio File Browser context menu');
+assert(browserFocusItem, 'FOCUS should remain available in the Agent Docs File Browser context menu');
+assert(browserClearFocusItem, 'Clear FOCUS should be available in the Agent Docs File Browser context menu');
 assert.match(
   browserFocusItem.when ?? '',
-  /view == mdStudioFileBrowser/,
-  'FOCUS should be scoped to the MD Studio File Browser view',
+  /view == markdownAgentDocsFileBrowser/,
+  'FOCUS should be scoped to the Agent Docs File Browser view',
 );
 assert.match(browserFocusItem.when ?? '', /viewItem == mdFolder/, 'FOCUS should only appear on browser folders');
 assert.match(
   browserClearFocusItem.when ?? '',
-  /view == mdStudioFileBrowser/,
-  'Clear FOCUS should be scoped to the MD Studio File Browser view',
+  /view == markdownAgentDocsFileBrowser/,
+  'Clear FOCUS should be scoped to the Agent Docs File Browser view',
 );
 assert.match(
   browserClearFocusItem.when ?? '',
-  /mdStudioPreview\.folderFocusActive/,
+  /markdownAgentDocs\.folderFocusActive/,
   'Clear FOCUS should only appear while folder focus is active',
 );
 assert.match(browserClearFocusItem.when ?? '', /viewItem == mdFolder/, 'Clear FOCUS should only appear on browser folders');

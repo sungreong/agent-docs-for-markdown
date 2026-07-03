@@ -9,7 +9,7 @@ import {
 import { MarkdownFileItem } from '../providers/markdownFileItem.js';
 import { registerFolderFocusCommands } from '../commands/focusFolder.js';
 import { isMarkdownFileUri, isPreviewableFileUri, normalizeFileExtension } from '../utils/markdownFiles.js';
-import { pickLocalized, readMdStudioLanguage, type MdStudioLanguage } from '../utils/localization.js';
+import { pickLocalized, readAgentDocsLanguage, type AgentDocsLanguage } from '../utils/localization.js';
 
 interface FileBrowserSortQuickPickItem extends vscode.QuickPickItem {
   order: FileBrowserSortOrder;
@@ -42,7 +42,7 @@ interface RegisterMarkdownFileBrowserOptions {
   resolvePreviewUri(commandArg?: unknown): Promise<vscode.Uri | null>;
 }
 
-function getFileBrowserSortItems(language: MdStudioLanguage): readonly FileBrowserSortQuickPickItem[] {
+function getFileBrowserSortItems(language: AgentDocsLanguage): readonly FileBrowserSortQuickPickItem[] {
   return [
     { label: pickLocalized(language, { en: 'Name A-Z', ko: '이름 A-Z' }), description: pickLocalized(language, { en: 'Folders/files by name', ko: '폴더/파일 이름순' }), order: 'nameAsc' },
     { label: pickLocalized(language, { en: 'Name Z-A', ko: '이름 Z-A' }), description: pickLocalized(language, { en: 'Folders/files by reverse name', ko: '폴더/파일 이름 역순' }), order: 'nameDesc' },
@@ -57,7 +57,7 @@ function getFileBrowserSortItems(language: MdStudioLanguage): readonly FileBrows
   ];
 }
 
-function getFileBrowserFilterItems(language: MdStudioLanguage): readonly FileBrowserFilterQuickPickItem[] {
+function getFileBrowserFilterItems(language: AgentDocsLanguage): readonly FileBrowserFilterQuickPickItem[] {
   return [
     { label: pickLocalized(language, { en: 'All', ko: '전체' }), description: pickLocalized(language, { en: 'Full folder tree', ko: '전체 폴더 트리' }), mode: 'all' },
     { label: pickLocalized(language, { en: 'Pinned', ko: '고정' }), description: pickLocalized(language, { en: 'Pinned documents only', ko: '고정 문서만' }), mode: 'pinned' },
@@ -90,7 +90,7 @@ export function registerMarkdownFileBrowser(
   options: RegisterMarkdownFileBrowserOptions,
 ): MarkdownFileBrowserController {
   const provider = new MarkdownFileBrowserProvider(context);
-  const treeView = vscode.window.createTreeView('mdStudioFileBrowser', {
+  const treeView = vscode.window.createTreeView('markdownAgentDocsFileBrowser', {
     treeDataProvider: provider,
     showCollapseAll: true,
   });
@@ -101,15 +101,15 @@ export function registerMarkdownFileBrowser(
   });
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.refresh', async () => {
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.refresh', async () => {
       await provider.refresh();
       updateDescription(treeView, provider);
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.sort', async () => {
-      const language = readMdStudioLanguage();
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.sort', async () => {
+      const language = readAgentDocsLanguage();
       const currentOrder = provider.getSortOrder();
       const picked = await vscode.window.showQuickPick(
         getFileBrowserSortItems(language).map((item) => ({
@@ -127,8 +127,8 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.filter', async () => {
-      const language = readMdStudioLanguage();
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.filter', async () => {
+      const language = readAgentDocsLanguage();
       const currentMode = provider.getFilterMode();
       const picked = await vscode.window.showQuickPick(
         getFileBrowserFilterItems(language).map((item) => ({
@@ -146,13 +146,13 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.configureExtensions', async () => {
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.configureExtensions', async () => {
       await configureExtraExtensions(provider, treeView);
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.pinToTop', async (commandArg?: unknown) => {
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.pinToTop', async (commandArg?: unknown) => {
       const uri = getResourceUri(commandArg) ?? (await options.resolveMarkdownUri(commandArg));
       if (!uri) return;
       await provider.pinFile(uri);
@@ -160,7 +160,7 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.unpin', async (commandArg?: unknown) => {
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.unpin', async (commandArg?: unknown) => {
       const uri = getResourceUri(commandArg) ?? (await options.resolveMarkdownUri(commandArg));
       if (!uri) return;
       await provider.unpinFile(uri);
@@ -168,7 +168,7 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.openInEditor', async (commandArg?: unknown) => {
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.openInEditor', async (commandArg?: unknown) => {
       const uri = getResourceUri(commandArg) ?? (await pickBrowserFile(provider));
       if (!uri) return;
       await options.openInEditor(uri);
@@ -178,7 +178,7 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.openFileInViewer', async (commandArg?: unknown) => {
+    vscode.commands.registerCommand('markdownAgentDocs.openFileInViewer', async (commandArg?: unknown) => {
       const uri = getResourceUri(commandArg) ?? (await options.resolvePreviewUri(commandArg));
       if (!uri) return;
       await options.openInViewer(uri);
@@ -186,7 +186,7 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.openFileInNewPanel', async (commandArg?: unknown) => {
+    vscode.commands.registerCommand('markdownAgentDocs.openFileInNewPanel', async (commandArg?: unknown) => {
       const uri = getResourceUri(commandArg) ?? (await options.resolvePreviewUri(commandArg));
       if (!uri) return;
       await options.openInNewPanel(uri);
@@ -194,7 +194,7 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.copyPath', async (commandArg?: unknown) => {
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.copyPath', async (commandArg?: unknown) => {
       const uri = getResourceUri(commandArg) ?? (await options.resolveMarkdownUri(commandArg));
       if (!uri) return;
       await copyToClipboard(uri.fsPath, 'Path copied.');
@@ -202,7 +202,7 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.copyRelativePath', async (commandArg?: unknown) => {
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.copyRelativePath', async (commandArg?: unknown) => {
       const uri = getResourceUri(commandArg) ?? (await options.resolveMarkdownUri(commandArg));
       if (!uri) return;
       const includeWorkspaceName = (vscode.workspace.workspaceFolders?.length ?? 0) > 1;
@@ -211,7 +211,7 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.copyFileName', async (commandArg?: unknown) => {
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.copyFileName', async (commandArg?: unknown) => {
       const uri = getResourceUri(commandArg) ?? (await options.resolveMarkdownUri(commandArg));
       if (!uri) return;
       await copyToClipboard(path.basename(uri.fsPath), 'Name copied.');
@@ -219,12 +219,12 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.hideItem', async (commandArg?: unknown) => {
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.hideItem', async (commandArg?: unknown) => {
       const uri = getResourceUri(commandArg) ?? (await options.resolveMarkdownUri(commandArg));
       if (!uri) return;
       await provider.hideItem(uri);
       updateDescription(treeView, provider);
-      const language = readMdStudioLanguage();
+      const language = readAgentDocsLanguage();
       void vscode.window.showInformationMessage(
         pickLocalized(language, { en: `Hidden from browser: ${formatRelativePath(uri)}`, ko: `숨김 처리했습니다: ${formatRelativePath(uri)}` }),
       );
@@ -232,12 +232,12 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.delete', async (commandArg?: unknown) => {
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.delete', async (commandArg?: unknown) => {
       const uri = getResourceUri(commandArg) ?? treeView.selection[0]?.resourceUri ?? null;
       if (!uri) {
-        const language = readMdStudioLanguage();
+        const language = readAgentDocsLanguage();
         void vscode.window.showWarningMessage(
-          pickLocalized(language, { en: 'Select a file or folder in MD Studio File Browser first.', ko: '먼저 MD Studio File Browser에서 파일이나 폴더를 선택하세요.' }),
+          pickLocalized(language, { en: 'Select a file or folder in Agent Docs File Browser first.', ko: '먼저 Agent Docs File Browser에서 파일이나 폴더를 선택하세요.' }),
         );
         return;
       }
@@ -246,13 +246,13 @@ export function registerMarkdownFileBrowser(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.manageHidden', async () => {
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.manageHidden', async () => {
       await manageHiddenItems(provider, treeView);
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioFileBrowser.search', async () => {
+    vscode.commands.registerCommand('markdownAgentDocsFileBrowser.search', async () => {
       const picked = await pickBrowserFile(provider);
       if (!picked) return;
       if (isPreviewableFileUri(picked)) {
@@ -280,17 +280,17 @@ async function deleteBrowserItem(
   provider: MarkdownFileBrowserProvider,
   treeView: vscode.TreeView<MarkdownFileItem>,
 ): Promise<void> {
-  const language = readMdStudioLanguage();
+  const language = readAgentDocsLanguage();
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
   if (!workspaceFolder) {
     void vscode.window.showErrorMessage(
-      pickLocalized(language, { en: 'Only workspace files and folders can be deleted from MD Studio File Browser.', ko: 'MD Studio File Browser에서는 워크스페이스 안의 파일과 폴더만 삭제할 수 있습니다.' }),
+      pickLocalized(language, { en: 'Only workspace files and folders can be deleted from Agent Docs File Browser.', ko: 'Agent Docs File Browser에서는 워크스페이스 안의 파일과 폴더만 삭제할 수 있습니다.' }),
     );
     return;
   }
   if (sameFsPath(uri.fsPath, workspaceFolder.uri.fsPath)) {
     void vscode.window.showErrorMessage(
-      pickLocalized(language, { en: 'The workspace root cannot be deleted from MD Studio File Browser.', ko: 'MD Studio File Browser에서는 워크스페이스 루트를 삭제할 수 없습니다.' }),
+      pickLocalized(language, { en: 'The workspace root cannot be deleted from Agent Docs File Browser.', ko: 'Agent Docs File Browser에서는 워크스페이스 루트를 삭제할 수 없습니다.' }),
     );
     return;
   }
@@ -339,7 +339,7 @@ async function manageHiddenItems(
   treeView: vscode.TreeView<MarkdownFileItem>,
 ): Promise<void> {
   const hiddenItems = provider.getHiddenItems();
-  const language = readMdStudioLanguage();
+  const language = readAgentDocsLanguage();
   if (!hiddenItems.length) {
     void vscode.window.showInformationMessage(pickLocalized(language, { en: 'No hidden files or folders.', ko: '숨긴 파일이나 폴더가 없습니다.' }));
     return;
@@ -373,7 +373,7 @@ async function manageHiddenItems(
   );
 }
 
-function buildHiddenQuickPickItems(hiddenItems: FileBrowserHiddenItem[], language: MdStudioLanguage): HiddenQuickPickItem[] {
+function buildHiddenQuickPickItems(hiddenItems: FileBrowserHiddenItem[], language: AgentDocsLanguage): HiddenQuickPickItem[] {
   return [
     {
       label: pickLocalized(language, { en: '$(clear-all) Clear all hidden items', ko: '$(clear-all) 숨김 모두 해제' }),
@@ -396,7 +396,7 @@ async function configureExtraExtensions(
   treeView: vscode.TreeView<MarkdownFileItem>,
 ): Promise<void> {
   const current = provider.getExtraExtensions();
-  const language = readMdStudioLanguage();
+  const language = readAgentDocsLanguage();
   const candidateExtensions = [...current, ...suggestedExtraExtensions].filter(
     (extension, index, all) => all.indexOf(extension) === index,
   );
@@ -427,8 +427,8 @@ async function configureExtraExtensions(
       canPickMany: true,
       matchOnDescription: true,
       placeHolder: pickLocalized(language, {
-        en: 'Choose extra extensions to show in MD Studio File Browser. Markdown is always visible.',
-        ko: 'MD Studio File Browser에 추가로 보여줄 확장자를 선택하세요. Markdown은 항상 표시됩니다.',
+        en: 'Choose extra extensions to show in Agent Docs File Browser. Markdown is always visible.',
+        ko: 'Agent Docs File Browser에 추가로 보여줄 확장자를 선택하세요. Markdown은 항상 표시됩니다.',
       }),
     },
   );
@@ -486,7 +486,7 @@ async function pickBrowserFile(provider: MarkdownFileBrowserProvider): Promise<v
     .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
 
   const picked = await vscode.window.showQuickPick(items, {
-    placeHolder: `Search MD Studio files (${provider.getExtensionDescription()})...`,
+    placeHolder: `Search Agent Docs files (${provider.getExtensionDescription()})...`,
     matchOnDescription: true,
     matchOnDetail: true,
   });

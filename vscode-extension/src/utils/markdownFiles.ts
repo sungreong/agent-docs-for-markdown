@@ -63,7 +63,7 @@ export function normalizeExtraFileExtensions(value: unknown): string[] {
 }
 
 export function readExtraFileExtensions(): string[] {
-  const raw = vscode.workspace.getConfiguration('mdStudioFileBrowser').get<unknown>('extraExtensions', []);
+  const raw = vscode.workspace.getConfiguration('markdownAgentDocsFileBrowser').get<unknown>('extraExtensions', []);
   return normalizeExtraFileExtensions(raw);
 }
 

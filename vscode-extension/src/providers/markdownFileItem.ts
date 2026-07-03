@@ -16,7 +16,7 @@ export class MarkdownFileItem extends vscode.TreeItem {
     this.contextValue = isDirectory ? 'mdFolder' : 'mdFile';
     if (!isDirectory) {
       this.command = {
-        command: 'mdStudioPreview.openFileInViewer',
+        command: 'markdownAgentDocs.openFileInViewer',
         title: 'Open in Viewer',
         arguments: [resourceUri],
       };

@@ -11,7 +11,7 @@ import {
   normalizeExtraFileExtensions,
   readExtraFileExtensions,
 } from '../utils/markdownFiles.js';
-import { pickLocalized, readMdStudioLanguage, type MdStudioLanguage } from '../utils/localization.js';
+import { pickLocalized, readAgentDocsLanguage, type AgentDocsLanguage } from '../utils/localization.js';
 import { MPS_IGNORE_FILE, loadSourceIgnoreMatcher } from '../utils/sourceIgnore.js';
 
 export type FileBrowserSortOrder = 'nameAsc' | 'nameDesc' | 'modifiedDesc' | 'modifiedAsc' | 'createdDesc' | 'createdAsc' | 'sizeDesc' | 'sizeAsc' | 'lengthDesc' | 'lengthAsc';
@@ -27,22 +27,22 @@ export interface FileBrowserHiddenItem {
 export const DEFAULT_FILE_BROWSER_SORT_ORDER: FileBrowserSortOrder = 'nameAsc';
 export const DEFAULT_FILE_BROWSER_FILTER_MODE: FileBrowserFilterMode = 'all';
 
-const SORT_STATE_KEY = 'mdStudioFileBrowser:sortOrder';
-const PINNED_STATE_KEY = 'mdStudioFileBrowser:pinnedFiles';
-const RECENT_STATE_KEY = 'mdStudioFileBrowser:recentFiles';
-const FILTER_STATE_KEY = 'mdStudioFileBrowser:filterMode';
-const HIDDEN_STATE_KEY = 'mdStudioFileBrowser:hiddenItems';
-const FOCUS_STATE_KEY = 'mdStudioFileBrowser:focusRoot';
-const PINNED_ROOT_KEY = 'mdStudioFileBrowser:pinnedRoot';
-const RECENT_ROOT_KEY = 'mdStudioFileBrowser:recentRoot';
-const FILTER_ROOT_KEY = 'mdStudioFileBrowser:filterRoot';
+const SORT_STATE_KEY = 'markdownAgentDocsFileBrowser:sortOrder';
+const PINNED_STATE_KEY = 'markdownAgentDocsFileBrowser:pinnedFiles';
+const RECENT_STATE_KEY = 'markdownAgentDocsFileBrowser:recentFiles';
+const FILTER_STATE_KEY = 'markdownAgentDocsFileBrowser:filterMode';
+const HIDDEN_STATE_KEY = 'markdownAgentDocsFileBrowser:hiddenItems';
+const FOCUS_STATE_KEY = 'markdownAgentDocsFileBrowser:focusRoot';
+const PINNED_ROOT_KEY = 'markdownAgentDocsFileBrowser:pinnedRoot';
+const RECENT_ROOT_KEY = 'markdownAgentDocsFileBrowser:recentRoot';
+const FILTER_ROOT_KEY = 'markdownAgentDocsFileBrowser:filterRoot';
 const MAX_METADATA_READ_CONCURRENCY = 16;
 const MAX_RECENT_FILES = 10;
 const FILTER_RESULT_LIMIT = 20;
 const RECENT_FOLDER_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 const STALE_FILE_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000;
 
-const SORT_DESCRIPTIONS: Record<MdStudioLanguage, Record<FileBrowserSortOrder, string>> = {
+const SORT_DESCRIPTIONS: Record<AgentDocsLanguage, Record<FileBrowserSortOrder, string>> = {
   en: {
     nameAsc: 'Name A-Z',
     nameDesc: 'Name Z-A',
@@ -69,7 +69,7 @@ const SORT_DESCRIPTIONS: Record<MdStudioLanguage, Record<FileBrowserSortOrder, s
   },
 };
 
-const FILTER_DESCRIPTIONS: Record<MdStudioLanguage, Record<FileBrowserFilterMode, string>> = {
+const FILTER_DESCRIPTIONS: Record<AgentDocsLanguage, Record<FileBrowserFilterMode, string>> = {
   en: {
     all: 'All',
     pinned: 'Pinned',
@@ -139,7 +139,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   private visibleUris: vscode.Uri[] = [];
   private refreshRun = 0;
   private initialized = false;
-  private language: MdStudioLanguage = readMdStudioLanguage();
+  private language: AgentDocsLanguage = readAgentDocsLanguage();
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.sortOrder = readSortOrder(context);
@@ -151,14 +151,14 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     this.focusRootPath = readFocusRootPath(context);
     context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration((event) => {
-        if (event.affectsConfiguration('mdStudioPreview.language')) {
-          const nextLanguage = readMdStudioLanguage();
+        if (event.affectsConfiguration('markdownAgentDocs.language')) {
+          const nextLanguage = readAgentDocsLanguage();
           if (nextLanguage !== this.language) {
             this.language = nextLanguage;
             if (this.initialized) this.scheduleRefresh();
           }
         }
-        if (!event.affectsConfiguration('mdStudioFileBrowser.extraExtensions')) return;
+        if (!event.affectsConfiguration('markdownAgentDocsFileBrowser.extraExtensions')) return;
         const nextExtraExtensions = readExtraFileExtensions();
         if (sameExtensionArray(this.extraExtensions, nextExtraExtensions)) return;
         this.extraExtensions = nextExtraExtensions;
@@ -289,7 +289,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     if (sameExtensionArray(this.extraExtensions, normalized)) return;
     this.extraExtensions = normalized;
     await vscode.workspace
-      .getConfiguration('mdStudioFileBrowser')
+      .getConfiguration('markdownAgentDocsFileBrowser')
       .update('extraExtensions', normalized, vscode.ConfigurationTarget.Workspace);
     this.resetFileWatcher();
     await this.refresh();
@@ -663,14 +663,14 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     if (!pinnedUris.length) return;
 
     const pinnedRoot = new MarkdownFileItem(
-      vscode.Uri.parse('md-studio-file-browser:/pinned'),
+      vscode.Uri.parse('markdown-agent-docs-file-browser:/pinned'),
       true,
       pickLocalized(this.language, { en: 'Pinned', ko: '고정' }),
     );
     pinnedRoot.contextValue = 'mdPinnedRoot';
     pinnedRoot.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
     pinnedRoot.iconPath = new vscode.ThemeIcon('pinned');
-    pinnedRoot.tooltip = pickLocalized(this.language, { en: 'Pinned MD Studio files', ko: '고정한 MD Studio 파일' });
+    pinnedRoot.tooltip = pickLocalized(this.language, { en: 'Pinned Agent Docs files', ko: '고정한 Agent Docs 파일' });
 
     const pinnedItems = pinnedUris.map((uri) => {
       const item = new MarkdownFileItem(uri, false);
@@ -698,14 +698,14 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     if (!recentUris.length) return;
 
     const recentRoot = new MarkdownFileItem(
-      vscode.Uri.parse('md-studio-file-browser:/recent'),
+      vscode.Uri.parse('markdown-agent-docs-file-browser:/recent'),
       true,
       pickLocalized(this.language, { en: 'Recent', ko: '최근' }),
     );
     recentRoot.contextValue = 'mdRecentRoot';
     recentRoot.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
     recentRoot.iconPath = new vscode.ThemeIcon('history');
-    recentRoot.tooltip = pickLocalized(this.language, { en: 'Recently opened MD Studio files', ko: '최근 열어본 MD Studio 파일' });
+    recentRoot.tooltip = pickLocalized(this.language, { en: 'Recently opened Agent Docs files', ko: '최근 열어본 Agent Docs 파일' });
 
     const recentItems = recentUris.map((uri) => {
       const item = new MarkdownFileItem(uri, false);
@@ -724,7 +724,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     if (!candidates.length) return;
 
     const filterRoot = new MarkdownFileItem(
-      vscode.Uri.parse(`md-studio-file-browser:/filter/${this.filterMode}`),
+      vscode.Uri.parse(`markdown-agent-docs-file-browser:/filter/${this.filterMode}`),
       true,
       FILTER_DESCRIPTIONS[this.language][this.filterMode],
     );
@@ -732,8 +732,8 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     filterRoot.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
     filterRoot.iconPath = new vscode.ThemeIcon('filter');
     filterRoot.tooltip = pickLocalized(this.language, {
-      en: `${FILTER_DESCRIPTIONS.en[this.filterMode]} MD Studio files`,
-      ko: `${FILTER_DESCRIPTIONS.ko[this.filterMode]} MD Studio 파일`,
+      en: `${FILTER_DESCRIPTIONS.en[this.filterMode]} Agent Docs files`,
+      ko: `${FILTER_DESCRIPTIONS.ko[this.filterMode]} Agent Docs 파일`,
     });
 
     const filterItems = candidates.map((uri) => {
@@ -930,7 +930,7 @@ function compareUriName(a: vscode.Uri, b: vscode.Uri): number {
 function applyFileOpenCommand(item: MarkdownFileItem): void {
   const previewable = isPreviewableFileUri(item.resourceUri);
   item.command = {
-    command: previewable ? 'mdStudioPreview.openFileInViewer' : 'mdStudioFileBrowser.openInEditor',
+    command: previewable ? 'markdownAgentDocs.openFileInViewer' : 'markdownAgentDocsFileBrowser.openInEditor',
     title: previewable ? 'Open in Viewer' : 'Open in Editor',
     arguments: [item.resourceUri],
   };
@@ -939,7 +939,7 @@ function applyFileOpenCommand(item: MarkdownFileItem): void {
 function formatMetadataDescription(
   metadata: MarkdownFileMetadata | undefined,
   sortOrder: FileBrowserSortOrder,
-  language: MdStudioLanguage,
+  language: AgentDocsLanguage,
 ): string | undefined {
   if (!metadata) return undefined;
   const value = formatMetadataValue(metadata, sortOrder, language);
@@ -950,7 +950,7 @@ function formatMetadataDescription(
 function formatMetadataValue(
   metadata: MarkdownFileMetadata,
   sortOrder: FileBrowserSortOrder,
-  language: MdStudioLanguage,
+  language: AgentDocsLanguage,
 ): string | undefined {
   switch (sortOrder) {
     case 'modifiedAsc':
@@ -975,7 +975,7 @@ function buildMetadataTooltip(
   fsPath: string,
   metadata: MarkdownFileMetadata | undefined,
   includeLocation = false,
-  language: MdStudioLanguage = 'en',
+  language: AgentDocsLanguage = 'en',
 ): string {
   const details = [fsPath];
   if (includeLocation) details.push(pickLocalized(language, { en: `Location: ${formatRelativeParentPath(fsPath)}`, ko: `위치: ${formatRelativeParentPath(fsPath)}` }));
@@ -994,7 +994,7 @@ function buildMetadataTooltip(
   return details.join('\n');
 }
 
-function formatRelativeAge(timestamp: number, language: MdStudioLanguage): string {
+function formatRelativeAge(timestamp: number, language: AgentDocsLanguage): string {
   const elapsedMs = Date.now() - timestamp;
   if (!Number.isFinite(elapsedMs) || elapsedMs < 0) return pickLocalized(language, { en: 'just now', ko: '방금' });
   const elapsedMinutes = Math.floor(elapsedMs / 60000);
@@ -1029,7 +1029,7 @@ function formatShortDate(timestamp: number): string {
   return `${year}.${month}.${day}`;
 }
 
-function formatDaysSince(timestamp: number, language: MdStudioLanguage): string {
+function formatDaysSince(timestamp: number, language: AgentDocsLanguage): string {
   const elapsedMs = Date.now() - timestamp;
   if (!Number.isFinite(elapsedMs) || elapsedMs < 0) return pickLocalized(language, { en: 'today', ko: '오늘' });
   const elapsedDays = Math.floor(elapsedMs / 86400000);

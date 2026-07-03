@@ -14,7 +14,7 @@ export interface TemplateBlock {
  * Generates a structured Markdown template document from an ordered list
  * of canvas blocks and the full skill metadata catalogue.
  *
- * The output follows the Markdown Pattern Studio frontmatter convention:
+ * The output follows the Agent Docs for Markdown frontmatter convention:
  *
  * ```yaml
  * ---

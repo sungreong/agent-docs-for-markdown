@@ -23,72 +23,72 @@
   "activationEvents": [
     "onUri",
     "onLanguage:markdown",
-    "onView:mdStudioFileBrowser",
-    "onView:mdStudioSourceGraphLauncher",
-    "onCommand:mdStudioPreview.open",
-    "onCommand:mdStudioPreview.refresh",
-    "onCommand:mdStudioPreview.openSourceEditor",
-    "onCommand:mdStudioPreview.enableAutoOnSave",
-    "onCommand:mdStudioPreview.disableAutoOnSave",
-    "onCommand:mdStudioPreview.openTemplateBuilder",
-    "onCommand:mdStudioPreview.openSourceGraph",
-    "onCommand:mdStudioPreview.initializeSourceGraphWorkspace",
-    "onCommand:mdStudioPreview.updateSourceGraph",
-    "onCommand:mdStudioPreview.searchSourceGraph",
-    "onCommand:mdStudioPreview.openSourceIgnoreFile",
-    "onCommand:mdStudioPreview.copyCodexMcpConfig",
-    "onCommand:mdStudioPreview.installCodexMcp",
-    "onCommand:mdStudioPreview.checkCodexMcpStatus",
-    "onCommand:mdStudioPreview.removeCodexMcp",
-    "onCommand:mdStudioPreview.openFileInViewer",
-    "onCommand:mdStudioPreview.openFileInNewPanel",
-    "onCommand:mdStudioFileBrowser.openInEditor",
-    "onCommand:mdStudioPreview.transformMarkdownToHtml",
-    "onCommand:mdStudioPreview.downloadSkillFolder",
-    "onCommand:mdStudioPreview.diagnoseEnvironment",
-    "onCommand:mdStudioPreview.focusFolder",
-    "onCommand:mdStudioPreview.clearFolderFocus",
-    "onCommand:mdStudioFileBrowser.refresh",
-    "onCommand:mdStudioFileBrowser.sort",
-    "onCommand:mdStudioFileBrowser.filter",
-    "onCommand:mdStudioFileBrowser.configureExtensions",
-    "onCommand:mdStudioFileBrowser.pinToTop",
-    "onCommand:mdStudioFileBrowser.unpin",
-    "onCommand:mdStudioFileBrowser.copyPath",
-    "onCommand:mdStudioFileBrowser.copyRelativePath",
-    "onCommand:mdStudioFileBrowser.copyFileName",
-    "onCommand:mdStudioFileBrowser.hideItem",
-    "onCommand:mdStudioFileBrowser.delete",
-    "onCommand:mdStudioFileBrowser.manageHidden",
-    "onCommand:mdStudioFileBrowser.search"
+    "onView:markdownAgentDocsFileBrowser",
+    "onView:markdownAgentDocsSourceGraphLauncher",
+    "onCommand:markdownAgentDocs.open",
+    "onCommand:markdownAgentDocs.refresh",
+    "onCommand:markdownAgentDocs.openSourceEditor",
+    "onCommand:markdownAgentDocs.enableAutoOnSave",
+    "onCommand:markdownAgentDocs.disableAutoOnSave",
+    "onCommand:markdownAgentDocs.openTemplateBuilder",
+    "onCommand:markdownAgentDocs.openSourceGraph",
+    "onCommand:markdownAgentDocs.initializeSourceGraphWorkspace",
+    "onCommand:markdownAgentDocs.updateSourceGraph",
+    "onCommand:markdownAgentDocs.searchSourceGraph",
+    "onCommand:markdownAgentDocs.openSourceIgnoreFile",
+    "onCommand:markdownAgentDocs.copyCodexMcpConfig",
+    "onCommand:markdownAgentDocs.installCodexMcp",
+    "onCommand:markdownAgentDocs.checkCodexMcpStatus",
+    "onCommand:markdownAgentDocs.removeCodexMcp",
+    "onCommand:markdownAgentDocs.openFileInViewer",
+    "onCommand:markdownAgentDocs.openFileInNewPanel",
+    "onCommand:markdownAgentDocsFileBrowser.openInEditor",
+    "onCommand:markdownAgentDocs.transformMarkdownToHtml",
+    "onCommand:markdownAgentDocs.downloadSkillFolder",
+    "onCommand:markdownAgentDocs.diagnoseEnvironment",
+    "onCommand:markdownAgentDocs.focusFolder",
+    "onCommand:markdownAgentDocs.clearFolderFocus",
+    "onCommand:markdownAgentDocsFileBrowser.refresh",
+    "onCommand:markdownAgentDocsFileBrowser.sort",
+    "onCommand:markdownAgentDocsFileBrowser.filter",
+    "onCommand:markdownAgentDocsFileBrowser.configureExtensions",
+    "onCommand:markdownAgentDocsFileBrowser.pinToTop",
+    "onCommand:markdownAgentDocsFileBrowser.unpin",
+    "onCommand:markdownAgentDocsFileBrowser.copyPath",
+    "onCommand:markdownAgentDocsFileBrowser.copyRelativePath",
+    "onCommand:markdownAgentDocsFileBrowser.copyFileName",
+    "onCommand:markdownAgentDocsFileBrowser.hideItem",
+    "onCommand:markdownAgentDocsFileBrowser.delete",
+    "onCommand:markdownAgentDocsFileBrowser.manageHidden",
+    "onCommand:markdownAgentDocsFileBrowser.search"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "mdStudioFileBrowserContainer",
+          "id": "markdownAgentDocsContainer",
           "title": "Agent Docs",
           "icon": "assets/activity-md.svg"
         },
         {
-          "id": "mdStudioSourceGraphContainer",
+          "id": "markdownAgentDocsSourceGraphContainer",
           "title": "Agent Docs Source Graph",
           "icon": "assets/activity-source-graph.svg"
         }
       ]
     },
     "views": {
-      "mdStudioFileBrowserContainer": [
+      "markdownAgentDocsContainer": [
         {
-          "id": "mdStudioFileBrowser",
-          "name": "MD Studio Files",
+          "id": "markdownAgentDocsFileBrowser",
+          "name": "Markdown Files",
           "when": "workspaceFolderCount > 0"
         }
       ],
-      "mdStudioSourceGraphContainer": [
+      "markdownAgentDocsSourceGraphContainer": [
         {
-          "id": "mdStudioSourceGraphLauncher",
+          "id": "markdownAgentDocsSourceGraphLauncher",
           "name": "Source Graph",
           "type": "webview",
           "when": "workspaceFolderCount > 0"
@@ -97,208 +97,208 @@
     },
     "commands": [
       {
-        "command": "mdStudioPreview.open",
-        "title": "MD Studio: Preview"
+        "command": "markdownAgentDocs.open",
+        "title": "Agent Docs: Preview"
       },
       {
-        "command": "mdStudioPreview.refresh",
-        "title": "MD Studio: Refresh"
+        "command": "markdownAgentDocs.refresh",
+        "title": "Agent Docs: Refresh"
       },
       {
-        "command": "mdStudioPreview.openSourceEditor",
-        "title": "MD Studio: Open Source Editor",
+        "command": "markdownAgentDocs.openSourceEditor",
+        "title": "Agent Docs: Open Source Editor",
         "icon": "$(edit)"
       },
       {
-        "command": "mdStudioPreview.enableAutoOnSave",
-        "title": "MD Studio: Auto Refresh Off",
+        "command": "markdownAgentDocs.enableAutoOnSave",
+        "title": "Agent Docs: Auto Refresh Off",
         "icon": "$(circle-slash)"
       },
       {
-        "command": "mdStudioPreview.disableAutoOnSave",
-        "title": "MD Studio: Auto Refresh On",
+        "command": "markdownAgentDocs.disableAutoOnSave",
+        "title": "Agent Docs: Auto Refresh On",
         "icon": "$(sync)"
       },
       {
-        "command": "mdStudioPreview.openTemplateBuilder",
-        "title": "Template Builder",
+        "command": "markdownAgentDocs.openTemplateBuilder",
+        "title": "Agent Docs: Template Builder",
         "icon": "$(combine)"
       },
       {
-        "command": "mdStudioPreview.openSourceGraph",
-        "title": "MD Studio: Open Source Graph",
+        "command": "markdownAgentDocs.openSourceGraph",
+        "title": "Agent Docs: Open Source Graph",
         "icon": "$(graph)"
       },
       {
-        "command": "mdStudioPreview.initializeSourceGraphWorkspace",
-        "title": "MD Studio: Initialize Source Graph Workspace",
+        "command": "markdownAgentDocs.initializeSourceGraphWorkspace",
+        "title": "Agent Docs: Initialize Source Graph",
         "icon": "$(database)"
       },
       {
-        "command": "mdStudioPreview.updateSourceGraph",
-        "title": "MD Studio: Update Source Graph Index",
+        "command": "markdownAgentDocs.updateSourceGraph",
+        "title": "Agent Docs: Update Source Graph",
         "icon": "$(database)"
       },
       {
-        "command": "mdStudioPreview.searchSourceGraph",
-        "title": "MD Studio: Search Source Graph",
+        "command": "markdownAgentDocs.searchSourceGraph",
+        "title": "Agent Docs: Search Source Graph",
         "icon": "$(symbol-keyword)"
       },
       {
-        "command": "mdStudioPreview.openSourceIgnoreFile",
-        "title": "MD Studio: Edit Source Ignore",
+        "command": "markdownAgentDocs.openSourceIgnoreFile",
+        "title": "Agent Docs: Edit Source Ignore",
         "icon": "$(exclude)"
       },
       {
-        "command": "mdStudioPreview.copyCodexMcpConfig",
-        "title": "MD Studio: Copy Source Graph MCP Config",
+        "command": "markdownAgentDocs.copyCodexMcpConfig",
+        "title": "Agent Docs: Copy Source Graph MCP Config",
         "icon": "$(settings-gear)"
       },
       {
-        "command": "mdStudioPreview.installCodexMcp",
-        "title": "MD Studio: Install Source Graph MCP",
+        "command": "markdownAgentDocs.installCodexMcp",
+        "title": "Agent Docs: Install Source Graph MCP",
         "icon": "$(plug)"
       },
       {
-        "command": "mdStudioPreview.checkCodexMcpStatus",
-        "title": "MD Studio: Check Source Graph MCP Status",
+        "command": "markdownAgentDocs.checkCodexMcpStatus",
+        "title": "Agent Docs: Check Source Graph MCP Status",
         "icon": "$(pulse)"
       },
       {
-        "command": "mdStudioPreview.removeCodexMcp",
-        "title": "MD Studio: Remove Source Graph MCP",
+        "command": "markdownAgentDocs.removeCodexMcp",
+        "title": "Agent Docs: Remove Source Graph MCP",
         "icon": "$(trash)"
       },
       {
-        "command": "mdStudioPreview.downloadSkillFolder",
-        "title": "MD Studio: Install or Export Skills",
+        "command": "markdownAgentDocs.downloadSkillFolder",
+        "title": "Agent Docs: Install or Export Skills",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "mdStudioPreview.diagnoseEnvironment",
-        "title": "MD Studio: Diagnose Environment",
+        "command": "markdownAgentDocs.diagnoseEnvironment",
+        "title": "Agent Docs: Diagnose Environment",
         "icon": "$(pulse)"
       },
       {
-        "command": "mdStudioPreview.focusFolder",
-        "title": "FOCUS",
+        "command": "markdownAgentDocs.focusFolder",
+        "title": "Focus This Folder",
         "icon": "$(target)"
       },
       {
-        "command": "mdStudioPreview.clearFolderFocus",
-        "title": "Clear Focus",
+        "command": "markdownAgentDocs.clearFolderFocus",
+        "title": "Clear Folder Focus",
         "icon": "$(eye)"
       },
       {
-        "command": "mdStudioPreview.transformMarkdownToHtml",
-        "title": "MD Studio: Transform Markdown to Styled HTML",
+        "command": "markdownAgentDocs.transformMarkdownToHtml",
+        "title": "Agent Docs: Export Styled HTML",
         "icon": "$(file-code)"
       },
       {
-        "command": "mdStudioPreview.openFileInViewer",
-        "title": "MD Studio: Open in Viewer",
+        "command": "markdownAgentDocs.openFileInViewer",
+        "title": "Agent Docs: Open in Viewer",
         "icon": "$(open-preview)"
       },
       {
-        "command": "mdStudioFileBrowser.refresh",
-        "title": "MD Studio: Refresh File Browser",
+        "command": "markdownAgentDocsFileBrowser.refresh",
+        "title": "Agent Docs: Refresh File Browser",
         "icon": "$(refresh)"
       },
       {
-        "command": "mdStudioFileBrowser.openInEditor",
+        "command": "markdownAgentDocsFileBrowser.openInEditor",
         "title": "Open in Editor",
         "icon": "$(go-to-file)"
       },
       {
-        "command": "mdStudioPreview.openFileInNewPanel",
+        "command": "markdownAgentDocs.openFileInNewPanel",
         "title": "Open in New Panel",
         "icon": "$(split-horizontal)"
       },
       {
-        "command": "mdStudioFileBrowser.search",
-        "title": "MD Studio: Search Files",
+        "command": "markdownAgentDocsFileBrowser.search",
+        "title": "Agent Docs: Search Files",
         "icon": "$(search)"
       },
       {
-        "command": "mdStudioFileBrowser.sort",
-        "title": "MD Studio: Sort Files",
+        "command": "markdownAgentDocsFileBrowser.sort",
+        "title": "Agent Docs: Sort Files",
         "icon": "$(list-ordered)"
       },
       {
-        "command": "mdStudioFileBrowser.filter",
-        "title": "MD Studio: Filter Files",
+        "command": "markdownAgentDocsFileBrowser.filter",
+        "title": "Agent Docs: Filter Files",
         "icon": "$(filter)"
       },
       {
-        "command": "mdStudioFileBrowser.configureExtensions",
-        "title": "MD Studio: File Extensions",
+        "command": "markdownAgentDocsFileBrowser.configureExtensions",
+        "title": "Agent Docs: File Extensions",
         "icon": "$(symbol-misc)"
       },
       {
-        "command": "mdStudioFileBrowser.pinToTop",
+        "command": "markdownAgentDocsFileBrowser.pinToTop",
         "title": "Pin to Top",
         "icon": "$(pinned)"
       },
       {
-        "command": "mdStudioFileBrowser.unpin",
+        "command": "markdownAgentDocsFileBrowser.unpin",
         "title": "Unpin",
         "icon": "$(pinned)"
       },
       {
-        "command": "mdStudioFileBrowser.copyPath",
+        "command": "markdownAgentDocsFileBrowser.copyPath",
         "title": "Copy Path",
         "icon": "$(copy)"
       },
       {
-        "command": "mdStudioFileBrowser.copyRelativePath",
+        "command": "markdownAgentDocsFileBrowser.copyRelativePath",
         "title": "Copy Relative Path",
         "icon": "$(copy)"
       },
       {
-        "command": "mdStudioFileBrowser.copyFileName",
+        "command": "markdownAgentDocsFileBrowser.copyFileName",
         "title": "Copy Name",
         "icon": "$(copy)"
       },
       {
-        "command": "mdStudioFileBrowser.hideItem",
+        "command": "markdownAgentDocsFileBrowser.hideItem",
         "title": "Hide from Browser",
         "icon": "$(eye-closed)"
       },
       {
-        "command": "mdStudioFileBrowser.delete",
+        "command": "markdownAgentDocsFileBrowser.delete",
         "title": "Delete",
         "icon": "$(trash)"
       },
       {
-        "command": "mdStudioFileBrowser.manageHidden",
-        "title": "MD Studio: Manage Hidden Items",
+        "command": "markdownAgentDocsFileBrowser.manageHidden",
+        "title": "Agent Docs: Manage Hidden Items",
         "icon": "$(eye)"
       }
     ],
     "configuration": {
       "title": "Agent Docs for Markdown",
       "properties": {
-        "mdStudioPreview.autoOnSave": {
+        "markdownAgentDocs.autoOnSave": {
           "type": "boolean",
           "default": true,
           "description": "Automatically refresh an already-open preview when a markdown file is saved."
         },
-        "mdStudioPreview.cursorSyncOnSave": {
+        "markdownAgentDocs.cursorSyncOnSave": {
           "type": "boolean",
           "default": true,
           "description": "After save render, move preview to the section under the active cursor."
         },
-        "mdStudioPreview.nodePath": {
+        "markdownAgentDocs.nodePath": {
           "type": "string",
           "default": "node",
           "description": "Node.js executable path used to run scripts/md-to-html.mjs."
         },
-        "mdStudioPreview.cliScriptPath": {
+        "markdownAgentDocs.cliScriptPath": {
           "type": "string",
           "default": "scripts/md-to-html.mjs",
           "description": "CLI script path. The default value uses the renderer bundled with this extension first, so generated HTML gets the latest viewer controls. Set a custom relative or absolute path to use a workspace renderer."
         },
-        "mdStudioPreview.preferredViewMode": {
+        "markdownAgentDocs.preferredViewMode": {
           "type": "string",
           "enum": [
             "auto",
@@ -308,16 +308,16 @@
           "default": "stack",
           "description": "Preferred presentation mode in preview webview. stack matches the web editor view by default."
         },
-        "mdStudioPreview.language": {
+        "markdownAgentDocs.language": {
           "type": "string",
           "enum": [
             "en",
             "ko"
           ],
           "default": "en",
-          "description": "Language for MD Studio extension prompts, file browser labels, metadata, and quick pick items."
+          "description": "Language for Agent Docs extension prompts, file browser labels, metadata, and quick pick items."
         },
-        "mdStudioPreview.extraArgs": {
+        "markdownAgentDocs.extraArgs": {
           "type": "array",
           "items": {
             "type": "string"
@@ -327,245 +327,245 @@
           ],
           "description": "Additional CLI arguments appended after --base-dir."
         },
-        "mdStudioPreview.stripEmailDisclaimer": {
+        "markdownAgentDocs.stripEmailDisclaimer": {
           "type": "boolean",
           "default": false,
           "description": "Remove common corporate email footer/disclaimer text before rendering markdown to HTML."
         },
-        "mdStudioPreview.skillsDir": {
+        "markdownAgentDocs.skillsDir": {
           "type": "string",
           "default": "claude_skills/skills",
           "description": "Path to the skills directory used by Template Builder. Relative paths are resolved from workspace root. Absolute paths are also supported."
         },
-        "mdStudioPreview.defaultSkill": {
+        "markdownAgentDocs.defaultSkill": {
           "type": "string",
           "default": "md-presentation-composer",
           "description": "Preferred skill shown first in Template Builder when matching skills are available."
         },
-        "mdStudioFileBrowser.extraExtensions": {
+        "markdownAgentDocsFileBrowser.extraExtensions": {
           "type": "array",
           "items": {
             "type": "string",
             "pattern": "^\\.?[A-Za-z0-9][A-Za-z0-9_-]*$"
           },
           "default": [],
-          "description": "Additional file extensions to show in MD Studio File Browser. Markdown extensions are always included. Examples: txt, html, json."
+          "description": "Additional file extensions to show in Agent Docs File Browser. Markdown extensions are always included. Examples: txt, html, json."
         }
       }
     },
     "keybindings": [
       {
-        "command": "mdStudioFileBrowser.delete",
+        "command": "markdownAgentDocsFileBrowser.delete",
         "key": "delete",
         "mac": "delete",
-        "when": "focusedView == mdStudioFileBrowser && !inputFocus"
+        "when": "focusedView == markdownAgentDocsFileBrowser && !inputFocus"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "mdStudioPreview.openSourceGraph",
-          "when": "view == mdStudioFileBrowser",
+          "command": "markdownAgentDocs.openSourceGraph",
+          "when": "view == markdownAgentDocsFileBrowser",
           "group": "navigation@0"
         },
         {
-          "command": "mdStudioFileBrowser.search",
-          "when": "view == mdStudioFileBrowser",
+          "command": "markdownAgentDocsFileBrowser.search",
+          "when": "view == markdownAgentDocsFileBrowser",
           "group": "navigation@1"
         },
         {
-          "command": "mdStudioFileBrowser.filter",
-          "when": "view == mdStudioFileBrowser",
+          "command": "markdownAgentDocsFileBrowser.filter",
+          "when": "view == markdownAgentDocsFileBrowser",
           "group": "navigation@2"
         },
         {
-          "command": "mdStudioFileBrowser.sort",
-          "when": "view == mdStudioFileBrowser",
+          "command": "markdownAgentDocsFileBrowser.sort",
+          "when": "view == markdownAgentDocsFileBrowser",
           "group": "navigation@3"
         },
         {
-          "command": "mdStudioFileBrowser.configureExtensions",
-          "when": "view == mdStudioFileBrowser",
+          "command": "markdownAgentDocsFileBrowser.configureExtensions",
+          "when": "view == markdownAgentDocsFileBrowser",
           "group": "navigation@4"
         },
         {
-          "command": "mdStudioFileBrowser.manageHidden",
-          "when": "view == mdStudioFileBrowser",
+          "command": "markdownAgentDocsFileBrowser.manageHidden",
+          "when": "view == markdownAgentDocsFileBrowser",
           "group": "navigation@5"
         },
         {
-          "command": "mdStudioFileBrowser.refresh",
-          "when": "view == mdStudioFileBrowser",
+          "command": "markdownAgentDocsFileBrowser.refresh",
+          "when": "view == markdownAgentDocsFileBrowser",
           "group": "navigation@6"
         },
         {
-          "command": "mdStudioPreview.downloadSkillFolder",
-          "when": "view == mdStudioFileBrowser",
+          "command": "markdownAgentDocs.downloadSkillFolder",
+          "when": "view == markdownAgentDocsFileBrowser",
           "group": "navigation@7"
         },
         {
-          "command": "mdStudioPreview.clearFolderFocus",
-          "when": "view == mdStudioFileBrowser && mdStudioPreview.folderFocusActive",
+          "command": "markdownAgentDocs.clearFolderFocus",
+          "when": "view == markdownAgentDocsFileBrowser && markdownAgentDocs.folderFocusActive",
           "group": "navigation@8"
         },
         {
-          "command": "mdStudioPreview.openSourceGraph",
-          "when": "view == mdStudioSourceGraphLauncher",
+          "command": "markdownAgentDocs.openSourceGraph",
+          "when": "view == markdownAgentDocsSourceGraphLauncher",
           "group": "navigation@0"
         },
         {
-          "command": "mdStudioPreview.initializeSourceGraphWorkspace",
-          "when": "view == mdStudioSourceGraphLauncher",
+          "command": "markdownAgentDocs.initializeSourceGraphWorkspace",
+          "when": "view == markdownAgentDocsSourceGraphLauncher",
           "group": "navigation@1"
         },
         {
-          "command": "mdStudioPreview.updateSourceGraph",
-          "when": "view == mdStudioSourceGraphLauncher",
+          "command": "markdownAgentDocs.updateSourceGraph",
+          "when": "view == markdownAgentDocsSourceGraphLauncher",
           "group": "navigation@2"
         },
         {
-          "command": "mdStudioPreview.openSourceIgnoreFile",
-          "when": "view == mdStudioSourceGraphLauncher",
+          "command": "markdownAgentDocs.openSourceIgnoreFile",
+          "when": "view == markdownAgentDocsSourceGraphLauncher",
           "group": "navigation@3"
         },
         {
-          "command": "mdStudioPreview.checkCodexMcpStatus",
-          "when": "view == mdStudioSourceGraphLauncher",
+          "command": "markdownAgentDocs.checkCodexMcpStatus",
+          "when": "view == markdownAgentDocsSourceGraphLauncher",
           "group": "navigation@4"
         }
       ],
       "editor/title": [
         {
-          "command": "mdStudioPreview.disableAutoOnSave",
-          "when": "(activeWebviewPanelId == 'mdStudioPreview' || activeWebviewPanelId == 'markdown.preview') && mdStudioPreview.autoOnSaveEnabled",
+          "command": "markdownAgentDocs.disableAutoOnSave",
+          "when": "(activeWebviewPanelId == 'markdownAgentDocs' || activeWebviewPanelId == 'markdown.preview') && markdownAgentDocs.autoOnSaveEnabled",
           "group": "navigation@0"
         },
         {
-          "command": "mdStudioPreview.enableAutoOnSave",
-          "when": "(activeWebviewPanelId == 'mdStudioPreview' || activeWebviewPanelId == 'markdown.preview') && !mdStudioPreview.autoOnSaveEnabled",
+          "command": "markdownAgentDocs.enableAutoOnSave",
+          "when": "(activeWebviewPanelId == 'markdownAgentDocs' || activeWebviewPanelId == 'markdown.preview') && !markdownAgentDocs.autoOnSaveEnabled",
           "group": "navigation@0"
         },
         {
-          "command": "mdStudioPreview.openSourceEditor",
-          "when": "activeWebviewPanelId == 'mdStudioPreview' || activeWebviewPanelId == 'markdown.preview'",
+          "command": "markdownAgentDocs.openSourceEditor",
+          "when": "activeWebviewPanelId == 'markdownAgentDocs' || activeWebviewPanelId == 'markdown.preview'",
           "group": "navigation@1"
         },
         {
-          "command": "mdStudioPreview.disableAutoOnSave",
-          "when": "resourceLangId == markdown && mdStudioPreview.autoOnSaveEnabled",
+          "command": "markdownAgentDocs.disableAutoOnSave",
+          "when": "resourceLangId == markdown && markdownAgentDocs.autoOnSaveEnabled",
           "group": "navigation@18"
         },
         {
-          "command": "mdStudioPreview.enableAutoOnSave",
-          "when": "resourceLangId == markdown && !mdStudioPreview.autoOnSaveEnabled",
+          "command": "markdownAgentDocs.enableAutoOnSave",
+          "when": "resourceLangId == markdown && !markdownAgentDocs.autoOnSaveEnabled",
           "group": "navigation@18"
         },
         {
-          "command": "mdStudioPreview.openSourceEditor",
+          "command": "markdownAgentDocs.openSourceEditor",
           "when": "resourceLangId == markdown",
           "group": "navigation@19"
         },
         {
-          "command": "mdStudioPreview.open",
+          "command": "markdownAgentDocs.open",
           "when": "resourceLangId == markdown",
           "group": "navigation@20"
         },
         {
-          "command": "mdStudioPreview.refresh",
+          "command": "markdownAgentDocs.refresh",
           "when": "resourceLangId == markdown",
           "group": "navigation@21"
         },
         {
-          "command": "mdStudioPreview.openTemplateBuilder",
+          "command": "markdownAgentDocs.openTemplateBuilder",
           "when": "resourceLangId == markdown",
           "group": "navigation@22"
         },
         {
-          "command": "mdStudioPreview.openSourceGraph",
+          "command": "markdownAgentDocs.openSourceGraph",
           "when": "resourceLangId == markdown",
           "group": "navigation@23"
         },
         {
-          "command": "mdStudioPreview.transformMarkdownToHtml",
+          "command": "markdownAgentDocs.transformMarkdownToHtml",
           "when": "resourceLangId == markdown",
           "group": "navigation@24"
         }
       ],
       "view/item/context": [
         {
-          "command": "mdStudioFileBrowser.openInEditor",
-          "when": "view == mdStudioFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
+          "command": "markdownAgentDocsFileBrowser.openInEditor",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
           "group": "inline"
         },
         {
-          "command": "mdStudioFileBrowser.openInEditor",
-          "when": "view == mdStudioFileBrowser && (viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
+          "command": "markdownAgentDocsFileBrowser.openInEditor",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
           "group": "inline"
         },
         {
-          "command": "mdStudioFileBrowser.pinToTop",
-          "when": "view == mdStudioFileBrowser && (viewItem == mdFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdExtraFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile)",
+          "command": "markdownAgentDocsFileBrowser.pinToTop",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdExtraFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile)",
           "group": "navigation@0"
         },
         {
-          "command": "mdStudioPreview.clearFolderFocus",
-          "when": "view == mdStudioFileBrowser && viewItem == mdFolder && mdStudioPreview.folderFocusActive",
+          "command": "markdownAgentDocs.clearFolderFocus",
+          "when": "view == markdownAgentDocsFileBrowser && viewItem == mdFolder && markdownAgentDocs.folderFocusActive",
           "group": "navigation@0"
         },
         {
-          "command": "mdStudioPreview.focusFolder",
-          "when": "view == mdStudioFileBrowser && viewItem == mdFolder",
+          "command": "markdownAgentDocs.focusFolder",
+          "when": "view == markdownAgentDocsFileBrowser && viewItem == mdFolder",
           "group": "navigation@1"
         },
         {
-          "command": "mdStudioFileBrowser.unpin",
-          "when": "view == mdStudioFileBrowser && (viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraFilterFilePinned)",
+          "command": "markdownAgentDocsFileBrowser.unpin",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraFilterFilePinned)",
           "group": "navigation@0"
         },
         {
-          "command": "mdStudioFileBrowser.openInEditor",
-          "when": "view == mdStudioFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
+          "command": "markdownAgentDocsFileBrowser.openInEditor",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
           "group": "navigation@1"
         },
         {
-          "command": "mdStudioPreview.openFileInNewPanel",
-          "when": "view == mdStudioFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
+          "command": "markdownAgentDocs.openFileInNewPanel",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
           "group": "navigation@2"
         },
         {
-          "command": "mdStudioPreview.transformMarkdownToHtml",
-          "when": "view == mdStudioFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
+          "command": "markdownAgentDocs.transformMarkdownToHtml",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
           "group": "navigation@3"
         },
         {
-          "command": "mdStudioFileBrowser.copyPath",
-          "when": "view == mdStudioFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
+          "command": "markdownAgentDocsFileBrowser.copyPath",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
           "group": "navigation@4"
         },
         {
-          "command": "mdStudioFileBrowser.copyRelativePath",
-          "when": "view == mdStudioFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
+          "command": "markdownAgentDocsFileBrowser.copyRelativePath",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
           "group": "navigation@5"
         },
         {
-          "command": "mdStudioFileBrowser.copyFileName",
-          "when": "view == mdStudioFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
+          "command": "markdownAgentDocsFileBrowser.copyFileName",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
           "group": "navigation@6"
         },
         {
-          "command": "mdStudioFileBrowser.hideItem",
-          "when": "view == mdStudioFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
+          "command": "markdownAgentDocsFileBrowser.hideItem",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
           "group": "navigation@7"
         },
         {
-          "command": "mdStudioFileBrowser.delete",
-          "when": "view == mdStudioFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
+          "command": "markdownAgentDocsFileBrowser.delete",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
           "group": "navigation@8"
         }
       ],
       "explorer/context": [
         {
-          "command": "mdStudioPreview.transformMarkdownToHtml",
+          "command": "markdownAgentDocs.transformMarkdownToHtml",
           "when": "resourceLangId == markdown",
           "group": "navigation@10"
         }

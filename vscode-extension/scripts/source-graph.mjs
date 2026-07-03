@@ -404,7 +404,7 @@ function importantTerms(value) {
 }
 
 function printHelp() {
-  process.stdout.write(`Markdown Pattern Studio source graph
+  process.stdout.write(`Agent Docs for Markdown source graph
 
 Usage:
   node scripts/source-graph.mjs update [--root <workspace>] [--db .mps/source-graph.sqlite]
@@ -443,7 +443,7 @@ async function runMcpServer(args = {}) {
         result: {
           protocolVersion: '2024-11-05',
           capabilities: { tools: {} },
-          serverInfo: { name: 'markdown-pattern-studio-source-graph', version: '0.1.0' },
+          serverInfo: { name: 'markdown-agent-docs-source-graph', version: '0.1.0' },
         },
       });
       return;
@@ -478,7 +478,7 @@ function getMcpTools() {
   return [
     {
       name: 'source_graph_update',
-      description: 'Rebuild the Markdown Pattern Studio source graph database for the workspace.',
+      description: 'Rebuild the Agent Docs for Markdown source graph database for the workspace.',
       inputSchema: {
         type: 'object',
         properties: {

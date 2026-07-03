@@ -618,7 +618,7 @@ ${sections}
 function buildPptRulesDoc() {
   return `# DESIGN.md to PPT Markdown Rules
 
-Use these rules to translate company DESIGN.md guidance into Markdown Pattern Studio slides.
+Use these rules to translate company DESIGN.md guidance into Agent Docs for Markdown slides.
 
 ## Translation Rules
 

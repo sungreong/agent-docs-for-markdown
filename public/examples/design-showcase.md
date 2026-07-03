@@ -6,7 +6,7 @@ pageWidth: 1120px
 pageHeight: 720px
 ---
 
-# Design Showcase {#cover .cover .dark eyebrow="Markdown Pattern Studio"}
+# Design Showcase {#cover .cover .dark eyebrow="Agent Docs for Markdown"}
 
 Demonstrating PPTX-skill-grade design: named palettes, typography scale, sandwich structure, and new layout templates.
 

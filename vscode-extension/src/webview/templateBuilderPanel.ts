@@ -26,7 +26,7 @@ export async function createTemplateBuilderPanel(
   const publicDirUri = vscode.Uri.file(path.dirname(options.htmlFilePath));
 
   const panel = vscode.window.createWebviewPanel(
-    'mdStudioTemplateBuilder',
+    'markdownAgentDocsTemplateBuilder',
     'MPS · Template Builder',
     { viewColumn: vscode.ViewColumn.One, preserveFocus: false },
     {

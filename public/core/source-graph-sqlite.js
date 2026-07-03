@@ -172,7 +172,7 @@ function replaceGraphDb(sqlite, graphDb) {
   `);
   try {
     insertMeta(sqlite, 'schemaVersion', String(graphDb.schemaVersion || SCHEMA_VERSION));
-    insertMeta(sqlite, 'kind', String(graphDb.kind || 'markdown-pattern-studio.source-graph'));
+    insertMeta(sqlite, 'kind', String(graphDb.kind || 'markdown-agent-docs.source-graph'));
     insertMeta(sqlite, 'updatedAt', String(graphDb.updatedAt || new Date().toISOString()));
     insertMeta(sqlite, 'root', String(graphDb.root || ''));
 
@@ -259,7 +259,7 @@ function readGraphDb(sqlite, options = {}) {
   if (options.webviewOnly) {
     return {
       schemaVersion: Number(getMeta(sqlite, 'schemaVersion') || SCHEMA_VERSION),
-      kind: getMeta(sqlite, 'kind') || 'markdown-pattern-studio.source-graph',
+      kind: getMeta(sqlite, 'kind') || 'markdown-agent-docs.source-graph',
       updatedAt: getMeta(sqlite, 'updatedAt') || new Date().toISOString(),
       root: getMeta(sqlite, 'root') || '',
       tables: {
@@ -274,7 +274,7 @@ function readGraphDb(sqlite, options = {}) {
   }
   return {
     schemaVersion: Number(getMeta(sqlite, 'schemaVersion') || SCHEMA_VERSION),
-    kind: getMeta(sqlite, 'kind') || 'markdown-pattern-studio.source-graph',
+    kind: getMeta(sqlite, 'kind') || 'markdown-agent-docs.source-graph',
     updatedAt: getMeta(sqlite, 'updatedAt') || new Date().toISOString(),
     root: getMeta(sqlite, 'root') || '',
     tables: {

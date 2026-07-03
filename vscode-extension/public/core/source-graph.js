@@ -14,7 +14,7 @@ export function buildSourceGraphIndex(documents = [], options = {}) {
   const pathLookup = createPathLookup(normalizedDocuments);
   const db = {
     schemaVersion: 1,
-    kind: 'markdown-pattern-studio.source-graph',
+    kind: 'markdown-agent-docs.source-graph',
     updatedAt: now,
     root: options.root || '',
     tables: {
@@ -403,7 +403,7 @@ function createPathLookup(documents = []) {
 function cloneGraphDb(db) {
   return JSON.parse(JSON.stringify(db || {
     schemaVersion: 1,
-    kind: 'markdown-pattern-studio.source-graph',
+    kind: 'markdown-agent-docs.source-graph',
     updatedAt: new Date().toISOString(),
     root: '',
     tables: { documents: [], headings: [], links: [], citations: [], searchIndex: [] },

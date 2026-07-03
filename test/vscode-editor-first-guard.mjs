@@ -6,43 +6,43 @@ const commands = packageJson.contributes?.commands ?? [];
 const editorTitleMenus = packageJson.contributes?.menus?.['editor/title'] ?? [];
 const fileBrowserItemMenus = packageJson.contributes?.menus?.['view/item/context'] ?? [];
 assert(
-  commands.some((item) => item.command === 'mdStudioPreview.openSourceEditor'),
+  commands.some((item) => item.command === 'markdownAgentDocs.openSourceEditor'),
   'Open Source Editor command should be contributed',
 );
 assert(
-  packageJson.activationEvents?.includes('onCommand:mdStudioPreview.openSourceEditor'),
+  packageJson.activationEvents?.includes('onCommand:markdownAgentDocs.openSourceEditor'),
   'Open Source Editor command should activate the extension',
 );
 assert(
-  packageJson.activationEvents?.includes('onCommand:mdStudioPreview.enableAutoOnSave') &&
-    packageJson.activationEvents?.includes('onCommand:mdStudioPreview.disableAutoOnSave'),
+  packageJson.activationEvents?.includes('onCommand:markdownAgentDocs.enableAutoOnSave') &&
+    packageJson.activationEvents?.includes('onCommand:markdownAgentDocs.disableAutoOnSave'),
   'Auto refresh on/off commands should activate the extension',
 );
 assert(
   editorTitleMenus.some(
     (item) =>
-      item.command === 'mdStudioPreview.openSourceEditor' &&
-      item.when === "activeWebviewPanelId == 'mdStudioPreview' || activeWebviewPanelId == 'markdown.preview'",
+      item.command === 'markdownAgentDocs.openSourceEditor' &&
+      item.when === "activeWebviewPanelId == 'markdownAgentDocs' || activeWebviewPanelId == 'markdown.preview'",
   ),
-  'Open Source Editor should appear in MD Studio and built-in markdown preview tab title actions',
+  'Open Source Editor should appear in Agent Docs and built-in markdown preview tab title actions',
 );
 assert(
   editorTitleMenus.some(
     (item) =>
-      item.command === 'mdStudioPreview.disableAutoOnSave' &&
+      item.command === 'markdownAgentDocs.disableAutoOnSave' &&
       item.when ===
-        "(activeWebviewPanelId == 'mdStudioPreview' || activeWebviewPanelId == 'markdown.preview') && mdStudioPreview.autoOnSaveEnabled",
+        "(activeWebviewPanelId == 'markdownAgentDocs' || activeWebviewPanelId == 'markdown.preview') && markdownAgentDocs.autoOnSaveEnabled",
   ),
-  'Auto Refresh On should appear in MD Studio and built-in markdown preview tab title actions',
+  'Auto Refresh On should appear in Agent Docs and built-in markdown preview tab title actions',
 );
 assert(
   editorTitleMenus.some(
     (item) =>
-      item.command === 'mdStudioPreview.enableAutoOnSave' &&
+      item.command === 'markdownAgentDocs.enableAutoOnSave' &&
       item.when ===
-        "(activeWebviewPanelId == 'mdStudioPreview' || activeWebviewPanelId == 'markdown.preview') && !mdStudioPreview.autoOnSaveEnabled",
+        "(activeWebviewPanelId == 'markdownAgentDocs' || activeWebviewPanelId == 'markdown.preview') && !markdownAgentDocs.autoOnSaveEnabled",
   ),
-  'Auto Refresh Off should appear in MD Studio and built-in markdown preview tab title actions',
+  'Auto Refresh Off should appear in Agent Docs and built-in markdown preview tab title actions',
 );
 
 const itemSource = await readFile(
@@ -51,12 +51,12 @@ const itemSource = await readFile(
 );
 assert.match(
   itemSource,
-  /command:\s*'mdStudioPreview\.openFileInViewer'/,
-  'MD Studio File Browser markdown items should open in the viewer by default',
+  /command:\s*'markdownAgentDocs\.openFileInViewer'/,
+  'Agent Docs File Browser markdown items should open in the viewer by default',
 );
 assert.doesNotMatch(
   itemSource,
-  /command:\s*'mdStudioFileBrowser\.openInEditor'/,
+  /command:\s*'markdownAgentDocsFileBrowser\.openInEditor'/,
   'Markdown row clicks should not open the editor unless edit is explicitly requested',
 );
 
@@ -64,7 +64,7 @@ const browserSource = await readFile(
   new URL('../vscode-extension/src/fileBrowser/registerMarkdownFileBrowser.ts', import.meta.url),
   'utf8',
 );
-const searchCommandStart = browserSource.indexOf("vscode.commands.registerCommand('mdStudioFileBrowser.search'");
+const searchCommandStart = browserSource.indexOf("vscode.commands.registerCommand('markdownAgentDocsFileBrowser.search'");
 assert.notEqual(searchCommandStart, -1, 'Search command should remain registered');
 const searchCommandEnd = browserSource.indexOf('  return {', searchCommandStart);
 const searchCommandBlock = browserSource.slice(searchCommandStart, searchCommandEnd);
@@ -85,14 +85,14 @@ assert.match(
 );
 assert(
   !fileBrowserItemMenus.some(
-    (item) => item.command === 'mdStudioPreview.openFileInNewPanel' && item.group === 'inline',
+    (item) => item.command === 'markdownAgentDocs.openFileInNewPanel' && item.group === 'inline',
   ),
   'Markdown rows should not show an inline preview button that can accidentally open a slow new viewer tab',
 );
 assert(
   fileBrowserItemMenus.some(
     (item) =>
-      item.command === 'mdStudioFileBrowser.openInEditor' &&
+      item.command === 'markdownAgentDocsFileBrowser.openInEditor' &&
       item.group === 'inline' &&
       /viewItem == mdFile/.test(item.when ?? ''),
   ),

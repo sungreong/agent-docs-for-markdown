@@ -5,7 +5,7 @@ import { createTemplateBuilderPanel } from '../webview/templateBuilderPanel.js';
 import { scanSkills, SkillMeta } from '../utils/skillScanner.js';
 
 /**
- * Command handler for `mdStudioPreview.openTemplateBuilder`.
+ * Command handler for `markdownAgentDocs.openTemplateBuilder`.
  *
  * Resolves the skills directory from settings, scans for SKILL.md files,
  * then opens the Drag-and-Drop Template Builder Webview panel.
@@ -81,7 +81,7 @@ function resolveWorkspaceFolder(): vscode.WorkspaceFolder | null {
 }
 
 function resolveSkillsDir(workspaceFolder: vscode.WorkspaceFolder | null): string {
-  const raw = String(vscode.workspace.getConfiguration('mdStudioPreview').get<string>('skillsDir', 'claude_skills/skills') || '').trim();
+  const raw = String(vscode.workspace.getConfiguration('markdownAgentDocs').get<string>('skillsDir', 'claude_skills/skills') || '').trim();
   const value = raw || 'claude_skills/skills';
   const workspaceRoot = workspaceFolder?.uri.fsPath || process.cwd();
   const withWorkspaceVar = value.replace(/\$\{workspaceFolder\}/g, workspaceRoot);
@@ -89,7 +89,7 @@ function resolveSkillsDir(workspaceFolder: vscode.WorkspaceFolder | null): strin
 }
 
 function resolveDefaultSkill(skills: SkillMeta[]): SkillMeta | null {
-  const preferred = String(vscode.workspace.getConfiguration('mdStudioPreview').get<string>('defaultSkill', 'md-presentation-composer') || '').trim();
+  const preferred = String(vscode.workspace.getConfiguration('markdownAgentDocs').get<string>('defaultSkill', 'md-presentation-composer') || '').trim();
   return (
     skills.find((skill) => skill.id === preferred || skill.name === preferred) ??
     skills.find((skill) => skill.id === 'md-presentation-composer' || skill.name === 'md-presentation-composer') ??
@@ -203,7 +203,7 @@ async function handlePreview(
   });
   void vscode.window.showInformationMessage(
     workspaceFolder
-      ? 'Template Builder: Preview draft opened. Save it to use the full MD Studio preview.'
+      ? 'Template Builder: Preview draft opened. Save it to use the full Agent Docs preview.'
       : 'Template Builder: Preview draft opened.',
   );
 }

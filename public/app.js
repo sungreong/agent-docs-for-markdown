@@ -16,16 +16,16 @@ import {
 } from '/core/appearance.js';
 import { buildSourceGraphIndex, searchSourceGraph } from '/core/source-graph.js';
 
-const STORAGE_KEY_MD = 'markdown-pattern-studio:markdown';
-const STORAGE_KEY_THEME = 'markdown-pattern-studio:theme';
-const STORAGE_KEY_DESIGN = 'markdown-pattern-studio:design';
-const STORAGE_KEY_APPEARANCE = 'markdown-pattern-studio:appearance';
-const STORAGE_KEY_APPEARANCE_BACKGROUND = 'markdown-pattern-studio:appearance-background';
-const STORAGE_KEY_APPEARANCE_FONT = 'markdown-pattern-studio:appearance-font';
-const STORAGE_KEY_APPEARANCE_RADIUS = 'markdown-pattern-studio:appearance-radius';
-const STORAGE_KEY_APPEARANCE_FRAME = 'markdown-pattern-studio:appearance-frame';
-const STORAGE_KEY_VIEWER_CHROME = 'markdown-pattern-studio:viewer-chrome';
-const STORAGE_KEY_SOURCE_BASE = 'markdown-pattern-studio:source-base';
+const STORAGE_KEY_MD = 'markdown-agent-docs:markdown';
+const STORAGE_KEY_THEME = 'markdown-agent-docs:theme';
+const STORAGE_KEY_DESIGN = 'markdown-agent-docs:design';
+const STORAGE_KEY_APPEARANCE = 'markdown-agent-docs:appearance';
+const STORAGE_KEY_APPEARANCE_BACKGROUND = 'markdown-agent-docs:appearance-background';
+const STORAGE_KEY_APPEARANCE_FONT = 'markdown-agent-docs:appearance-font';
+const STORAGE_KEY_APPEARANCE_RADIUS = 'markdown-agent-docs:appearance-radius';
+const STORAGE_KEY_APPEARANCE_FRAME = 'markdown-agent-docs:appearance-frame';
+const STORAGE_KEY_VIEWER_CHROME = 'markdown-agent-docs:viewer-chrome';
+const STORAGE_KEY_SOURCE_BASE = 'markdown-agent-docs:source-base';
 
 const registry = new TemplateRegistry();
 registerBuiltInTemplates(registry);

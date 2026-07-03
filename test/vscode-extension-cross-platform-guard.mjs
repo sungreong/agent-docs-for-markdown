@@ -44,7 +44,7 @@ for (const expected of [
 assert(
   extensionPackage.contributes?.viewsContainers?.activitybar?.some(
     (container) =>
-      container.id === 'mdStudioSourceGraphContainer' &&
+      container.id === 'markdownAgentDocsSourceGraphContainer' &&
       container.icon === 'assets/activity-source-graph.svg',
   ),
   'Source Graph activity bar container should use the custom MD graph icon asset',
@@ -88,17 +88,17 @@ assert.doesNotMatch(
   'Source Graph extension code should not require a platform-specific shell',
 );
 assert(
-  extensionPackage.activationEvents?.includes('onCommand:mdStudioPreview.initializeSourceGraphWorkspace'),
+  extensionPackage.activationEvents?.includes('onCommand:markdownAgentDocs.initializeSourceGraphWorkspace'),
   'Initialize Source Graph Workspace should activate the extension',
 );
 assert(
   (extensionPackage.contributes?.commands || []).some(
-    (command) => command.command === 'mdStudioPreview.initializeSourceGraphWorkspace',
+    (command) => command.command === 'markdownAgentDocs.initializeSourceGraphWorkspace',
   ),
   'Initialize Source Graph Workspace should be contributed as a command',
 );
 assert(
-  sourceGraphSource.includes("registerSourceGraphCommand('mdStudioPreview.initializeSourceGraphWorkspace'"),
+  sourceGraphSource.includes("registerSourceGraphCommand('markdownAgentDocs.initializeSourceGraphWorkspace'"),
   'Initialize Source Graph Workspace should be registered',
 );
 assert(
@@ -106,12 +106,12 @@ assert(
   'Source Graph launcher should expose an initialize DB button',
 );
 assert(
-  extensionPackage.activationEvents?.includes('onCommand:mdStudioPreview.openSourceIgnoreFile') &&
-    (extensionPackage.contributes?.commands || []).some((command) => command.command === 'mdStudioPreview.openSourceIgnoreFile'),
+  extensionPackage.activationEvents?.includes('onCommand:markdownAgentDocs.openSourceIgnoreFile') &&
+    (extensionPackage.contributes?.commands || []).some((command) => command.command === 'markdownAgentDocs.openSourceIgnoreFile'),
   'Edit Source Ignore should activate and contribute a command',
 );
 assert(
-  sourceGraphSource.includes("missing - run MD Studio: Initialize Source Graph Workspace"),
+  sourceGraphSource.includes("missing - run Agent Docs: Initialize Source Graph"),
   'MCP status should guide users to the explicit workspace initialization command when the DB is missing',
 );
 const installStart = sourceGraphSource.indexOf('async function installCodexMcp');
@@ -148,8 +148,8 @@ assert(
 assert(
   (extensionPackage.contributes?.commands || []).some(
     (command) =>
-      command.command === 'mdStudioPreview.downloadSkillFolder' &&
-      command.title === 'MD Studio: Install or Export Skills',
+      command.command === 'markdownAgentDocs.downloadSkillFolder' &&
+      command.title === 'Agent Docs: Install or Export Skills',
   ) &&
     exportSkillFolderSource.includes('async function pickSkillWorkflow') &&
     exportSkillFolderSource.includes("label: 'Install bundled skills to this workspace'") &&
@@ -188,28 +188,28 @@ assert(
     fileBrowserProviderSource.includes('MPS_IGNORE_FILE') &&
     fileBrowserProviderSource.includes('findSourceIgnoreFiles') &&
     fileBrowserProviderSource.includes('relativePath === MPS_IGNORE_FILE'),
-  'MD Studio File Browser should show the root .mpsignore while filtering files through .mpsignore rules',
+  'Agent Docs File Browser should show the root .mpsignore while filtering files through .mpsignore rules',
 );
 assert(
-  extensionPackage.activationEvents?.includes('onCommand:mdStudioFileBrowser.delete') &&
-    (extensionPackage.contributes?.commands || []).some((command) => command.command === 'mdStudioFileBrowser.delete') &&
+  extensionPackage.activationEvents?.includes('onCommand:markdownAgentDocsFileBrowser.delete') &&
+    (extensionPackage.contributes?.commands || []).some((command) => command.command === 'markdownAgentDocsFileBrowser.delete') &&
     (extensionPackage.contributes?.keybindings || []).some(
       (keybinding) =>
-        keybinding.command === 'mdStudioFileBrowser.delete' &&
+        keybinding.command === 'markdownAgentDocsFileBrowser.delete' &&
         keybinding.key === 'delete' &&
-        /focusedView == mdStudioFileBrowser/.test(keybinding.when || ''),
+        /focusedView == markdownAgentDocsFileBrowser/.test(keybinding.when || ''),
     ) &&
     (extensionPackage.contributes?.menus?.['view/item/context'] || []).some(
-      (item) => item.command === 'mdStudioFileBrowser.delete' && /viewItem == mdFolder/.test(item.when || ''),
+      (item) => item.command === 'markdownAgentDocsFileBrowser.delete' && /viewItem == mdFolder/.test(item.when || ''),
     ),
-  'MD Studio File Browser should contribute Delete key and context-menu deletion for files/folders',
+  'Agent Docs File Browser should contribute Delete key and context-menu deletion for files/folders',
 );
 assert(
-  fileBrowserRegisterSource.includes("registerCommand('mdStudioFileBrowser.delete'") &&
+  fileBrowserRegisterSource.includes("registerCommand('markdownAgentDocsFileBrowser.delete'") &&
     fileBrowserRegisterSource.includes('treeView.selection[0]?.resourceUri') &&
     fileBrowserRegisterSource.includes('vscode.workspace.fs.delete(uri, { recursive: isDirectory, useTrash: true })') &&
     fileBrowserRegisterSource.includes('vscode.workspace.getWorkspaceFolder(uri)'),
-  'MD Studio File Browser delete should use the selected tree item, stay inside the workspace, and move items to Trash',
+  'Agent Docs File Browser delete should use the selected tree item, stay inside the workspace, and move items to Trash',
 );
 assert(
   sourceGraphSource.includes('isSourceIgnoredUri') && sourceGraphSource.includes('MPS_IGNORE_FILE'),
@@ -217,7 +217,7 @@ assert(
 );
 for (const doc of [extensionGuide, extensionReadme]) {
   assert(
-    doc.includes('MD Studio: Initialize Source Graph Workspace'),
+    doc.includes('Agent Docs: Initialize Source Graph'),
     'User docs should explain Source Graph workspace initialization',
   );
   assert(
@@ -225,7 +225,7 @@ for (const doc of [extensionGuide, extensionReadme]) {
     'User docs should name the workspace-local graph DB path',
   );
   assert(
-    doc.includes('MD Studio: Install Source Graph MCP') &&
+    doc.includes('Agent Docs: Install Source Graph MCP') &&
       doc.includes('.mcp.json') &&
       doc.includes('.codex/config.toml'),
     'User docs should explain selectable Source Graph MCP client setup',
@@ -235,7 +235,7 @@ for (const doc of [extensionGuide, extensionReadme]) {
     'User docs should mention the bundled Codex source graph skill',
   );
   assert(
-    doc.includes('.mpsignore') && doc.includes('MD Studio: Edit Source Ignore'),
+    doc.includes('.mpsignore') && doc.includes('Agent Docs: Edit Source Ignore'),
     'User docs should explain source ignore patterns',
   );
 }

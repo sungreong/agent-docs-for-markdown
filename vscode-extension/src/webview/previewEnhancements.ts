@@ -139,8 +139,8 @@ function buildBridgeScript({ preferredViewMode, outlineCollapsed, appearance }: 
   return `
 <script>
 (function () {
-  if (window.__mdStudioPreviewSyncInstalled) return;
-  window.__mdStudioPreviewSyncInstalled = true;
+  if (window.__markdownAgentDocsSyncInstalled) return;
+  window.__markdownAgentDocsSyncInstalled = true;
   const preferredViewMode = ${JSON.stringify(preferredViewMode)};
   const initialOutlineCollapsed = ${outlineCollapsed ? 'true' : 'false'};
   const initialAppearance = ${JSON.stringify(appearance)};
@@ -161,12 +161,12 @@ function buildBridgeScript({ preferredViewMode, outlineCollapsed, appearance }: 
   const post = (message) => {
     if (vscodeApi && typeof vscodeApi.postMessage === 'function') vscodeApi.postMessage(message);
   };
-  const notifyReady = () => post({ type: 'mdStudioPreview.ready' });
+  const notifyReady = () => post({ type: 'markdownAgentDocs.ready' });
   const notifyOutlineState = (collapsed) =>
-    post({ type: 'mdStudioPreview.outlineStateChanged', collapsed: Boolean(collapsed) });
+    post({ type: 'markdownAgentDocs.outlineStateChanged', collapsed: Boolean(collapsed) });
   const notifyAppearanceState = (nextAppearance) =>
-    post({ type: 'mdStudioPreview.appearanceChanged', appearance: nextAppearance });
-  window.addEventListener('mdStudioAppearanceChanged', (event) => {
+    post({ type: 'markdownAgentDocs.appearanceChanged', appearance: nextAppearance });
+  window.addEventListener('agentDocsAppearanceChanged', (event) => {
     const detail = event && event.detail ? event.detail : initialAppearance;
     notifyAppearanceState(detail);
   });
@@ -529,7 +529,7 @@ function buildBridgeScript({ preferredViewMode, outlineCollapsed, appearance }: 
       event.preventDefault();
       event.stopPropagation();
       post({
-        type: 'mdStudioPreview.openLink',
+        type: 'markdownAgentDocs.openLink',
         href: anchor.href || rawHref,
         rawHref: rawHref,
         text: compactLinkText(anchor.textContent || anchor.title || rawHref),
@@ -589,7 +589,7 @@ function buildBridgeScript({ preferredViewMode, outlineCollapsed, appearance }: 
 
   window.addEventListener('message', (event) => {
     const data = event && event.data ? event.data : null;
-    if (!data || data.type !== 'mdStudioPreview.syncSection') return;
+    if (!data || data.type !== 'markdownAgentDocs.syncSection') return;
     const sectionId = String(data.sectionId || '').trim();
     if (!sectionId) return;
 

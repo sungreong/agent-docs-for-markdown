@@ -101,9 +101,9 @@ let extensionContextRef: vscode.ExtensionContext | null = null;
 let fileBrowserController: MarkdownFileBrowserController | null = null;
 let lastBrowserKey: string | null = null; // tracks the panel opened via file browser
 let outputChannel: vscode.OutputChannel | null = null;
-const outlineStateKeyPrefix = 'mdStudioPreview:outlineCollapsed:';
-const appearanceStateKey = 'mdStudioPreview:appearance';
-const autoOnSaveContextKey = 'mdStudioPreview.autoOnSaveEnabled';
+const outlineStateKeyPrefix = 'markdownAgentDocs:outlineCollapsed:';
+const appearanceStateKey = 'markdownAgentDocs:appearance';
+const autoOnSaveContextKey = 'markdownAgentDocs.autoOnSaveEnabled';
 const defaultAppearanceOptions: AppearanceOptions = {
   appearance: 'default',
   appearanceBackground: 'default',
@@ -117,7 +117,7 @@ const dynamicImportModule = new Function('modulePath', 'return import(modulePath
 export function activate(context: vscode.ExtensionContext) {
   extensionInstallPath = context.extensionPath;
   extensionContextRef = context;
-  outputChannel = vscode.window.createOutputChannel('Markdown Pattern Studio');
+  outputChannel = vscode.window.createOutputChannel('Agent Docs for Markdown');
   context.subscriptions.push(outputChannel);
   void updateAutoOnSaveContext();
   context.subscriptions.push(
@@ -125,13 +125,13 @@ export function activate(context: vscode.ExtensionContext) {
       async handleUri(uri: vscode.Uri) {
         const route = uri.path.replace(/^\/+/, '').toLowerCase();
         if (route === 'sourcegraph' || route === 'source-graph' || route === 'graph') {
-          await vscode.commands.executeCommand('mdStudioPreview.openSourceGraph');
+          await vscode.commands.executeCommand('markdownAgentDocs.openSourceGraph');
         }
       },
     }),
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.open', async () => {
+    vscode.commands.registerCommand('markdownAgentDocs.open', async () => {
       const document = await resolveTargetDocument();
       if (!document) return;
       await queuePreview(document, 'open');
@@ -139,31 +139,31 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.refresh', async () => {
+    vscode.commands.registerCommand('markdownAgentDocs.refresh', async () => {
       await refreshCurrentPreview();
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.openSourceEditor', async (commandArg?: unknown) => {
+    vscode.commands.registerCommand('markdownAgentDocs.openSourceEditor', async (commandArg?: unknown) => {
       await openPreviewSourceEditor(commandArg);
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.enableAutoOnSave', async () => {
+    vscode.commands.registerCommand('markdownAgentDocs.enableAutoOnSave', async () => {
       await setAutoOnSave(true);
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.disableAutoOnSave', async () => {
+    vscode.commands.registerCommand('markdownAgentDocs.disableAutoOnSave', async () => {
       await setAutoOnSave(false);
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.transformMarkdownToHtml', async (commandArg?: unknown) => {
+    vscode.commands.registerCommand('markdownAgentDocs.transformMarkdownToHtml', async (commandArg?: unknown) => {
       await transformMarkdownToHtml(commandArg);
     }),
   );
@@ -188,7 +188,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration('mdStudioPreview.autoOnSave')) {
+      if (event.affectsConfiguration('markdownAgentDocs.autoOnSave')) {
         void updateAutoOnSaveContext();
       }
     }),
@@ -218,19 +218,19 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.openTemplateBuilder', async () => {
+    vscode.commands.registerCommand('markdownAgentDocs.openTemplateBuilder', async () => {
       await openTemplateBuilderCommand(context);
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.downloadSkillFolder', async () => {
+    vscode.commands.registerCommand('markdownAgentDocs.downloadSkillFolder', async () => {
       await downloadSkillFolderCommand(context);
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('mdStudioPreview.diagnoseEnvironment', async () => {
+    vscode.commands.registerCommand('markdownAgentDocs.diagnoseEnvironment', async () => {
       await diagnoseEnvironment();
     }),
   );
@@ -259,7 +259,7 @@ export function deactivate() {
 }
 
 function readConfig(): ExtensionConfig {
-  const config = vscode.workspace.getConfiguration('mdStudioPreview');
+  const config = vscode.workspace.getConfiguration('markdownAgentDocs');
   const autoOnSave = config.get<boolean>('autoOnSave', true);
   const cursorSyncOnSave = config.get<boolean>('cursorSyncOnSave', true);
   const nodePath = String(config.get<string>('nodePath', 'node') || 'node').trim() || 'node';
@@ -278,14 +278,14 @@ function readConfig(): ExtensionConfig {
 }
 
 async function setAutoOnSave(enabled: boolean): Promise<void> {
-  const config = vscode.workspace.getConfiguration('mdStudioPreview');
+  const config = vscode.workspace.getConfiguration('markdownAgentDocs');
   const inspected = config.inspect<boolean>('autoOnSave');
   const target =
     inspected?.workspaceValue !== undefined ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
   await config.update('autoOnSave', enabled, target);
   await updateAutoOnSaveContext();
   await openPreferredViewForCurrentMarkdown(enabled);
-  void vscode.window.showInformationMessage(`MD Studio auto refresh on save: ${enabled ? 'On' : 'Off'}`);
+  void vscode.window.showInformationMessage(`Agent Docs auto refresh on save: ${enabled ? 'On' : 'Off'}`);
 }
 
 async function updateAutoOnSaveContext(): Promise<void> {
@@ -347,7 +347,7 @@ async function transformMarkdownToHtml(commandArg?: unknown): Promise<void> {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'MD Studio: Transforming markdown to styled HTML...',
+        title: 'Agent Docs: Transforming markdown to styled HTML...',
       },
       async () => {
         await runCliRendererForPath(sourceUri.fsPath, {
@@ -772,7 +772,7 @@ async function previewDocument(document: vscode.TextDocument, reason: PreviewRea
     if (!isSessionAlive(session) || isWebviewDisposedError(error)) return;
     const details = errorToMessage(error);
     safeSetWebviewHtml(session, renderErrorHtml(details));
-    void vscode.window.showErrorMessage(`Markdown Studio preview failed: ${details}`);
+    void vscode.window.showErrorMessage(`Agent Docs preview failed: ${details}`);
   }
 }
 
@@ -816,7 +816,7 @@ async function previewHtmlFile(uri: vscode.Uri, reveal: boolean): Promise<void> 
     if (!isSessionAlive(session) || isWebviewDisposedError(error)) return;
     const details = errorToMessage(error);
     safeSetWebviewHtml(session, renderErrorHtml(details));
-    void vscode.window.showErrorMessage(`Markdown Studio HTML preview failed: ${details}`);
+    void vscode.window.showErrorMessage(`Agent Docs HTML preview failed: ${details}`);
   }
 }
 
@@ -831,7 +831,7 @@ function ensureSessionForUri(uri: vscode.Uri, reveal: boolean): PreviewSession {
   }
 
   const panel = vscode.window.createWebviewPanel(
-    'mdStudioPreview',
+    'markdownAgentDocs',
     `MPS Preview: ${path.basename(uri.fsPath)}`,
     {
       viewColumn: vscode.ViewColumn.Beside,
@@ -858,20 +858,20 @@ function ensureSessionForUri(uri: vscode.Uri, reveal: boolean): PreviewSession {
   panel.webview.onDidReceiveMessage((message: unknown) => {
     if (!message || typeof message !== 'object') return;
     const payload = message as PreviewWebviewMessage;
-    if (payload.type === 'mdStudioPreview.ready') {
+    if (payload.type === 'markdownAgentDocs.ready') {
       session.isBridgeReady = true;
       void flushPendingSync(session);
       return;
     }
-    if (payload.type === 'mdStudioPreview.openLink') {
+    if (payload.type === 'markdownAgentDocs.openLink') {
       void handlePreviewLinkClick(session, payload);
       return;
     }
-    if (payload.type === 'mdStudioPreview.appearanceChanged') {
+    if (payload.type === 'markdownAgentDocs.appearanceChanged') {
       void persistAppearanceState(normalizeAppearanceMessage(payload));
       return;
     }
-    if (payload.type !== 'mdStudioPreview.outlineStateChanged') return;
+    if (payload.type !== 'markdownAgentDocs.outlineStateChanged') return;
     if (typeof payload.collapsed !== 'boolean') return;
     session.outlineCollapsed = payload.collapsed;
     void persistOutlineCollapsedState(session.key, payload.collapsed);
@@ -981,7 +981,7 @@ async function runCliRendererForPath(inputPath: string, options: RunCliRendererO
       const selectedScriptPath = await promptForCliScriptPath(workspaceFolder, scriptCandidate.path);
       if (!selectedScriptPath) {
         throw new Error(
-          `CLI script was not found at "${scriptCandidate.path}". Set "mdStudioPreview.cliScriptPath" to a valid relative or absolute path.`,
+          `CLI script was not found at "${scriptCandidate.path}". Set "markdownAgentDocs.cliScriptPath" to a valid relative or absolute path.`,
         );
       }
       scriptPath = selectedScriptPath;
@@ -997,7 +997,7 @@ async function runCliRendererForPath(inputPath: string, options: RunCliRendererO
       const bundled = resolveBundledCliScriptPath();
       if (!bundled || !(await fileExists(bundled))) {
         throw new Error(
-          'No CLI script found. Set "mdStudioPreview.cliScriptPath" to an absolute path to use preview outside a workspace.',
+          'No CLI script found. Set "markdownAgentDocs.cliScriptPath" to an absolute path to use preview outside a workspace.',
         );
       }
       scriptPath = bundled;
@@ -1008,7 +1008,7 @@ async function runCliRendererForPath(inputPath: string, options: RunCliRendererO
   if (options.outputPath) {
     outputPath = path.resolve(options.outputPath);
   } else {
-    const tempDir = path.join(os.tmpdir(), 'markdown-pattern-studio-preview');
+    const tempDir = path.join(os.tmpdir(), 'markdown-agent-docs');
     await fs.mkdir(tempDir, { recursive: true });
     const safeBaseName = path
       .basename(inputPath, path.extname(inputPath))
@@ -1266,7 +1266,7 @@ function decodeHrefPath(value: string): string {
 }
 
 function resolveSkillsDirPath(workspaceFolder: vscode.WorkspaceFolder | null): string {
-  const raw = String(vscode.workspace.getConfiguration('mdStudioPreview').get<string>('skillsDir', 'claude_skills/skills') || '').trim();
+  const raw = String(vscode.workspace.getConfiguration('markdownAgentDocs').get<string>('skillsDir', 'claude_skills/skills') || '').trim();
   const value = raw || 'claude_skills/skills';
   const workspaceRoot = workspaceFolder?.uri.fsPath || process.cwd();
   const withWorkspaceVar = value.replace(/\$\{workspaceFolder\}/g, workspaceRoot);
@@ -1284,7 +1284,7 @@ async function diagnoseEnvironment(): Promise<void> {
     lines.push(`${ok ? '[ok]' : '[warn]'} ${label}${detail ? `: ${detail}` : ''}`);
   };
 
-  lines.push(`Markdown Pattern Studio diagnostics`);
+  lines.push(`Agent Docs for Markdown diagnostics`);
   lines.push(`Time: ${new Date().toISOString()}`);
   lines.push(`Extension: ${extensionInstallPath || '(unknown)'}`);
   lines.push(`Workspace: ${workspaceFolder?.uri.fsPath || '(none)'}`);
@@ -1321,7 +1321,7 @@ async function diagnoseEnvironment(): Promise<void> {
   outputChannel?.show(true);
   const warningCount = lines.filter((line) => line.startsWith('[warn]')).length;
   void vscode.window.showInformationMessage(
-    warningCount ? `MD Studio diagnostics completed with ${warningCount} warning(s).` : 'MD Studio diagnostics passed.',
+    warningCount ? `Agent Docs diagnostics completed with ${warningCount} warning(s).` : 'Agent Docs diagnostics passed.',
     'Show Output',
   ).then((choice) => {
     if (choice === 'Show Output') outputChannel?.show(true);
@@ -1439,9 +1439,9 @@ async function promptForCliScriptPath(
   }
 
   await vscode.workspace
-    .getConfiguration('mdStudioPreview')
+    .getConfiguration('markdownAgentDocs')
     .update('cliScriptPath', selectedPath, vscode.ConfigurationTarget.Global);
-  void vscode.window.showInformationMessage(`Saved mdStudioPreview.cliScriptPath: ${selectedPath}`);
+  void vscode.window.showInformationMessage(`Saved markdownAgentDocs.cliScriptPath: ${selectedPath}`);
   return selectedPath;
 }
 
@@ -1537,7 +1537,7 @@ async function resolveCursorSectionIdForSave(document: vscode.TextDocument): Pro
   try {
     parsed = parseMarkdownDocument(document.getText());
   } catch (error) {
-    console.warn('[mdStudioPreview] parseMarkdownDocument failed:', error);
+    console.warn('[markdownAgentDocs] parseMarkdownDocument failed:', error);
     return null;
   }
 
@@ -1618,7 +1618,7 @@ async function loadParseMarkdownParser(workspaceFolder: vscode.WorkspaceFolder |
     parserCache.set(enginePath, parser);
     return parser;
   } catch (error) {
-    console.warn('[mdStudioPreview] unable to import parser module:', error);
+    console.warn('[markdownAgentDocs] unable to import parser module:', error);
     return null;
   }
 }
@@ -1661,7 +1661,7 @@ async function flushPendingSync(session: PreviewSession): Promise<void> {
 }
 
 async function postSyncMessageWithRetry(webview: vscode.Webview, sectionId: string): Promise<boolean> {
-  const payload = { type: 'mdStudioPreview.syncSection', sectionId };
+  const payload = { type: 'markdownAgentDocs.syncSection', sectionId };
   const delays = [0, 120, 300];
   let delivered = false;
 

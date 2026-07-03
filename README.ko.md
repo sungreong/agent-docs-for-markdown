@@ -23,29 +23,29 @@ ext install datanewbie-labs.markdown-agent-docs
 기본 흐름:
 
 1. VS Code에서 Markdown workspace를 엽니다.
-2. Activity Bar의 MD Studio 아이콘 또는 Command Palette에서 `Markdown Studio: Open Preview`를 실행합니다.
+2. Activity Bar의 Agent Docs 아이콘 또는 Command Palette에서 `Agent Docs: Open Preview`를 실행합니다.
 3. Markdown을 저장하면 Preview가 자동 갱신됩니다.
-4. `MD Studio: Transform Markdown to Styled HTML`로 standalone/blog-embed/fragment HTML을 export합니다.
-5. `MD Studio: Open Source Graph`로 문서 링크와 관련 문서를 확인합니다.
-6. `MD Studio: Download Skill Folder`로 에이전트용 문서 작성 스킬을 내려받거나 workspace에 업데이트합니다.
+4. `Agent Docs: Export Styled HTML`로 standalone/blog-embed/fragment HTML을 export합니다.
+5. `Agent Docs: Open Source Graph`로 문서 링크와 관련 문서를 확인합니다.
+6. `Agent Docs: Install or Export Skills`로 에이전트용 문서 작성 스킬을 내려받거나 workspace에 업데이트합니다.
 
 자세한 확장 사용법은 [vscode-extension/README.md](vscode-extension/README.md)와 [vscode-extension/EXTENSION_GUIDE.md](vscode-extension/EXTENSION_GUIDE.md)를 참고하세요.
 
 ## AI 에이전트로 문서 만들기
 
-VS Code 확장에서 스킬을 다운로드하거나 workspace 스킬 폴더로 업데이트한 뒤, Claude/Codex/Agents 같은 에이전트에게 아래처럼 요청하면 Markdown Pattern Studio 문서 구조에 맞춰 초안을 만들 수 있습니다. 이 기능도 VS Code 확장 사용 흐름에 포함되어 있으므로, 처음에는 clone보다 VS Code 확장 방식으로 시작하는 것을 권장합니다.
+VS Code 확장에서 스킬을 다운로드하거나 workspace 스킬 폴더로 업데이트한 뒤, Claude/Codex/Agents 같은 에이전트에게 아래처럼 요청하면 Agent Docs for Markdown 문서 구조에 맞춰 초안을 만들 수 있습니다. 이 기능도 VS Code 확장 사용 흐름에 포함되어 있으므로, 처음에는 clone보다 VS Code 확장 방식으로 시작하는 것을 권장합니다.
 
 ### 1. 스킬 다운로드 또는 업데이트
 
 1. VS Code에서 Markdown workspace를 엽니다.
-2. Command Palette에서 `MD Studio: Download Skill Folder`를 실행합니다.
+2. Command Palette에서 `Agent Docs: Install or Export Skills`를 실행합니다.
 3. 사용할 source를 선택합니다.
    - `Bundled Claude`: Claude용 `.claude/skills`에 맞는 스킬
    - `Bundled Agents`: `.agents/skills`에 맞는 스킬
    - `Bundled Codex`: `.codex/skills`에 맞는 스킬
    - `Bundled Gemini`: `.gemini/skills`에 맞는 스킬(번들 source가 있을 때)
    - `Bundled Cursor`: `.cursor/skills`에 맞는 스킬(번들 source가 있을 때)
-   - `Workspace`: 설정된 `mdStudioPreview.skillsDir` 기준 스킬
+   - `Workspace`: 설정된 `markdownAgentDocs.skillsDir` 기준 스킬
 4. ZIP 저장, 매칭 폴더 업데이트, 또는 선택/전체 스킬을 모든 에이전트 폴더에 반영하는 액션을 선택합니다. 대상 폴더가 없으면 자동으로 생성됩니다.
 5. 문서 제작용으로는 보통 `md-presentation-composer`와 `document-production-advisor`를 함께 사용합니다.
 
@@ -55,7 +55,7 @@ VS Code 확장에서 스킬을 다운로드하거나 workspace 스킬 폴더로 
 
 ```text
 md-presentation-composer와 document-production-advisor를 사용해서
-아래 내용을 Markdown Pattern Studio 문서로 만들어줘.
+아래 내용을 Agent Docs for Markdown 문서로 만들어줘.
 
 목적: 임원 보고용 8페이지 요약 보고서
 톤: 전문적이고 간결하게
@@ -147,11 +147,11 @@ npm run md2html -- test/notes.md --out test/notes.blog-embed.html --export-targe
 
 ![VS Code Extension Preview 예시](assets/images/extension_example.png)
 
-MD Studio File Browser에서 폴더 FOCUS, 정렬/필터, Markdown 미리보기, Outline 이동, HTML export를 VS Code 안에서 바로 처리합니다.
+Agent Docs File Browser에서 폴더 FOCUS, 정렬/필터, Markdown 미리보기, Outline 이동, HTML export를 VS Code 안에서 바로 처리합니다.
 
 ### 2. 브라우저 스튜디오
 
-![Markdown Pattern Studio 전체 화면](assets/images/web.png)
+![Agent Docs for Markdown 전체 화면](assets/images/web.png)
 
 패턴 가이드, Markdown Editor, Live Preview, Template Builder, 외형 설정, 저장/export 동작을 한 화면에서 다룹니다.
 
@@ -458,7 +458,7 @@ npm run test:embed-images
 - `md-presentation-composer`: Markdown을 보고서, 제안서, 기술 문서, 튜토리얼, 발표형 문서로 재구성
 - `document-production-advisor`: 사용자 요청을 acceptance criteria와 trace로 정리하고 HTML/blog/DOCX/PPTX식 handoff, 렌더 UX, 표현 클래스, heading/list/table/image 구조, export 안정성을 점검하며 렌더 테스트 예제를 포함
 
-`MD Studio: Download Skill Folder`는 스킬 ZIP을 저장하거나 현재 workspace의 스킬 폴더를 업데이트합니다. 선택한 source와 매칭되는 폴더만 업데이트할 수도 있고, 선택/전체 스킬을 `.claude/skills`, `.agents/skills`, `.codex/skills`, `.gemini/skills`, `.cursor/skills` 같은 알려진 에이전트 폴더 전체에 한 번에 반영할 수도 있습니다. 대상 폴더가 없으면 자동으로 생성됩니다. ZIP을 Claude, Codex, 또는 호환되는 다른 에이전트에게 전달하면, 해당 에이전트가 같은 Markdown Pattern Studio 구조, 문서 디자인 클래스, export 규칙, 렌더 검증 체크리스트를 기준으로 문서를 작성하도록 지시할 수 있습니다.
+`Agent Docs: Install or Export Skills`는 스킬 ZIP을 저장하거나 현재 workspace의 스킬 폴더를 업데이트합니다. 선택한 source와 매칭되는 폴더만 업데이트할 수도 있고, 선택/전체 스킬을 `.claude/skills`, `.agents/skills`, `.codex/skills`, `.gemini/skills`, `.cursor/skills` 같은 알려진 에이전트 폴더 전체에 한 번에 반영할 수도 있습니다. 대상 폴더가 없으면 자동으로 생성됩니다. ZIP을 Claude, Codex, 또는 호환되는 다른 에이전트에게 전달하면, 해당 에이전트가 같은 Agent Docs for Markdown 구조, 문서 디자인 클래스, export 규칙, 렌더 검증 체크리스트를 기준으로 문서를 작성하도록 지시할 수 있습니다.
 
 확장 동작 예시 화면:
 
@@ -470,32 +470,32 @@ npm run test:embed-images
 
 사용 흐름:
 
-1. VS Code에서 Markdown 파일을 연 뒤 `Markdown Studio: Open Preview` 실행 (또는 Activity Bar의 책 아이콘 클릭)
+1. VS Code에서 Markdown 파일을 연 뒤 `Agent Docs: Open Preview` 실행 (또는 Activity Bar의 책 아이콘 클릭)
 2. 문서를 수정하고 저장(`Ctrl+S`)하면 자동 렌더링/갱신
 3. 우측 Outline에서 섹션 이동, 하단 `Prev/Next`로 페이지 이동, `Stack`으로 문서형 보기 전환
 4. `Fit`, `+`, `-` 버튼으로 현재 패널 크기에 맞춰 Slide/Stack 배율 조정
 
 주요 동작:
 
-- 명령: `Markdown Studio: Open Preview`
-- 명령: `Markdown Studio: Refresh Preview`
-- Markdown 저장 시 자동 갱신 (`mdStudioPreview.autoOnSave=true`)
-- Markdown 저장(`Ctrl+S`) 시 커서 기준 섹션으로 Preview 동기화 (`mdStudioPreview.cursorSyncOnSave=true`)
+- 명령: `Agent Docs: Open Preview`
+- 명령: `Agent Docs: Refresh`
+- Markdown 저장 시 자동 갱신 (`markdownAgentDocs.autoOnSave=true`)
+- Markdown 저장(`Ctrl+S`) 시 커서 기준 섹션으로 Preview 동기화 (`markdownAgentDocs.cursorSyncOnSave=true`)
 - `file://` 자산 링크를 Webview URI로 변환
 - **워크스페이스 외부 파일 지원**: 현재 워크스페이스에 없는 `.md` 파일도 번들 CLI로 바로 미리보기 가능
 - **반응형 레이아웃**: Webview 패널이 좁아도 슬라이드·Outline이 실제 너비에 맞게 자동 조정
 - **Slide/Stack Zoom**: 5% 단위 확대/축소, Fit은 화면 여유 공간을 사용해 100% 이상 확대 가능
 
-### MD Studio File Browser (Activity Bar)
+### Agent Docs File Browser (Activity Bar)
 
 - Activity Bar의 **책 아이콘**을 클릭하면 워크스페이스의 Markdown 파일이 폴더 트리로 표시됨
 - **파일 클릭** → 단일 Reader 패널에서 즉시 미리보기 (이전 패널 자동 교체)
 - **우클릭 → Open in New Panel** → 기존 패널 유지하며 새 패널로 열기 (여러 파일 동시 비교)
 - **우클릭 → Open in Editor** → 파일을 일반 VS Code 에디터에서 열기
 - **우클릭 → Hide from Browser** → 관심 없는 파일/폴더를 워크스페이스별로 숨김
-- **우클릭 폴더 → FOCUS** → 해당 폴더 아래 파일만 MD Studio File Browser에서 보기
+- **우클릭 폴더 → FOCUS** → 해당 폴더 아래 파일만 Agent Docs File Browser에서 보기
 - **우클릭 → Copy Path / Copy Relative Path / Copy Name** → 파일과 폴더 경로/이름 복사
-- Command Palette의 **MD Studio: Open in Viewer**는 현재 열린 Markdown 파일을 대상으로 실행되며, 대상이 없으면 안내 메시지로 종료
+- Command Palette의 **Agent Docs: Open in Viewer**는 현재 열린 Markdown 파일을 대상으로 실행되며, 대상이 없으면 안내 메시지로 종료
 - **검색 아이콘(🔍)** → 파일명·경로 기준 QuickPick 검색
 - **필터 아이콘** → 전체, Pinned, Recent, 오래 안 고침, 긴 문서, 큰 파일 보기
 - **정렬 아이콘** → 이름, 수정일, 생성일, 파일 크기, 문서 길이 기준 정렬
@@ -507,18 +507,18 @@ npm run test:embed-images
 
 ### Source Graph / MCP
 
-- 명령: `MD Studio: Open Source Graph`
-- 명령: `MD Studio: Initialize Source Graph Workspace`
-- 명령: `MD Studio: Update Source Graph Index`
-- 명령: `MD Studio: Search Source Graph`
-- 명령: `MD Studio: Edit Source Ignore`
-- 명령: `MD Studio: Install Codex Source Graph MCP`
-- 명령: `MD Studio: Check Codex Source Graph MCP Status`
-- 명령: `MD Studio: Remove Codex Source Graph MCP`
-- 명령: `MD Studio: Copy Codex Source Graph MCP Config`
+- 명령: `Agent Docs: Open Source Graph`
+- 명령: `Agent Docs: Initialize Source Graph`
+- 명령: `Agent Docs: Update Source Graph`
+- 명령: `Agent Docs: Search Source Graph`
+- 명령: `Agent Docs: Edit Source Ignore`
+- 명령: `Agent Docs: Install Codex Source Graph MCP`
+- 명령: `Agent Docs: Check Codex Source Graph MCP Status`
+- 명령: `Agent Docs: Remove Codex Source Graph MCP`
+- 명령: `Agent Docs: Copy Codex Source Graph MCP Config`
 - 워크스페이스 Markdown 파일을 `.mps/source-graph.sqlite`에 인덱싱합니다. 이 DB는 `codegraph init`처럼 프로젝트/워크스페이스마다 따로 생기는 로컬 SQLite 인덱스입니다.
 - DB는 dependency-free JSON이지만 `documents`, `headings`, `links`, `citations`, `searchIndex` 테이블과 graph `nodes/edges`를 가진 SQLite형 구조입니다.
-- `MD Studio: Edit Source Ignore`로 워크스페이스 루트의 `.mpsignore`를 만들거나 편집할 수 있습니다. 이 패턴은 Source Graph 인덱스와 MD Studio File Browser 목록에서 모두 제외됩니다.
+- `Agent Docs: Edit Source Ignore`로 워크스페이스 루트의 `.mpsignore`를 만들거나 편집할 수 있습니다. 이 패턴은 Source Graph 인덱스와 Agent Docs File Browser 목록에서 모두 제외됩니다.
 - 그래프 패널을 열면 인덱스를 먼저 갱신합니다. 기존 Markdown 파일 내용만 바뀌면 해당 문서 row만 교체하고 edge를 재계산하며, 파일 생성/삭제 또는 `.mpsignore` 변경은 전체 재빌드합니다.
 
 `.mpsignore` 예시:
@@ -546,15 +546,15 @@ node scripts/source-graph.mjs mcp
 
 1. VSIX를 설치합니다.
 2. VS Code에서 Markdown 워크스페이스를 엽니다.
-3. `MD Studio: Initialize Source Graph Workspace`를 한 번 실행해 `.mps/source-graph.sqlite`를 생성합니다.
-4. `MD Studio: Install Codex Source Graph MCP`를 실행합니다.
+3. `Agent Docs: Initialize Source Graph`를 한 번 실행해 `.mps/source-graph.sqlite`를 생성합니다.
+4. `Agent Docs: Install Codex Source Graph MCP`를 실행합니다.
 5. `Workspace .codex/config.toml (Recommended)`를 선택합니다.
-6. `MD Studio: Download Skill Folder`에서 `Bundled Codex`를 선택하고, `source-graph-search` 스킬이 없으면 `.codex/skills`로 업데이트합니다.
+6. `Agent Docs: Install or Export Skills`에서 `Bundled Codex`를 선택하고, `source-graph-search` 스킬이 없으면 `.codex/skills`로 업데이트합니다.
 7. Codex를 재시작하거나 해당 trusted workspace에서 새 Codex 세션을 시작합니다.
 
-설치 명령은 `.codex/config.toml`에 관리되는 MCP 블록을 쓰고, `.mps/source-graph.sqlite`를 생성/갱신하며, MCP 서버가 현재 워크스페이스를 바라보도록 설정합니다. `MD Studio: Check Codex Source Graph MCP Status`로 Node, 번들 MCP 스크립트, graph DB, config 등록 상태를 확인할 수 있습니다. 업데이트 확인은 Markdown 링크를 하나 추가/수정한 뒤 저장하고 `MD Studio: Open Source Graph` 또는 `MD Studio: Search Source Graph`를 실행하면 됩니다. DB timestamp와 연결 edge가 변경되어야 정상입니다. `MD Studio: Remove Codex Source Graph MCP`로 관리 블록을 제거할 수 있습니다.
+설치 명령은 `.codex/config.toml`에 관리되는 MCP 블록을 쓰고, `.mps/source-graph.sqlite`를 생성/갱신하며, MCP 서버가 현재 워크스페이스를 바라보도록 설정합니다. `Agent Docs: Check Codex Source Graph MCP Status`로 Node, 번들 MCP 스크립트, graph DB, config 등록 상태를 확인할 수 있습니다. 업데이트 확인은 Markdown 링크를 하나 추가/수정한 뒤 저장하고 `Agent Docs: Open Source Graph` 또는 `Agent Docs: Search Source Graph`를 실행하면 됩니다. DB timestamp와 연결 edge가 변경되어야 정상입니다. `Agent Docs: Remove Codex Source Graph MCP`로 관리 블록을 제거할 수 있습니다.
 
-`MD Studio: Copy Codex Source Graph MCP Config`는 고급 사용자나 `~/.codex/config.toml`에 직접 붙여넣고 싶은 경우를 위한 수동 설정 명령으로 남겨둡니다.
+`Agent Docs: Copy Codex Source Graph MCP Config`는 고급 사용자나 `~/.codex/config.toml`에 직접 붙여넣고 싶은 경우를 위한 수동 설정 명령으로 남겨둡니다.
 
 MCP 서버는 `source_graph_update`, `source_graph_search`, `source_graph_related`, `source_graph_neighbors` 도구를 제공합니다. 번들 Codex 스킬 `source-graph-search`는 관련 문서 검색, backlink 탐색, 변경 후 인덱스 갱신에 이 도구를 우선 사용하도록 안내합니다.
 
@@ -566,19 +566,19 @@ MCP 서버는 `source_graph_update`, `source_graph_search`, `source_graph_relate
 
 설정:
 
-- `mdStudioPreview.autoOnSave` (기본값 `true`)
-- `mdStudioPreview.cursorSyncOnSave` (기본값 `true`)
-- `mdStudioPreview.nodePath` (기본값 `node`)
-- `mdStudioPreview.cliScriptPath` (기본값 `scripts/md-to-html.mjs`)
-- `mdStudioPreview.preferredViewMode` (기본값 `stack`, 값: `auto | slides | stack`)
-- `mdStudioPreview.extraArgs` (기본값 `["--standalone"]`)
-- `mdStudioPreview.stripEmailDisclaimer` (기본값 `false`)
-- `mdStudioPreview.skillsDir` (기본값 `claude_skills/skills`)
-- `mdStudioPreview.defaultSkill` (기본값 `md-presentation-composer`)
-- `mdStudioFileBrowser.extraExtensions` (기본값 `[]`)
+- `markdownAgentDocs.autoOnSave` (기본값 `true`)
+- `markdownAgentDocs.cursorSyncOnSave` (기본값 `true`)
+- `markdownAgentDocs.nodePath` (기본값 `node`)
+- `markdownAgentDocs.cliScriptPath` (기본값 `scripts/md-to-html.mjs`)
+- `markdownAgentDocs.preferredViewMode` (기본값 `stack`, 값: `auto | slides | stack`)
+- `markdownAgentDocs.extraArgs` (기본값 `["--standalone"]`)
+- `markdownAgentDocs.stripEmailDisclaimer` (기본값 `false`)
+- `markdownAgentDocs.skillsDir` (기본값 `claude_skills/skills`)
+- `markdownAgentDocs.defaultSkill` (기본값 `md-presentation-composer`)
+- `markdownAgentDocsFileBrowser.extraExtensions` (기본값 `[]`)
 
-기본 `mdStudioPreview.cliScriptPath` 값을 사용할 때는 확장 내부에 번들된 CLI를 먼저 사용합니다.
-워크스페이스 외부 파일도 동일하게 번들 CLI를 사용하며, `mdStudioPreview.cliScriptPath`에 절대 경로를 지정해 오버라이드할 수 있습니다.
+기본 `markdownAgentDocs.cliScriptPath` 값을 사용할 때는 확장 내부에 번들된 CLI를 먼저 사용합니다.
+워크스페이스 외부 파일도 동일하게 번들 CLI를 사용하며, `markdownAgentDocs.cliScriptPath`에 절대 경로를 지정해 오버라이드할 수 있습니다.
 
 패키징:
 
@@ -611,7 +611,7 @@ code --install-extension .\markdown-agent-docs-0.1.38.vsix
 
 끄고 싶을 때:
 
-- VS Code Settings에서 `mdStudioPreview.cursorSyncOnSave`를 `false`로 변경
+- VS Code Settings에서 `markdownAgentDocs.cursorSyncOnSave`를 `false`로 변경
 
 자세한 사용법/구조/트러블슈팅:
 
@@ -646,7 +646,7 @@ code --install-extension .\markdown-agent-docs-0.1.38.vsix
 
 ## AI Skills 원본 관리
 
-이 섹션은 저장소를 clone해서 스킬 원본을 직접 관리할 때 참고합니다. 단순히 에이전트에게 문서를 작성시키는 목적이라면 앞쪽의 `AI 에이전트로 문서 만들기` 흐름처럼 VS Code 확장에서 `MD Studio: Download Skill Folder`를 사용하는 방식을 권장합니다.
+이 섹션은 저장소를 clone해서 스킬 원본을 직접 관리할 때 참고합니다. 단순히 에이전트에게 문서를 작성시키는 목적이라면 앞쪽의 `AI 에이전트로 문서 만들기` 흐름처럼 VS Code 확장에서 `Agent Docs: Install or Export Skills`를 사용하는 방식을 권장합니다.
 
 이 저장소에는 Claude / Codex / Agents용 스킬 번들이 `ai_skills/`에 포함되어 있습니다.
 

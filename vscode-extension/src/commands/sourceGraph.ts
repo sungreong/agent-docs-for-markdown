@@ -103,15 +103,15 @@ let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 export function registerSourceGraphCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
-      'mdStudioSourceGraphLauncher',
+      'markdownAgentDocsSourceGraphLauncher',
       {
         resolveWebviewView(webviewView) {
           renderSourceGraphLauncherView(webviewView);
           webviewView.webview.onDidReceiveMessage((message: SourceGraphWebviewMessage) => {
             if (!message || typeof message !== 'object') return;
-            if (message.type === 'openGraph') void vscode.commands.executeCommand('mdStudioPreview.openSourceGraph');
-            if (message.type === 'initializeGraph') void vscode.commands.executeCommand('mdStudioPreview.initializeSourceGraphWorkspace');
-            if (message.type === 'updateGraph') void vscode.commands.executeCommand('mdStudioPreview.updateSourceGraph');
+            if (message.type === 'openGraph') void vscode.commands.executeCommand('markdownAgentDocs.openSourceGraph');
+            if (message.type === 'initializeGraph') void vscode.commands.executeCommand('markdownAgentDocs.initializeSourceGraphWorkspace');
+            if (message.type === 'updateGraph') void vscode.commands.executeCommand('markdownAgentDocs.updateSourceGraph');
             if (message.type === 'launcherSearch') {
               void respondToLauncherSourceGraphSearch(context, webviewView.webview, message);
             }
@@ -121,47 +121,47 @@ export function registerSourceGraphCommands(context: vscode.ExtensionContext): v
             if (message.type === 'openEditorPath' && typeof message.path === 'string') {
               void openLauncherGraphPath(message.path, true);
             }
-            if (message.type === 'editIgnore') void vscode.commands.executeCommand('mdStudioPreview.openSourceIgnoreFile');
-            if (message.type === 'copyMcpConfig') void vscode.commands.executeCommand('mdStudioPreview.copyCodexMcpConfig');
+            if (message.type === 'editIgnore') void vscode.commands.executeCommand('markdownAgentDocs.openSourceIgnoreFile');
+            if (message.type === 'copyMcpConfig') void vscode.commands.executeCommand('markdownAgentDocs.copyCodexMcpConfig');
             if (message.type === 'showMcpGuide') openSourceGraphMcpGuidePanel(context);
-            if (message.type === 'installMcp') void vscode.commands.executeCommand('mdStudioPreview.installCodexMcp');
-            if (message.type === 'checkMcp') void vscode.commands.executeCommand('mdStudioPreview.checkCodexMcpStatus');
+            if (message.type === 'installMcp') void vscode.commands.executeCommand('markdownAgentDocs.installCodexMcp');
+            if (message.type === 'checkMcp') void vscode.commands.executeCommand('markdownAgentDocs.checkCodexMcpStatus');
           });
         },
       },
       { webviewOptions: { retainContextWhenHidden: true } },
     ),
-    registerSourceGraphCommand('mdStudioPreview.openSourceGraph', async () => {
+    registerSourceGraphCommand('markdownAgentDocs.openSourceGraph', async () => {
       await openSourceGraphPanel(context);
     }),
-    registerSourceGraphCommand('mdStudioPreview.initializeSourceGraphWorkspace', async () => {
+    registerSourceGraphCommand('markdownAgentDocs.initializeSourceGraphWorkspace', async () => {
       const workspaceFolder = await pickWorkspaceFolder();
       if (!workspaceFolder) return;
       await updateSourceGraphIndex(context, workspaceFolder);
-      void vscode.window.showInformationMessage(`MD Studio source graph initialized: ${getDbPath(workspaceFolder)}`);
+      void vscode.window.showInformationMessage(`Agent Docs source graph initialized: ${getDbPath(workspaceFolder)}`);
     }),
-    registerSourceGraphCommand('mdStudioPreview.updateSourceGraph', async () => {
+    registerSourceGraphCommand('markdownAgentDocs.updateSourceGraph', async () => {
       const workspaceFolder = await pickWorkspaceFolder();
       if (!workspaceFolder) return;
       await updateSourceGraphIndex(context, workspaceFolder);
-      void vscode.window.showInformationMessage(`MD Studio source graph updated: ${getDbPath(workspaceFolder)}`);
+      void vscode.window.showInformationMessage(`Agent Docs source graph updated: ${getDbPath(workspaceFolder)}`);
     }),
-    registerSourceGraphCommand('mdStudioPreview.searchSourceGraph', async () => {
+    registerSourceGraphCommand('markdownAgentDocs.searchSourceGraph', async () => {
       await searchSourceGraph(context);
     }),
-    registerSourceGraphCommand('mdStudioPreview.openSourceIgnoreFile', async () => {
+    registerSourceGraphCommand('markdownAgentDocs.openSourceIgnoreFile', async () => {
       await openSourceIgnoreFile();
     }),
-    registerSourceGraphCommand('mdStudioPreview.copyCodexMcpConfig', async () => {
+    registerSourceGraphCommand('markdownAgentDocs.copyCodexMcpConfig', async () => {
       await copyCodexMcpConfig(context);
     }),
-    registerSourceGraphCommand('mdStudioPreview.installCodexMcp', async () => {
+    registerSourceGraphCommand('markdownAgentDocs.installCodexMcp', async () => {
       await installCodexMcp(context);
     }),
-    registerSourceGraphCommand('mdStudioPreview.checkCodexMcpStatus', async () => {
+    registerSourceGraphCommand('markdownAgentDocs.checkCodexMcpStatus', async () => {
       await checkCodexMcpStatus(context);
     }),
-    registerSourceGraphCommand('mdStudioPreview.removeCodexMcp', async () => {
+    registerSourceGraphCommand('markdownAgentDocs.removeCodexMcp', async () => {
       await removeCodexMcp(context);
     }),
   );
@@ -471,7 +471,7 @@ function openSourceGraphMcpGuidePanel(context: vscode.ExtensionContext): void {
     return;
   }
   sourceGraphMcpGuidePanel = vscode.window.createWebviewPanel(
-    'mdStudioSourceGraphMcpGuide',
+    'markdownAgentDocsSourceGraphMcpGuide',
     'Source Graph MCP Guide',
     vscode.ViewColumn.Beside,
     { enableScripts: true, retainContextWhenHidden: true },
@@ -577,7 +577,7 @@ function renderSourceGraphMcpGuideHtml(webview: vscode.Webview): string {
 <body>
   <main>
     <header>
-      <div class="kicker">Markdown Pattern Studio</div>
+      <div class="kicker">Agent Docs for Markdown</div>
       <h1>Source Graph MCP Guide</h1>
       <p>Use this when Codex needs to search local Markdown, trace backlinks, find related sources, or refresh the workspace graph after edits.</p>
     </header>
@@ -616,7 +616,7 @@ function renderSourceGraphMcpGuideHtml(webview: vscode.Webview): string {
       <h2>Search Result With Links</h2>
       <pre>{
   &quot;path&quot;: &quot;README.md&quot;,
-  &quot;title&quot;: &quot;Markdown Pattern Studio&quot;,
+  &quot;title&quot;: &quot;Agent Docs for Markdown&quot;,
   &quot;score&quot;: 8,
   &quot;linksDepth&quot;: 2,
   &quot;linkedDocuments&quot;: [...],
@@ -709,7 +709,7 @@ async function installCodexMcp(context: vscode.ExtensionContext): Promise<void> 
   const backupText = backupPaths.length ? ` Backups: ${backupPaths.join(', ')}` : '';
   const skillsText = skillRoots.length ? ` Skill roots prepared: ${skillRoots.join(', ')}.` : '';
   void vscode.window.showInformationMessage(
-    `MD Studio Source Graph MCP installed for this workspace. Configs: ${configPaths.join(', ')}.${backupText}${skillsText} Claude may require project approval in /mcp. Codex shows project MCP only after opening a fresh trusted session for this workspace.`,
+    `Agent Docs Source Graph MCP installed for this workspace. Configs: ${configPaths.join(', ')}.${backupText}${skillsText} Claude may require project approval in /mcp. Codex shows project MCP only after opening a fresh trusted session for this workspace.`,
   );
 }
 
@@ -735,7 +735,7 @@ async function checkCodexMcpStatus(context: vscode.ExtensionContext): Promise<vo
       state: node.startsWith('not available') ? 'bad' : 'ok',
       value: node,
       detail: node.startsWith('not available')
-        ? 'Set mdStudioPreview.nodePath or install Node.js.'
+        ? 'Set markdownAgentDocs.nodePath or install Node.js.'
         : 'Runtime is available for the MCP server.',
     },
     {
@@ -748,7 +748,7 @@ async function checkCodexMcpStatus(context: vscode.ExtensionContext): Promise<vo
       label: 'Graph DB',
       state: dbExists ? 'ok' : 'warn',
       value: dbPath,
-      detail: dbExists ? 'Workspace index exists.' : 'missing - run MD Studio: Initialize Source Graph Workspace or Update before relying on graph results.',
+      detail: dbExists ? 'Workspace index exists.' : 'missing - run Agent Docs: Initialize Source Graph or Update before relying on graph results.',
     },
     {
       label: 'Codex client config',
@@ -788,7 +788,7 @@ async function checkCodexMcpStatus(context: vscode.ExtensionContext): Promise<vo
       value: skillRoots.value,
       detail: skillRoots.allPresent
         ? 'Agent skill roots exist in this workspace.'
-        : 'Run MD Studio: Install Source Graph MCP to create/update workspace skill roots.',
+        : 'Run Agent Docs: Install Source Graph MCP to create/update workspace skill roots.',
     },
   ];
   const configReady = workspaceConfig.registered || mcpJsonConfig.registered;
@@ -935,7 +935,7 @@ function openSourceGraphMcpStatusPanel(context: vscode.ExtensionContext, model: 
     sourceGraphMcpStatusPanel.reveal(vscode.ViewColumn.Beside);
   } else {
     sourceGraphMcpStatusPanel = vscode.window.createWebviewPanel(
-      'mdStudioSourceGraphMcpStatus',
+      'markdownAgentDocsSourceGraphMcpStatus',
       'Source Graph MCP Status',
       vscode.ViewColumn.Beside,
       { enableScripts: false, retainContextWhenHidden: true },
@@ -1002,7 +1002,7 @@ function renderSourceGraphMcpStatusHtml(webview: vscode.Webview, model: SourceGr
   <main>
     <header>
       <div>
-        <div class="kicker">Markdown Pattern Studio</div>
+        <div class="kicker">Agent Docs for Markdown</div>
         <h1>${escapeHtmlText(model.headline)}</h1>
         <p>${escapeHtmlText(model.summary)}</p>
       </div>
@@ -1041,8 +1041,8 @@ async function removeCodexMcp(context: vscode.ExtensionContext): Promise<void> {
     removedJson ? mcpJsonPath : '',
   ].filter(Boolean);
   const message = removedPaths.length
-    ? `MD Studio Source Graph MCP removed from ${removedPaths.join(', ')}. Restart your MCP client or start a fresh session.`
-    : `No MD Studio Source Graph MCP registration found in ${codexConfigPath} or ${mcpJsonPath}.`;
+    ? `Agent Docs Source Graph MCP removed from ${removedPaths.join(', ')}. Restart your MCP client or start a fresh session.`
+    : `No Agent Docs Source Graph MCP registration found in ${codexConfigPath} or ${mcpJsonPath}.`;
   void vscode.window.showInformationMessage(message);
 }
 
@@ -1054,7 +1054,7 @@ async function openSourceGraphPanel(context: vscode.ExtensionContext): Promise<v
 
   if (!sourceGraphPanel) {
     sourceGraphPanel = vscode.window.createWebviewPanel(
-      'mdStudioSourceGraph',
+      'markdownAgentDocsSourceGraph',
       'MPS Source Graph',
       vscode.ViewColumn.Beside,
       {
@@ -1099,7 +1099,7 @@ async function openSourceGraphPanel(context: vscode.ExtensionContext): Promise<v
     sourceGraphPanel.webview.html = renderSourceGraphLoadingHtml(
       sourceGraphPanel.webview,
       'Source Graph DB missing',
-      'No .mps/source-graph.sqlite exists for this workspace yet. MD Studio is creating it automatically now; if this fails, run MD Studio: Initialize Source Graph Workspace or Check Source Graph MCP Status.',
+      'No .mps/source-graph.sqlite exists for this workspace yet. Agent Docs is creating it automatically now; if this fails, run Agent Docs: Initialize Source Graph or Check Source Graph MCP Status.',
     );
   }
 
@@ -1114,7 +1114,7 @@ async function openSourceGraphPanel(context: vscode.ExtensionContext): Promise<v
         sourceGraphPanel.webview.html = renderSourceGraphLoadingHtml(
           sourceGraphPanel.webview,
           'Source Graph update failed',
-          'The graph DB could not be created for this workspace. Run MD Studio: Initialize Source Graph Workspace, or run Check Source Graph MCP Status for setup details.',
+          'The graph DB could not be created for this workspace. Run Agent Docs: Initialize Source Graph, or run Check Source Graph MCP Status for setup details.',
         );
       }
       void showSourceGraphError('openSourceGraph', error);
@@ -1262,7 +1262,7 @@ async function openSourceIgnoreFile(): Promise<void> {
   const ignorePath = path.join(workspaceFolder.uri.fsPath, MPS_IGNORE_FILE);
   if (!await pathExists(ignorePath)) {
     await fs.writeFile(ignorePath, [
-      '# Markdown Pattern Studio ignore rules',
+      '# Agent Docs for Markdown ignore rules',
       '# One glob per line. Examples:',
       '# .agents/**',
       '# .claude/**',
@@ -1332,7 +1332,7 @@ function resolveSourceGraphScriptPath(context: vscode.ExtensionContext): string 
 }
 
 function readNodePath(): string {
-  const raw = vscode.workspace.getConfiguration('mdStudioPreview').get<string>('nodePath', 'node');
+  const raw = vscode.workspace.getConfiguration('markdownAgentDocs').get<string>('nodePath', 'node');
   return String(raw || 'node').trim() || 'node';
 }
 
@@ -1361,7 +1361,7 @@ async function assertSourceGraphPreflight(scriptPath: string, workspaceFolder: v
     throw new SourceGraphUserError(
       'Node.js is not available to run Source Graph.',
       `The configured Node command "${readNodePath()}" could not be executed.`,
-      'Install Node.js, or set VS Code setting mdStudioPreview.nodePath to the absolute path of node.exe, then retry the command.',
+      'Install Node.js, or set VS Code setting markdownAgentDocs.nodePath to the absolute path of node.exe, then retry the command.',
       stringifyError(error),
     );
   }
@@ -1375,14 +1375,14 @@ async function showSourceGraphError(command: string, error: unknown): Promise<vo
     'Check Status',
   );
   if (action === 'Check Status') {
-    await vscode.commands.executeCommand('mdStudioPreview.checkCodexMcpStatus');
+    await vscode.commands.executeCommand('markdownAgentDocs.checkCodexMcpStatus');
     return;
   }
   if (action !== 'Show Details') return;
   const document = await vscode.workspace.openTextDocument({
     language: 'markdown',
     content: [
-      '# MD Studio Source Graph Error',
+      '# Agent Docs Source Graph Error',
       '',
       `- Command: \`${command}\``,
       `- Cause: ${diagnosis.cause}`,
@@ -1396,10 +1396,10 @@ async function showSourceGraphError(command: string, error: unknown): Promise<vo
       '',
       '## Next Checks',
       '',
-      '- Run `MD Studio: Check Source Graph MCP Status`.',
-      '- Confirm Node.js is installed and `mdStudioPreview.nodePath` is correct.',
+      '- Run `Agent Docs: Check Source Graph MCP Status`.',
+      '- Confirm Node.js is installed and `markdownAgentDocs.nodePath` is correct.',
       '- Confirm the workspace is trusted in Codex if you installed workspace `.codex/config.toml`.',
-      '- Re-run `MD Studio: Install Source Graph MCP` after fixing the issue.',
+      '- Re-run `Agent Docs: Install Source Graph MCP` after fixing the issue.',
       '',
     ].join('\n'),
   });
@@ -1416,7 +1416,7 @@ function diagnoseSourceGraphError(command: string, error: unknown): { title: str
     return {
       title: 'Source Graph setup failed',
       cause: 'Node.js could not be found or launched.',
-      fix: 'Install Node.js, or set mdStudioPreview.nodePath to the absolute path of node.exe, then retry.',
+      fix: 'Install Node.js, or set markdownAgentDocs.nodePath to the absolute path of node.exe, then retry.',
       detail,
     };
   }
@@ -1432,7 +1432,7 @@ function diagnoseSourceGraphError(command: string, error: unknown): { title: str
     return {
       title: 'Source Graph setup failed',
       cause: 'The existing source graph database appears to be corrupt or partially written.',
-      fix: 'Delete `.mps/source-graph.sqlite` and run `MD Studio: Update Source Graph Index` again.',
+      fix: 'Delete `.mps/source-graph.sqlite` and run `Agent Docs: Update Source Graph` again.',
       detail,
     };
   }
@@ -1447,7 +1447,7 @@ function diagnoseSourceGraphError(command: string, error: unknown): { title: str
   return {
     title: 'Source Graph command failed',
     cause: 'The command did not complete successfully.',
-    fix: 'Run `MD Studio: Check Source Graph MCP Status`, review the technical details, then retry the command.',
+    fix: 'Run `Agent Docs: Check Source Graph MCP Status`, review the technical details, then retry the command.',
     detail,
   };
 }
@@ -1490,7 +1490,7 @@ async function resolveBundledSkillRoot(context: vscode.ExtensionContext, segment
 }
 
 function resolveWorkspaceConfiguredSkillsDir(workspaceFolder: vscode.WorkspaceFolder): string {
-  const raw = String(vscode.workspace.getConfiguration('mdStudioPreview').get<string>('skillsDir', 'claude_skills/skills') || '').trim();
+  const raw = String(vscode.workspace.getConfiguration('markdownAgentDocs').get<string>('skillsDir', 'claude_skills/skills') || '').trim();
   const value = raw || 'claude_skills/skills';
   const workspaceRoot = workspaceFolder.uri.fsPath;
   const expanded = value.replace(/\$\{workspaceFolder\}/g, workspaceRoot);
@@ -1576,9 +1576,9 @@ function buildMcpTomlBlock(serverName: string, nodeCommand: string, scriptPath: 
   ];
   if (!managed) return `${lines.join('\n')}\n`;
   return [
-    `# BEGIN MD Studio Source Graph MCP: ${serverName}`,
+    `# BEGIN Agent Docs Source Graph MCP: ${serverName}`,
     ...lines,
-    `# END MD Studio Source Graph MCP: ${serverName}`,
+    `# END Agent Docs Source Graph MCP: ${serverName}`,
     '',
   ].join('\n');
 }
@@ -1665,7 +1665,7 @@ function replaceManagedBlock(existing: string, serverName: string, nextBlock: st
 
 function managedBlockPattern(serverName: string): RegExp {
   const escaped = escapeRegExp(serverName);
-  return new RegExp(`# BEGIN MD Studio Source Graph MCP: ${escaped}\\n[\\s\\S]*?# END MD Studio Source Graph MCP: ${escaped}\\n?`, 'm');
+  return new RegExp(`# BEGIN Agent Docs Source Graph MCP: ${escaped}\\n[\\s\\S]*?# END Agent Docs Source Graph MCP: ${escaped}\\n?`, 'm');
 }
 
 function removeUnmanagedMcpServerTables(existing: string, serverName: string): string {
@@ -1824,7 +1824,7 @@ function parseMcpJsonConfig(source: string, configPath: string): Record<string, 
     throw new SourceGraphUserError(
       'Workspace MCP JSON config is invalid.',
       `${configPath} could not be parsed as JSON.`,
-      'Fix or delete the invalid .mcp.json file, then rerun MD Studio: Install Source Graph MCP.',
+      'Fix or delete the invalid .mcp.json file, then rerun Agent Docs: Install Source Graph MCP.',
       stringifyError(error),
     );
   }
@@ -2002,7 +2002,7 @@ function resolveWorkspaceRelativeFile(workspaceFolder: vscode.WorkspaceFolder, r
 async function openGraphPathInViewer(workspaceFolder: vscode.WorkspaceFolder, relativePath: string): Promise<void> {
   const uri = resolveWorkspaceRelativeFile(workspaceFolder, relativePath);
   if (!uri) return;
-  await vscode.commands.executeCommand('mdStudioPreview.openFileInViewer', uri);
+  await vscode.commands.executeCommand('markdownAgentDocs.openFileInViewer', uri);
 }
 
 async function openGraphPathInEditor(workspaceFolder: vscode.WorkspaceFolder, relativePath: string): Promise<void> {
@@ -2238,7 +2238,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const detailsEl = document.getElementById('details');
       const graphEl = document.getElementById('graph');
       const message = error && (error.stack || error.message || String(error)) || 'Unknown webview error';
-      if (detailsEl) detailsEl.innerHTML = '<div class="block stage"><span class="kicker">Source Graph failed</span><strong>Webview initialization stopped</strong><small>' + String(message).replace(/[&<>"']/g, (ch) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch])) + '</small><div class="hint">Close this tab and run MD Studio: Open Source Graph again. If it repeats, run MD Studio: Check Source Graph MCP Status.</div></div>';
+      if (detailsEl) detailsEl.innerHTML = '<div class="block stage"><span class="kicker">Source Graph failed</span><strong>Webview initialization stopped</strong><small>' + String(message).replace(/[&<>"']/g, (ch) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch])) + '</small><div class="hint">Close this tab and run Agent Docs: Open Source Graph again. If it repeats, run Agent Docs: Check Source Graph MCP Status.</div></div>';
       if (graphEl) graphEl.innerHTML = '';
     }
     window.addEventListener('error', (event) => showEarlyBootFailure(event.error || event.message));
@@ -3119,7 +3119,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const inbound = db.tables.links.filter((link) => link.targetDocumentId === selected.id);
       const document = db.tables.documents.find((doc) => doc.id === selected.id);
       const actions = document
-        ? '<div class="button-row"><button data-open-path="' + escapeHtml(document.path) + '" title="Open in MD Studio viewer" aria-label="Open in MD Studio viewer">View</button><button data-open-editor-path="' + escapeHtml(document.path) + '" title="Open in editor" aria-label="Open in editor">Edit</button><button class="wide" data-show-overview type="button" title="Back to full graph overview" aria-label="Back to full graph overview">&#8617; All</button></div>'
+        ? '<div class="button-row"><button data-open-path="' + escapeHtml(document.path) + '" title="Open in Agent Docs viewer" aria-label="Open in Agent Docs viewer">View</button><button data-open-editor-path="' + escapeHtml(document.path) + '" title="Open in editor" aria-label="Open in editor">Edit</button><button class="wide" data-show-overview type="button" title="Back to full graph overview" aria-label="Back to full graph overview">&#8617; All</button></div>'
         : '<button data-show-overview type="button" title="Back to full graph overview" aria-label="Back to full graph overview">&#8617; All</button>';
       details.innerHTML = progress + '<div class="block"><span class="kicker">' + escapeHtml(selected.layer || 'file') + ' node</span><strong>' + escapeHtml(selected.label || selected.path) + '</strong><small>' + escapeHtml(selected.path || '') + '</small>' + actions + (state.activeGroupKey ? '<button data-clear-group type="button" title="Show full graph" aria-label="Show full graph">&#8617; All</button>' : '') + '<div class="hint">Default canvas shows Markdown file nodes and resolved file-to-file edges. Optional layers add URL, image, and missing-link nodes with separate colors.</div><div class="legend"><span><i class="swatch file"></i>File</span><span><i class="swatch url"></i>URL</span><span><i class="swatch image"></i>Image</span><span><i class="swatch missing"></i>Missing</span></div></div>' +
         linkPanel('Outbound', outbound, 'target', 'outbound') +
@@ -3241,7 +3241,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     function showBootFailure(error) {
       state.booting = false;
       const message = error && (error.stack || error.message || String(error)) || 'Unknown webview error';
-      details.innerHTML = '<div class="block stage"><span class="kicker">Source Graph failed</span><strong>Webview initialization stopped</strong><small>' + escapeHtml(message) + '</small><div class="hint">Close this tab and run MD Studio: Open Source Graph again. If it repeats, run MD Studio: Check Source Graph MCP Status.</div></div>';
+      details.innerHTML = '<div class="block stage"><span class="kicker">Source Graph failed</span><strong>Webview initialization stopped</strong><small>' + escapeHtml(message) + '</small><div class="hint">Close this tab and run Agent Docs: Open Source Graph again. If it repeats, run Agent Docs: Check Source Graph MCP Status.</div></div>';
       graph.innerHTML = '';
     }
     function startProgressiveRender() {

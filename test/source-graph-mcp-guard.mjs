@@ -83,7 +83,7 @@ try {
     capabilities: {},
     clientInfo: { name: 'source-graph-mcp-guard', version: '0.0.0' },
   });
-  assert(initialized.serverInfo?.name === 'markdown-pattern-studio-source-graph', 'expected server info');
+  assert(initialized.serverInfo?.name === 'markdown-agent-docs-source-graph', 'expected server info');
 
   const tools = await client.request('tools/list', {});
   const names = new Set((tools.tools || []).map((tool) => tool.name));

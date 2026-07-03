@@ -29,7 +29,7 @@ async function fetchJson(url) {
   const response = await fetch(url, {
     headers: {
       Accept: 'application/vnd.github+json',
-      'User-Agent': 'markdown-pattern-studio-design-collector',
+      'User-Agent': 'markdown-agent-docs-design-collector',
     },
   });
   if (!response.ok) throw new Error(`Fetch failed ${response.status}: ${url}`);
@@ -40,7 +40,7 @@ async function fetchText(url) {
   const response = await fetch(url, {
     headers: {
       Accept: 'text/plain',
-      'User-Agent': 'markdown-pattern-studio-design-collector',
+      'User-Agent': 'markdown-agent-docs-design-collector',
     },
   });
   if (!response.ok) throw new Error(`Fetch failed ${response.status}: ${url}`);

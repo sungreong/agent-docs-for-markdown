@@ -10,7 +10,7 @@ For release history, see [CHANGELOG.md](CHANGELOG.md).
 
 ## Highlights
 
-- VS Code extension with MD Studio File Browser, preview, auto-refresh, outline navigation, and export commands.
+- VS Code extension with Agent Docs File Browser, preview, auto-refresh, outline navigation, and export commands.
 - Source Graph webview for Markdown workspaces, backed by a local `.mps/source-graph.sqlite` index.
 - Bundled AI skills that can be downloaded from VS Code and handed to Claude, Codex, or Agents for document writing.
 - Browser studio with Markdown editing, live preview, templates, appearance controls, and HTML export.
@@ -20,19 +20,19 @@ For release history, see [CHANGELOG.md](CHANGELOG.md).
 
 ### VS Code Extension Updates
 
-![Markdown Pattern Studio Preview 0.1.34 update highlights](assets/images/vscode-extension-0.1.34-updates.png)
+![Agent Docs for Markdown Preview 0.1.34 update highlights](assets/images/vscode-extension-0.1.34-updates.png)
 
 ### Source Graph Webview
 
-![Markdown Pattern Studio Source Graph webview](assets/images/source-graph-vsix-preview.png)
+![Agent Docs for Markdown Source Graph webview](assets/images/source-graph-vsix-preview.png)
 
 ### Browser Studio
 
-![Markdown Pattern Studio web editor](assets/images/web.png)
+![Agent Docs for Markdown web editor](assets/images/web.png)
 
 ### Standalone HTML Result
 
-![Standalone Markdown Pattern Studio HTML result](assets/images/result.png)
+![Standalone Agent Docs for Markdown HTML result](assets/images/result.png)
 
 ## Recommended: Use The VS Code Extension
 
@@ -52,11 +52,11 @@ Current repository extension version: `0.1.34`.
 
 Common VS Code flows:
 
-- Open Markdown files in the MD Studio File Browser.
-- Run `Markdown Studio: Open Preview` for a live preview.
-- Run `MD Studio: Transform Markdown to Styled HTML` to export standalone, blog embed, or fragment HTML.
-- Run `MD Studio: Open Source Graph` to inspect document links.
-- Run `MD Studio: Download Skill Folder` to export/update AI writing skills.
+- Open Markdown files in the Agent Docs File Browser.
+- Run `Agent Docs: Open Preview` for a live preview.
+- Run `Agent Docs: Export Styled HTML` to export standalone, blog embed, or fragment HTML.
+- Run `Agent Docs: Open Source Graph` to inspect document links.
+- Run `Agent Docs: Install or Export Skills` to export/update AI writing skills.
 
 For details, see [vscode-extension/README.md](vscode-extension/README.md).
 

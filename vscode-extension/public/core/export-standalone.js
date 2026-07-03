@@ -531,7 +531,7 @@ function buildEnhancementScript({ mermaid = true, appearanceOptions = {} } = {})
       setDataAttr(document.body, 'data-appearance-radius', next.appearanceRadius, 'default');
       setDataAttr(document.body, 'data-appearance-frame', next.appearanceFrame, 'default');
       setDataAttr(document.body, 'data-viewer-chrome', next.viewerChrome, 'full');
-      window.dispatchEvent(new CustomEvent('mdStudioAppearanceChanged', { detail: next }));
+      window.dispatchEvent(new CustomEvent('agentDocsAppearanceChanged', { detail: next }));
       return next;
     }
 

@@ -116,7 +116,7 @@ export async function downloadSkillFolderCommand(context: vscode.ExtensionContex
   const sources = await resolveSkillSources(context, workspaceFolder);
 
   if (sources.length === 0) {
-    void vscode.window.showErrorMessage('MD Studio: No bundled or workspace skill folders were found.');
+    void vscode.window.showErrorMessage('Agent Docs: No bundled or workspace skill folders were found.');
     return;
   }
 
@@ -138,7 +138,7 @@ export async function downloadSkillFolderCommand(context: vscode.ExtensionContex
 
   const skills = await scanExportableSkills(source);
   if (skills.length === 0) {
-    void vscode.window.showErrorMessage(`MD Studio: No skill folders with SKILL.md found in ${source.rootDir}.`);
+    void vscode.window.showErrorMessage(`Agent Docs: No skill folders with SKILL.md found in ${source.rootDir}.`);
     return;
   }
 
@@ -186,7 +186,7 @@ async function exportSkillZipFromSources(
 
   const skills = await scanExportableSkills(source);
   if (skills.length === 0) {
-    void vscode.window.showErrorMessage(`MD Studio: No skill folders with SKILL.md found in ${source.rootDir}.`);
+    void vscode.window.showErrorMessage(`Agent Docs: No skill folders with SKILL.md found in ${source.rootDir}.`);
     return;
   }
 
@@ -200,7 +200,7 @@ async function installBundledSkillsToMatchingWorkspace(
   workspaceFolder: vscode.WorkspaceFolder | null,
 ): Promise<void> {
   if (!workspaceFolder) {
-    void vscode.window.showErrorMessage('MD Studio: Open a workspace before installing bundled skills.');
+    void vscode.window.showErrorMessage('Agent Docs: Open a workspace before installing bundled skills.');
     return;
   }
 
@@ -224,7 +224,7 @@ async function installBundledSkillsToMatchingWorkspace(
   }
 
   if (plans.length === 0) {
-    void vscode.window.showErrorMessage('MD Studio: No bundled skill folders with SKILL.md were found.');
+    void vscode.window.showErrorMessage('Agent Docs: No bundled skill folders with SKILL.md were found.');
     return;
   }
 
@@ -235,7 +235,7 @@ async function installBundledSkillsToMatchingWorkspace(
     })
     .join('\n');
   const confirm = await vscode.window.showWarningMessage(
-    `MD Studio will install/update bundled skills into matching workspace agent folders.\n\n${summary}`,
+    `Agent Docs will install/update bundled skills into matching workspace agent folders.\n\n${summary}`,
     { modal: true },
     'Install / Update',
   );
@@ -246,7 +246,7 @@ async function installBundledSkillsToMatchingWorkspace(
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'MD Studio: Installing bundled skills',
+        title: 'Agent Docs: Installing bundled skills',
         cancellable: false,
       },
       async (progress) => {
@@ -267,14 +267,14 @@ async function installBundledSkillsToMatchingWorkspace(
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    void vscode.window.showErrorMessage(`MD Studio: Failed to install bundled skills - ${message}`);
+    void vscode.window.showErrorMessage(`Agent Docs: Failed to install bundled skills - ${message}`);
     return;
   }
 
   const installedTargets = plans
     .map((plan) => vscode.workspace.asRelativePath(vscode.Uri.file(plan.target.rootDir), false))
     .join(', ');
-  void vscode.window.showInformationMessage(`MD Studio: Installed bundled skills into ${installedTargets}.`);
+  void vscode.window.showInformationMessage(`Agent Docs: Installed bundled skills into ${installedTargets}.`);
 }
 
 async function downloadSkillAsZip(
@@ -293,7 +293,7 @@ async function downloadSkillAsZip(
   if (!saveUri) return;
 
   if (isSameOrInside(saveUri.fsPath, skill.dir)) {
-    void vscode.window.showErrorMessage('MD Studio: Save the ZIP outside the skill folder to avoid archiving itself.');
+    void vscode.window.showErrorMessage('Agent Docs: Save the ZIP outside the skill folder to avoid archiving itself.');
     return;
   }
 
@@ -302,13 +302,13 @@ async function downloadSkillAsZip(
     await zipSkillFolder(skill.dir, saveUri.fsPath, safeFileName(skill.id));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    void vscode.window.showErrorMessage(`MD Studio: Failed to download skill folder - ${message}`);
+    void vscode.window.showErrorMessage(`Agent Docs: Failed to download skill folder - ${message}`);
     return;
   }
 
   const revealAction = 'Reveal in Explorer';
   const action = await vscode.window.showInformationMessage(
-    `MD Studio: Skill folder downloaded to ${saveUri.fsPath}`,
+    `Agent Docs: Skill folder downloaded to ${saveUri.fsPath}`,
     revealAction,
   );
   if (action === revealAction) {
@@ -597,7 +597,7 @@ async function resolveSkillUpdateTargets(
 async function pickUpdateTargets(source: SkillSource, primaryTarget: SkillTarget | null): Promise<SkillTarget[] | null> {
   const targetLabel = targetLabelForSource(source);
   if (!primaryTarget) {
-    void vscode.window.showErrorMessage(`MD Studio: No matching ${targetLabel} folder was detected in this workspace.`);
+    void vscode.window.showErrorMessage(`Agent Docs: No matching ${targetLabel} folder was detected in this workspace.`);
     return null;
   }
 
@@ -634,13 +634,13 @@ async function pickUpdateTargets(source: SkillSource, primaryTarget: SkillTarget
   if (!selected || selected.length === 0) return null;
   const outsideWorkspace = selected.find((uri) => !isInsideAnyWorkspace(uri.fsPath));
   if (outsideWorkspace) {
-    void vscode.window.showErrorMessage(`MD Studio: Skill updates are workspace-only. ${outsideWorkspace.fsPath} is outside the current workspace.`);
+    void vscode.window.showErrorMessage(`Agent Docs: Skill updates are workspace-only. ${outsideWorkspace.fsPath} is outside the current workspace.`);
     return null;
   }
   for (const uri of selected) {
     if (await fileExists(path.join(uri.fsPath, 'SKILL.md'))) {
       void vscode.window.showErrorMessage(
-        `MD Studio: Choose a skill root folder such as .claude/skills, not an individual skill folder: ${uri.fsPath}`,
+        `Agent Docs: Choose a skill root folder such as .claude/skills, not an individual skill folder: ${uri.fsPath}`,
       );
       return null;
     }
@@ -656,7 +656,7 @@ async function pickUpdateTargets(source: SkillSource, primaryTarget: SkillTarget
 function resolveAllAgentTargets(targetPlan: SkillTargetPlan): SkillTarget[] | null {
   if (targetPlan.allAgentTargets.length > 0) return targetPlan.allAgentTargets;
 
-  void vscode.window.showErrorMessage('MD Studio: No workspace agent skill folders are available for this source.');
+  void vscode.window.showErrorMessage('Agent Docs: No workspace agent skill folders are available for this source.');
   return null;
 }
 
@@ -691,7 +691,7 @@ async function updateSkillFolders(skills: ExportableSkill[], targets: SkillTarge
 
   const targetSummary = targets.map((target) => target.rootDir).join('\n');
   const confirm = await vscode.window.showWarningMessage(
-    `MD Studio will replace ${skills.length} skill folder${skills.length === 1 ? '' : 's'} in ${targets.length} workspace skill root${targets.length === 1 ? '' : 's'}.\n\n${targetSummary}`,
+    `Agent Docs will replace ${skills.length} skill folder${skills.length === 1 ? '' : 's'} in ${targets.length} workspace skill root${targets.length === 1 ? '' : 's'}.\n\n${targetSummary}`,
     { modal: true },
     'Update',
   );
@@ -701,7 +701,7 @@ async function updateSkillFolders(skills: ExportableSkill[], targets: SkillTarge
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `MD Studio: Updating ${skills.length} skill folder${skills.length === 1 ? '' : 's'}`,
+        title: `Agent Docs: Updating ${skills.length} skill folder${skills.length === 1 ? '' : 's'}`,
         cancellable: false,
       },
       async (progress) => {
@@ -722,13 +722,13 @@ async function updateSkillFolders(skills: ExportableSkill[], targets: SkillTarge
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    void vscode.window.showErrorMessage(`MD Studio: Failed to update skill folder(s) - ${message}`);
+    void vscode.window.showErrorMessage(`Agent Docs: Failed to update skill folder(s) - ${message}`);
     return;
   }
 
   const rootText = targets.length === 1 ? targets[0].rootDir : `${targets.length} workspace skill roots`;
   void vscode.window.showInformationMessage(
-    `MD Studio: Updated ${skills.length} skill folder${skills.length === 1 ? '' : 's'} in ${rootText}.`,
+    `Agent Docs: Updated ${skills.length} skill folder${skills.length === 1 ? '' : 's'} in ${rootText}.`,
   );
 }
 
@@ -813,7 +813,7 @@ function resolveWorkspaceFolder(): vscode.WorkspaceFolder | null {
 
 function resolveWorkspaceSkillsDir(workspaceFolder: vscode.WorkspaceFolder | null): string | null {
   const raw = String(
-    vscode.workspace.getConfiguration('mdStudioPreview').get<string>('skillsDir', 'claude_skills/skills') || '',
+    vscode.workspace.getConfiguration('markdownAgentDocs').get<string>('skillsDir', 'claude_skills/skills') || '',
   ).trim();
   const value = raw || 'claude_skills/skills';
   const workspaceRoot = workspaceFolder?.uri.fsPath || '';
