@@ -22,7 +22,7 @@ import {
   sourceGraphSqliteSummary,
   writeSourceGraphSqlite,
 } from '../public/core/source-graph-sqlite.js';
-import { LEGACY_MPS_IGNORE_FILE, MPS_IGNORE_FILE, MPS_IGNORE_FILES, createIgnoreMatcher, parseIgnoreRules } from '../public/core/ignore-rules.js';
+import { MPS_IGNORE_FILE, MPS_IGNORE_FILES, createIgnoreMatcher, parseIgnoreRules } from '../public/core/ignore-rules.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -171,13 +171,7 @@ async function ensureMpsWorkspaceFiles(root) {
   } catch {
     // Create below.
   }
-  let source = '';
-  try {
-    source = await fs.readFile(path.join(root, LEGACY_MPS_IGNORE_FILE), 'utf8');
-  } catch {
-    source = buildSourceIgnoreTemplate();
-  }
-  await fs.writeFile(ignorePath, source, 'utf8');
+  await fs.writeFile(ignorePath, buildSourceIgnoreTemplate(), 'utf8');
   return ignorePath;
 }
 
@@ -459,6 +453,7 @@ async function loadIgnoreMatcher(root) {
 }
 
 async function loadIgnoreConfig(root) {
+  await ensureMpsWorkspaceFiles(root);
   const userPatterns = [];
   for (const ignoreFile of MPS_IGNORE_FILES) {
     try {

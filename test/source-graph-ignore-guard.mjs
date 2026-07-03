@@ -35,6 +35,16 @@ try {
       unignored.tables.documents.some((doc) => doc.path === 'notes.draft.md'),
     'clearing .mps/.mpsignore should bring ignored markdown back into the graph',
   );
+
+  await fs.rm(path.join(tmpRoot, '.mps'), { recursive: true, force: true });
+  await fs.writeFile(path.join(tmpRoot, '.mpsignore'), 'ignored/**\n', 'utf8');
+  run(['update', '--root', tmpRoot, '--json']);
+  await fs.access(path.join(tmpRoot, '.mps', '.mpsignore'));
+  const canonicalOnly = await readSourceGraphSqlite(dbPath);
+  assert(
+    canonicalOnly.tables.documents.some((doc) => doc.path === 'ignored/hidden.md'),
+    'root .mpsignore should not be used as a fallback; only .mps/.mpsignore is authoritative',
+  );
 } finally {
   await fs.rm(tmpRoot, { recursive: true, force: true });
 }

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 const extensionPackage = JSON.parse(await readFile(new URL('../vscode-extension/package.json', import.meta.url), 'utf8'));
 const extensionSource = await readFile(new URL('../vscode-extension/src/extension.ts', import.meta.url), 'utf8');
 const sourceGraphSource = await readFile(new URL('../vscode-extension/src/commands/sourceGraph.ts', import.meta.url), 'utf8');
+const sourceIgnoreSource = await readFile(new URL('../vscode-extension/src/utils/sourceIgnore.ts', import.meta.url), 'utf8');
 const fileBrowserProviderSource = await readFile(
   new URL('../vscode-extension/src/providers/markdownFileTreeProvider.ts', import.meta.url),
   'utf8',
@@ -241,6 +242,15 @@ assert(
     (sourceGraphSource.includes('No visible ignore candidates remain. Already applied recommendations are hidden automatically.') ||
       sourceGraphSource.includes('No visible ignore candidates remain. Already applied entries are hidden automatically.')),
   'Source Graph launcher should explain the guided setup flow, hide already-applied recommendations, and reuse the same .mpsignore bootstrap template',
+);
+assert(
+  sourceIgnoreSource.includes("export const MPS_IGNORE_FILE = '.mps/.mpsignore'") &&
+    sourceIgnoreSource.includes('export const MPS_IGNORE_FILES = [MPS_IGNORE_FILE]') &&
+    sourceIgnoreSource.includes('await ensureSourceIgnoreFile(workspaceFolder)') &&
+    sourceIgnoreSource.includes('await fs.mkdir(path.dirname(ignorePath), { recursive: true })') &&
+    !sourceIgnoreSource.includes('LEGACY_MPS_IGNORE_FILE') &&
+    !sourceGraphSource.includes('LEGACY_MPS_IGNORE_FILE'),
+  'Source ignore should always create and read the canonical .mps/.mpsignore file without a legacy root .mpsignore fallback',
 );
 assert(
   exportSkillFolderSource.includes('workspaceSkillsDir && await hasExportableSkill(workspaceSkillsDir)'),

@@ -3,8 +3,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 
 export const MPS_IGNORE_FILE = '.mps/.mpsignore';
-export const LEGACY_MPS_IGNORE_FILE = '.mpsignore';
-export const MPS_IGNORE_FILES = [MPS_IGNORE_FILE, LEGACY_MPS_IGNORE_FILE];
+export const MPS_IGNORE_FILES = [MPS_IGNORE_FILE];
 
 const DEFAULT_IGNORE_PATTERNS = ['.mps/**'];
 
@@ -14,6 +13,7 @@ export interface SourceIgnoreMatcher {
 }
 
 export async function loadSourceIgnoreMatcher(workspaceFolder: vscode.WorkspaceFolder): Promise<SourceIgnoreMatcher> {
+  await ensureSourceIgnoreFile(workspaceFolder);
   const patterns = [...DEFAULT_IGNORE_PATTERNS];
   for (const ignoreFile of MPS_IGNORE_FILES) {
     try {
@@ -24,6 +24,19 @@ export async function loadSourceIgnoreMatcher(workspaceFolder: vscode.WorkspaceF
     }
   }
   return createIgnoreMatcher(patterns);
+}
+
+export async function ensureSourceIgnoreFile(workspaceFolder: vscode.WorkspaceFolder): Promise<string> {
+  const ignorePath = path.join(workspaceFolder.uri.fsPath, MPS_IGNORE_FILE);
+  await fs.mkdir(path.dirname(ignorePath), { recursive: true });
+  try {
+    await fs.access(ignorePath);
+    return ignorePath;
+  } catch {
+    // Create below.
+  }
+  await fs.writeFile(ignorePath, buildSourceIgnoreTemplate(), 'utf8');
+  return ignorePath;
 }
 
 export async function isSourceIgnoredUri(uri: vscode.Uri): Promise<boolean> {
@@ -59,6 +72,26 @@ export function createIgnoreMatcher(patterns: string[]): SourceIgnoreMatcher {
 
 function normalizeIgnorePath(value: string): string {
   return String(value || '').replace(/\\/g, '/').replace(/^\.?\//, '').replace(/\/+$/g, '');
+}
+
+function buildSourceIgnoreTemplate(): string {
+  return [
+    '# Agent Docs ignore rules',
+    '# One glob per line. Run `node scripts/source-graph.mjs audit --root .` first when you want recommendations.',
+    '# Common document-focused examples:',
+    '# .codex/**',
+    '# .agents/**',
+    '# .claude/**',
+    '# .gemini/**',
+    '# .cursor/**',
+    '# ai_skills/**',
+    '# vscode-extension/ai_skills/**',
+    '# test/**',
+    '# raw/**',
+    '# **/drafts/**',
+    '# *.draft.md',
+    '',
+  ].join('\n');
 }
 
 function globToRegExp(pattern: string): RegExp {

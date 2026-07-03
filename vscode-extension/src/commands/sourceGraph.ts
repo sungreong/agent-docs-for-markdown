@@ -4,7 +4,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { LEGACY_MPS_IGNORE_FILE, MPS_IGNORE_FILE, MPS_IGNORE_FILES, isSourceIgnoredUri } from '../utils/sourceIgnore.js';
+import { MPS_IGNORE_FILE, MPS_IGNORE_FILES, isSourceIgnoredUri } from '../utils/sourceIgnore.js';
 
 interface SourceGraphDb {
   updatedAt: string;
@@ -1293,9 +1293,7 @@ async function ensureSourceIgnoreFile(workspaceFolder: vscode.WorkspaceFolder): 
   const ignorePath = path.join(workspaceFolder.uri.fsPath, MPS_IGNORE_FILE);
   await fs.mkdir(path.dirname(ignorePath), { recursive: true });
   if (!await pathExists(ignorePath)) {
-    const legacyPath = path.join(workspaceFolder.uri.fsPath, LEGACY_MPS_IGNORE_FILE);
-    const legacySource = await readTextIfExists(legacyPath);
-    await fs.writeFile(ignorePath, legacySource || buildSourceIgnoreTemplate(), 'utf8');
+    await fs.writeFile(ignorePath, buildSourceIgnoreTemplate(), 'utf8');
   }
   return ignorePath;
 }
