@@ -275,7 +275,8 @@ function renderSourceGraphLauncherView(webviewView: vscode.WebviewView): void {
     .group { display: grid; gap: 6px; }
     .group-title { color: var(--vscode-descriptionForeground); font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
     .button-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-    .toolbar-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .toolbar-grid { display: grid; grid-template-columns: 1fr; gap: 7px; }
+    .toolbar-grid button { min-height: 30px; }
     .search-panel, .search-panel.is-open { display: grid; gap: 7px; padding: 8px; border: 1px solid var(--vscode-sideBarSectionHeader-border, rgba(128,128,128,.25)); border-radius: 5px; background: var(--vscode-editorWidget-background, rgba(128,128,128,.07)); }
     .audit-panel { display: none; gap: 8px; padding: 8px; border: 1px solid var(--vscode-sideBarSectionHeader-border, rgba(128,128,128,.25)); border-radius: 5px; background: var(--vscode-editorWidget-background, rgba(128,128,128,.07)); }
     .audit-panel.is-open { display: grid; }
@@ -334,7 +335,6 @@ function renderSourceGraphLauncherView(webviewView: vscode.WebviewView): void {
         <button id="primaryGraphAction" type="button" data-action="initializeGraphGuided">Start Graph</button>
         <button id="auditAction" type="button" class="secondary" data-action="runAudit" disabled>Run Workspace Audit</button>
         <button type="button" class="secondary" data-action="editIgnore">Open .mps/.mpsignore</button>
-        <button type="button" class="secondary" data-action="openAuditManager">Open Cleanup Audit</button>
       </div>
     </div>
     <div id="auditPanel" class="audit-panel" aria-live="polite">

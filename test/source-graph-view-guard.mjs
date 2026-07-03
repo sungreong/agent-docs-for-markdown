@@ -135,9 +135,21 @@ assert(
 );
 assert(
   source.includes('toolbar-grid') &&
+    source.includes('.toolbar-grid { display: grid; grid-template-columns: 1fr; gap: 7px; }') &&
     source.includes('Maintenance') &&
     source.includes('Workspace Controls'),
   'Source Graph launcher should keep setup and maintenance controls visible near the top of the sidebar',
+);
+const workspaceControlsStart = source.indexOf('<div class="group-title">Workspace Controls</div>');
+const auditPanelStartInLauncher = source.indexOf('<div id="auditPanel" class="audit-panel"', workspaceControlsStart);
+const workspaceControlsBlock = source.slice(workspaceControlsStart, auditPanelStartInLauncher);
+assert(
+  workspaceControlsStart >= 0 &&
+    auditPanelStartInLauncher > workspaceControlsStart &&
+    workspaceControlsBlock.includes('data-action="runAudit"') &&
+    workspaceControlsBlock.includes('data-action="editIgnore"') &&
+    !workspaceControlsBlock.includes('data-action="openAuditManager"'),
+  'Source Graph launcher should avoid a duplicate Open Cleanup Audit button in Workspace Controls',
 );
 assert(
   !source.includes('installSourceGraphSkill') && !source.includes('Agent Skill</button>'),
