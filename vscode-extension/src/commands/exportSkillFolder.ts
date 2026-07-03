@@ -67,6 +67,12 @@ interface BundledInstallPlan {
   skills: ExportableSkill[];
 }
 
+interface SkillInstallRecord {
+  skillId: string;
+  targetLabel: string;
+  targetPath: string;
+}
+
 const bundledSourceIdPrefix = 'bundled-';
 const workspaceTargetIdPrefix = 'workspace-';
 const configuredTargetId = 'workspace-configured';
@@ -110,6 +116,7 @@ const bundledProfiles = skillAgentProfiles.map((profile) => ({
 }));
 
 const excludedNames = new Set(['.git', 'node_modules', '.DS_Store', 'Thumbs.db', 'desktop.ini']);
+let skillInventoryChannel: vscode.OutputChannel | null = null;
 
 export async function downloadSkillFolderCommand(context: vscode.ExtensionContext): Promise<void> {
   const workspaceFolder = resolveWorkspaceFolder();
@@ -243,6 +250,7 @@ async function installBundledSkillsToMatchingWorkspace(
 
   try {
     const totalOperations = plans.reduce((total, plan) => total + plan.skills.length, 0);
+    const installed: SkillInstallRecord[] = [];
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -258,13 +266,19 @@ async function installBundledSkillsToMatchingWorkspace(
               message: `${skill.id} -> ${plan.target.label}`,
               increment: totalOperations > 0 ? 100 / totalOperations : undefined,
             });
-            await replaceSkillFolder(skill, plan.target);
+            const targetPath = await replaceSkillFolder(skill, plan.target);
+            installed.push({ skillId: skill.id, targetLabel: plan.target.label, targetPath });
             done += 1;
           }
         }
         progress.report({ message: `${done} update${done === 1 ? '' : 's'} complete` });
       },
     );
+    showSkillInventorySummary({
+      title: 'Agent Docs: Bundled skills installed',
+      installed,
+      next: 'Reload VS Code or restart the target agent if newly installed skills are not picked up immediately.',
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     void vscode.window.showErrorMessage(`Agent Docs: Failed to install bundled skills - ${message}`);
@@ -698,6 +712,7 @@ async function updateSkillFolders(skills: ExportableSkill[], targets: SkillTarge
   if (confirm !== 'Update') return;
 
   try {
+    const installed: SkillInstallRecord[] = [];
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -713,13 +728,19 @@ async function updateSkillFolders(skills: ExportableSkill[], targets: SkillTarge
               message: `${skill.id} -> ${target.label}`,
               increment: totalOperations > 0 ? 100 / totalOperations : undefined,
             });
-            await replaceSkillFolder(skill, target);
+            const targetPath = await replaceSkillFolder(skill, target);
+            installed.push({ skillId: skill.id, targetLabel: target.label, targetPath });
             done += 1;
           }
         }
         progress.report({ message: `${done} update${done === 1 ? '' : 's'} complete` });
       },
     );
+    showSkillInventorySummary({
+      title: 'Agent Docs: Skill folders updated',
+      installed,
+      next: 'Reload VS Code or restart the target agent if updated skills are not picked up immediately.',
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     void vscode.window.showErrorMessage(`Agent Docs: Failed to update skill folder(s) - ${message}`);
@@ -732,7 +753,7 @@ async function updateSkillFolders(skills: ExportableSkill[], targets: SkillTarge
   );
 }
 
-async function replaceSkillFolder(skill: ExportableSkill, target: SkillTarget): Promise<void> {
+async function replaceSkillFolder(skill: ExportableSkill, target: SkillTarget): Promise<string> {
   const targetRoot = path.resolve(target.rootDir);
   const targetDir = path.join(targetRoot, skill.id);
   assertInsideDirectory(targetRoot, targetDir);
@@ -748,6 +769,38 @@ async function replaceSkillFolder(skill: ExportableSkill, target: SkillTarget): 
     force: true,
     filter: (sourcePath) => !excludedNames.has(path.basename(sourcePath)),
   });
+  return targetDir;
+}
+
+function showSkillInventorySummary(options: {
+  title: string;
+  installed: SkillInstallRecord[];
+  next: string;
+}): void {
+  const channel = skillInventoryChannel ?? vscode.window.createOutputChannel('Agent Docs Skills');
+  skillInventoryChannel = channel;
+  channel.clear();
+  channel.appendLine(options.title);
+  channel.appendLine('');
+  channel.appendLine('Installed');
+  if (options.installed.length) {
+    for (const item of options.installed) {
+      channel.appendLine(`- ${item.skillId} -> ${item.targetLabel}`);
+      channel.appendLine(`  ${item.targetPath}`);
+    }
+  } else {
+    channel.appendLine('- None');
+  }
+  channel.appendLine('');
+  channel.appendLine('Skipped');
+  channel.appendLine('- None');
+  channel.appendLine('');
+  channel.appendLine('Failed');
+  channel.appendLine('- None');
+  channel.appendLine('');
+  channel.appendLine('Next');
+  channel.appendLine(`- ${options.next}`);
+  channel.show(true);
 }
 
 async function clearDirectoryContents(targetDir: string): Promise<void> {

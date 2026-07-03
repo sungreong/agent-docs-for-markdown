@@ -1,0 +1,4 @@
+interface:
+  display_name: "Markdown Ignore Advisor"
+  short_description: "Recommend .mpsignore entries for cleaner graph search"
+  default_prompt: "Use $markdown-ignore-advisor to decide which Markdown files or folders should be excluded from Source Graph."

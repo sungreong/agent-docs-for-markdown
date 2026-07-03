@@ -36,10 +36,6 @@
     "onCommand:markdownAgentDocs.updateSourceGraph",
     "onCommand:markdownAgentDocs.searchSourceGraph",
     "onCommand:markdownAgentDocs.openSourceIgnoreFile",
-    "onCommand:markdownAgentDocs.copyCodexMcpConfig",
-    "onCommand:markdownAgentDocs.installCodexMcp",
-    "onCommand:markdownAgentDocs.checkCodexMcpStatus",
-    "onCommand:markdownAgentDocs.removeCodexMcp",
     "onCommand:markdownAgentDocs.openFileInViewer",
     "onCommand:markdownAgentDocs.openFileInNewPanel",
     "onCommand:markdownAgentDocsFileBrowser.openInEditor",
@@ -70,27 +66,20 @@
           "id": "markdownAgentDocsContainer",
           "title": "Agent Docs",
           "icon": "assets/activity-md.svg"
-        },
-        {
-          "id": "markdownAgentDocsSourceGraphContainer",
-          "title": "Agent Docs Source Graph",
-          "icon": "assets/activity-source-graph.svg"
         }
       ]
     },
     "views": {
       "markdownAgentDocsContainer": [
         {
-          "id": "markdownAgentDocsFileBrowser",
-          "name": "Markdown Files",
-          "when": "workspaceFolderCount > 0"
-        }
-      ],
-      "markdownAgentDocsSourceGraphContainer": [
-        {
           "id": "markdownAgentDocsSourceGraphLauncher",
           "name": "Source Graph",
           "type": "webview",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "id": "markdownAgentDocsFileBrowser",
+          "name": "Markdown Files",
           "when": "workspaceFolderCount > 0"
         }
       ]
@@ -148,26 +137,6 @@
         "command": "markdownAgentDocs.openSourceIgnoreFile",
         "title": "Agent Docs: Edit Source Ignore",
         "icon": "$(exclude)"
-      },
-      {
-        "command": "markdownAgentDocs.copyCodexMcpConfig",
-        "title": "Agent Docs: Copy Source Graph MCP Config",
-        "icon": "$(settings-gear)"
-      },
-      {
-        "command": "markdownAgentDocs.installCodexMcp",
-        "title": "Agent Docs: Install Source Graph MCP",
-        "icon": "$(plug)"
-      },
-      {
-        "command": "markdownAgentDocs.checkCodexMcpStatus",
-        "title": "Agent Docs: Check Source Graph MCP Status",
-        "icon": "$(pulse)"
-      },
-      {
-        "command": "markdownAgentDocs.removeCodexMcp",
-        "title": "Agent Docs: Remove Source Graph MCP",
-        "icon": "$(trash)"
       },
       {
         "command": "markdownAgentDocs.downloadSkillFolder",
@@ -362,9 +331,103 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "markdownAgentDocs.refresh",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocs.openSourceEditor",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocs.enableAutoOnSave",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocs.disableAutoOnSave",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocs.openSourceIgnoreFile",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocs.focusFolder",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocs.clearFolderFocus",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocs.openFileInViewer",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocs.openFileInNewPanel",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.refresh",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.openInEditor",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.search",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.sort",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.filter",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.configureExtensions",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.pinToTop",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.unpin",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.copyPath",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.copyRelativePath",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.copyFileName",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.hideItem",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.delete",
+          "when": "false"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.manageHidden",
+          "when": "false"
+        }
+      ],
       "view/title": [
         {
-          "command": "markdownAgentDocs.openSourceGraph",
+          "command": "markdownAgentDocs.downloadSkillFolder",
           "when": "view == markdownAgentDocsFileBrowser",
           "group": "navigation@0"
         },
@@ -399,39 +462,14 @@
           "group": "navigation@6"
         },
         {
-          "command": "markdownAgentDocs.downloadSkillFolder",
-          "when": "view == markdownAgentDocsFileBrowser",
-          "group": "navigation@7"
-        },
-        {
           "command": "markdownAgentDocs.clearFolderFocus",
           "when": "view == markdownAgentDocsFileBrowser && markdownAgentDocs.folderFocusActive",
-          "group": "navigation@8"
+          "group": "navigation@7"
         },
         {
           "command": "markdownAgentDocs.openSourceGraph",
           "when": "view == markdownAgentDocsSourceGraphLauncher",
           "group": "navigation@0"
-        },
-        {
-          "command": "markdownAgentDocs.initializeSourceGraphWorkspace",
-          "when": "view == markdownAgentDocsSourceGraphLauncher",
-          "group": "navigation@1"
-        },
-        {
-          "command": "markdownAgentDocs.updateSourceGraph",
-          "when": "view == markdownAgentDocsSourceGraphLauncher",
-          "group": "navigation@2"
-        },
-        {
-          "command": "markdownAgentDocs.openSourceIgnoreFile",
-          "when": "view == markdownAgentDocsSourceGraphLauncher",
-          "group": "navigation@3"
-        },
-        {
-          "command": "markdownAgentDocs.checkCodexMcpStatus",
-          "when": "view == markdownAgentDocsSourceGraphLauncher",
-          "group": "navigation@4"
         }
       ],
       "editor/title": [
@@ -575,7 +613,8 @@
   "scripts": {
     "sync:bundle": "node ./tools/sync-cli-bundle.mjs",
     "smoke:bundled-cli": "node ./scripts/md-to-html.mjs --help",
-    "build": "npm run sync:bundle && npm run smoke:bundled-cli && tsc -p .",
+    "smoke:source-graph": "node ./tools/smoke-source-graph-runtime.mjs",
+    "build": "npm run sync:bundle && npm run smoke:bundled-cli && npm run smoke:source-graph && tsc -p .",
     "watch": "tsc -w -p .",
     "vscode:prepublish": "npm run build",
     "package:vsix": "vsce package"
@@ -585,7 +624,7 @@
     "assets/icon.svg",
     "assets/activity-md.svg",
     "assets/activity-source-graph.svg",
-    "dist/**",
+    "dist/**/*.js",
     "README.md",
     "CHANGELOG.md",
     "LICENSE.md",
@@ -593,9 +632,16 @@
     "source-graph-vsix-preview.png",
     "vscode-extension-0.1.34-updates.png",
     "ai_skills/**",
-    "node_modules/sql.js/**",
-    "node_modules/yazl/**",
-    "node_modules/buffer-crc32/**",
+    "node_modules/sql.js/package.json",
+    "node_modules/sql.js/LICENSE",
+    "node_modules/sql.js/dist/sql-wasm.js",
+    "node_modules/sql.js/dist/sql-wasm.wasm",
+    "node_modules/yazl/package.json",
+    "node_modules/yazl/LICENSE",
+    "node_modules/yazl/index.js",
+    "node_modules/buffer-crc32/package.json",
+    "node_modules/buffer-crc32/LICENSE",
+    "node_modules/buffer-crc32/index.js",
     "scripts/md-to-html.mjs",
     "scripts/source-graph.mjs",
     "public/core/**",

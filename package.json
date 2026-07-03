@@ -12,9 +12,8 @@
     "test:briefing-expression": "node test/briefing-expression-classes-guard.mjs",
     "test:embed-images": "node test/embed-local-images.mjs",
     "test:brand-designs": "node test/brand-design-integration.mjs",
-    "test:source-graph": "node test/source-graph-guard.mjs && node test/source-graph-ignore-guard.mjs && node test/source-graph-linked-docs-update-guard.mjs && node test/source-graph-mcp-guard.mjs && node test/source-graph-view-guard.mjs && node test/vscode-extension-cross-platform-guard.mjs",
+    "test:source-graph": "node test/source-graph-guard.mjs && node test/source-graph-ignore-guard.mjs && node test/source-graph-audit-guard.mjs && node test/source-graph-linked-docs-update-guard.mjs && node test/source-graph-cli-skill-guard.mjs && node test/source-graph-view-guard.mjs && node test/source-graph-skill-copy-guard.mjs && node test/md-to-deck-designer-skill-copy-guard.mjs && node test/markdown-graph-skill-pack-guard.mjs && node test/vscode-extension-cross-platform-guard.mjs",
     "source-graph:update": "node scripts/source-graph.mjs update",
-    "source-graph:mcp": "node scripts/source-graph.mjs mcp",
     "design:collect": "node scripts/collect-design-md.mjs",
     "design:analyze": "node scripts/analyze-design-md.mjs",
     "design:update": "node scripts/collect-design-md.mjs && node scripts/analyze-design-md.mjs"

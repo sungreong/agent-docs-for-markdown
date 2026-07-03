@@ -12,7 +12,7 @@ import {
   readExtraFileExtensions,
 } from '../utils/markdownFiles.js';
 import { pickLocalized, readAgentDocsLanguage, type AgentDocsLanguage } from '../utils/localization.js';
-import { MPS_IGNORE_FILE, loadSourceIgnoreMatcher } from '../utils/sourceIgnore.js';
+import { MPS_IGNORE_FILE, MPS_IGNORE_FILES, loadSourceIgnoreMatcher } from '../utils/sourceIgnore.js';
 
 export type FileBrowserSortOrder = 'nameAsc' | 'nameDesc' | 'modifiedDesc' | 'modifiedAsc' | 'createdDesc' | 'createdAsc' | 'sizeDesc' | 'sizeAsc' | 'lengthDesc' | 'lengthAsc';
 
@@ -33,6 +33,7 @@ const RECENT_STATE_KEY = 'markdownAgentDocsFileBrowser:recentFiles';
 const FILTER_STATE_KEY = 'markdownAgentDocsFileBrowser:filterMode';
 const HIDDEN_STATE_KEY = 'markdownAgentDocsFileBrowser:hiddenItems';
 const FOCUS_STATE_KEY = 'markdownAgentDocsFileBrowser:focusRoot';
+const MANAGED_ROOT_KEY = 'markdownAgentDocsFileBrowser:managedRoot';
 const PINNED_ROOT_KEY = 'markdownAgentDocsFileBrowser:pinnedRoot';
 const RECENT_ROOT_KEY = 'markdownAgentDocsFileBrowser:recentRoot';
 const FILTER_ROOT_KEY = 'markdownAgentDocsFileBrowser:filterRoot';
@@ -41,6 +42,13 @@ const MAX_RECENT_FILES = 10;
 const FILTER_RESULT_LIMIT = 20;
 const RECENT_FOLDER_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 const STALE_FILE_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000;
+const MANAGED_WORKSPACE_FILE_NAMES = new Set([
+  'agents.md',
+  'claude.md',
+  'codex.md',
+  'cursor.md',
+  'gemini.md',
+]);
 
 const SORT_DESCRIPTIONS: Record<AgentDocsLanguage, Record<FileBrowserSortOrder, string>> = {
   en: {
@@ -119,7 +127,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   private itemByPath = new Map<string, MarkdownFileItem>(); // fsPath -> item (needed for getParent)
   private roots: MarkdownFileItem[] = [];
   private watcher: vscode.FileSystemWatcher | undefined;
-  private ignoreWatcher: vscode.FileSystemWatcher | undefined;
+  private ignoreWatchers: vscode.FileSystemWatcher[] = [];
   private watcherDisposables: vscode.Disposable[] = [];
   private refreshTimer: ReturnType<typeof setTimeout> | undefined;
   private sortOrder: FileBrowserSortOrder;
@@ -129,6 +137,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   private recentPaths: string[];
   private hiddenPaths: string[];
   private focusRootPath: string | null;
+  private managedRoot: MarkdownFileItem | null = null;
   private pinnedRoot: MarkdownFileItem | null = null;
   private recentRoot: MarkdownFileItem | null = null;
   private filterRoot: MarkdownFileItem | null = null;
@@ -138,6 +147,8 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   private allUris: vscode.Uri[] = [];
   private visibleUris: vscode.Uri[] = [];
   private refreshRun = 0;
+  private refreshPromise: Promise<void> | undefined;
+  private pendingRefresh = false;
   private initialized = false;
   private language: AgentDocsLanguage = readAgentDocsLanguage();
 
@@ -176,16 +187,18 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   private resetFileWatcher(): void {
     this.disposeWatcher();
     this.watcher = vscode.workspace.createFileSystemWatcher(this.getFindFilesPattern());
-    this.ignoreWatcher = vscode.workspace.createFileSystemWatcher(`**/${MPS_IGNORE_FILE}`);
+    this.ignoreWatchers = MPS_IGNORE_FILES.map((ignoreFile) => vscode.workspace.createFileSystemWatcher(`**/${ignoreFile}`));
     this.watcherDisposables = [
       this.watcher,
       this.watcher.onDidCreate(() => this.scheduleRefresh()),
       this.watcher.onDidChange(() => this.scheduleRefresh()),
       this.watcher.onDidDelete(() => this.scheduleRefresh()),
-      this.ignoreWatcher,
-      this.ignoreWatcher.onDidCreate(() => this.scheduleRefresh()),
-      this.ignoreWatcher.onDidChange(() => this.scheduleRefresh()),
-      this.ignoreWatcher.onDidDelete(() => this.scheduleRefresh()),
+      ...this.ignoreWatchers.flatMap((ignoreWatcher) => [
+        ignoreWatcher,
+        ignoreWatcher.onDidCreate(() => this.scheduleRefresh()),
+        ignoreWatcher.onDidChange(() => this.scheduleRefresh()),
+        ignoreWatcher.onDidDelete(() => this.scheduleRefresh()),
+      ]),
     ];
   }
 
@@ -195,7 +208,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     }
     this.watcherDisposables = [];
     this.watcher = undefined;
-    this.ignoreWatcher = undefined;
+    this.ignoreWatchers = [];
   }
 
   private scheduleRefresh(): void {
@@ -211,11 +224,14 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   getChildren(element?: MarkdownFileItem): vscode.ProviderResult<MarkdownFileItem[]> {
     if (!element) {
       if (!this.initialized) {
-        return this.refresh().then(() => this.roots);
+        void this.refresh();
+        return [this.createLoadingItem()];
       }
+      if (this.refreshPromise && this.roots.length === 0) return [this.createLoadingItem()];
       return this.roots;
     }
     if (!element.isDirectory) return [];
+    if (element.contextValue === 'mdManagedRoot') return this.tree.get(MANAGED_ROOT_KEY) ?? [];
     if (element.contextValue === 'mdPinnedRoot') return this.tree.get(PINNED_ROOT_KEY) ?? [];
     if (element.contextValue === 'mdRecentRoot') return this.tree.get(RECENT_ROOT_KEY) ?? [];
     if (element.contextValue === 'mdFilterRoot') return this.tree.get(FILTER_ROOT_KEY) ?? [];
@@ -224,6 +240,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
 
   // Required for treeView.reveal() to work
   getParent(element: MarkdownFileItem): MarkdownFileItem | null {
+    if (element.contextValue === 'mdManagedFile' || element.contextValue === 'mdExtraManagedFile') return this.managedRoot;
     if (element.contextValue === 'mdPinnedFile' || element.contextValue === 'mdExtraPinnedFile') return this.pinnedRoot;
     if (element.contextValue === 'mdRecentFile' || element.contextValue === 'mdExtraRecentFile') return this.recentRoot;
     if (
@@ -431,6 +448,19 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     return buildExtensionGlob(this.getIncludedExtensions());
   }
 
+  private createLoadingItem(): MarkdownFileItem {
+    const item = new MarkdownFileItem(vscode.Uri.parse('markdown-agent-docs-file-browser:/loading'), false, 'Loading files...');
+    item.contextValue = 'mdLoading';
+    item.iconPath = new vscode.ThemeIcon('loading~spin');
+    item.description = pickLocalized(this.language, { en: 'Indexing workspace', ko: '워크스페이스 읽는 중' });
+    item.tooltip = pickLocalized(this.language, {
+      en: 'Agent Docs is indexing workspace documents in the background.',
+      ko: 'Agent Docs가 백그라운드에서 워크스페이스 문서를 읽고 있습니다.',
+    });
+    item.command = undefined;
+    return item;
+  }
+
   private async findAllFiles(): Promise<vscode.Uri[]> {
     const [documentUris, ignoreUris] = await Promise.all([
       vscode.workspace.findFiles(this.getFindFilesPattern(), DEFAULT_FILE_BROWSER_EXCLUDE_GLOB),
@@ -440,6 +470,26 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   }
 
   async refresh(): Promise<void> {
+    if (this.refreshPromise) {
+      this.pendingRefresh = true;
+      return this.refreshPromise;
+    }
+    this.refreshPromise = this.runRefreshLoop();
+    try {
+      await this.refreshPromise;
+    } finally {
+      this.refreshPromise = undefined;
+    }
+  }
+
+  private async runRefreshLoop(): Promise<void> {
+    do {
+      this.pendingRefresh = false;
+      await this.performRefresh();
+    } while (this.pendingRefresh);
+  }
+
+  private async performRefresh(): Promise<void> {
     if (!this.initialized) {
       this.initialized = true;
       this.resetFileWatcher();
@@ -452,6 +502,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     this.tree.clear();
     this.itemByPath.clear();
     this.roots = [];
+    this.managedRoot = null;
     this.pinnedRoot = null;
     this.recentRoot = null;
     this.filterRoot = null;
@@ -619,7 +670,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   private decoratePinnedFileItem(item: MarkdownFileItem): void {
     const metadata = this.metadataByPath.get(item.resourceUri.fsPath);
     item.contextValue = isMarkdownFileUri(item.resourceUri) ? 'mdPinnedFile' : 'mdExtraPinnedFile';
-    item.description = formatMetadataDescription(metadata, this.sortOrder, this.language);
+    item.description = formatVirtualFileDescription(item.resourceUri.fsPath, metadata, this.sortOrder, this.language);
     item.tooltip = buildMetadataTooltip(item.resourceUri.fsPath, metadata, true, this.language);
     applyFileOpenCommand(item);
   }
@@ -627,7 +678,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
   private decorateVirtualFileItem(item: MarkdownFileItem, contextValue: string): void {
     const metadata = this.metadataByPath.get(item.resourceUri.fsPath);
     item.contextValue = contextValue;
-    item.description = formatMetadataDescription(metadata, this.sortOrder, this.language);
+    item.description = formatVirtualFileDescription(item.resourceUri.fsPath, metadata, this.sortOrder, this.language);
     item.tooltip = buildMetadataTooltip(item.resourceUri.fsPath, metadata, true, this.language);
     applyFileOpenCommand(item);
   }
@@ -636,16 +687,47 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
     const summary = this.folderSummaryByPath.get(normalizeFsPath(dir)) ?? { total: 0, recent: 0, stale: 0 };
     if (!summary.total) return;
 
-    const parts = [pickLocalized(this.language, { en: `${summary.total.toLocaleString()} files`, ko: `${summary.total.toLocaleString()}파일` })];
-    if (summary.recent > 0) parts.push(pickLocalized(this.language, { en: `${summary.recent.toLocaleString()} recent`, ko: `${summary.recent.toLocaleString()}개 최근` }));
-    if (summary.stale > 0) parts.push(pickLocalized(this.language, { en: `${summary.stale.toLocaleString()} stale`, ko: `${summary.stale.toLocaleString()}개 오래됨` }));
-    item.description = parts.join(' · ');
+    item.description = pickLocalized(this.language, {
+      en: `${summary.total.toLocaleString()} files`,
+      ko: `${summary.total.toLocaleString()}파일`,
+    });
     item.tooltip = [
       dir,
       pickLocalized(this.language, { en: `Files: ${summary.total.toLocaleString()}`, ko: `파일: ${summary.total.toLocaleString()}개` }),
       pickLocalized(this.language, { en: `Last 24 hours: ${summary.recent.toLocaleString()}`, ko: `최근 24시간: ${summary.recent.toLocaleString()}개` }),
       pickLocalized(this.language, { en: `Not modified for 30+ days: ${summary.stale.toLocaleString()}`, ko: `30일+ 미수정: ${summary.stale.toLocaleString()}개` }),
     ].join('\n');
+  }
+
+  private prependManagedRoot(uris: vscode.Uri[]): void {
+    const managedUris = uris.filter((uri) => isManagedWorkspaceFile(uri));
+    if (!managedUris.length) return;
+
+    const managedRoot = new MarkdownFileItem(
+      vscode.Uri.parse('markdown-agent-docs-file-browser:/managed'),
+      true,
+      pickLocalized(this.language, { en: 'Managed', ko: '관리 파일' }),
+    );
+    managedRoot.contextValue = 'mdManagedRoot';
+    managedRoot.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+    managedRoot.iconPath = new vscode.ThemeIcon('settings-gear');
+    managedRoot.tooltip = pickLocalized(this.language, {
+      en: 'Quick access to .mpsignore and workspace agent control docs',
+      ko: '.mpsignore와 워크스페이스 에이전트 제어 문서 바로가기',
+    });
+
+    const managedItems = managedUris
+      .sort(compareUriName)
+      .map((uri) => {
+        const item = new MarkdownFileItem(uri, false);
+        item.iconPath = new vscode.ThemeIcon('settings-gear');
+        this.decorateVirtualFileItem(item, isMarkdownFileUri(uri) ? 'mdManagedFile' : 'mdExtraManagedFile');
+        return item;
+      });
+
+    this.managedRoot = managedRoot;
+    this.tree.set(MANAGED_ROOT_KEY, managedItems);
+    this.roots.unshift(managedRoot);
   }
 
   private prependPinnedRoot(uris: vscode.Uri[]): void {
@@ -787,6 +869,7 @@ export class MarkdownFileBrowserProvider implements vscode.TreeDataProvider<Mark
 
   private applyFilterAndVirtualRoots(visibleUris: vscode.Uri[], allUris: vscode.Uri[]): void {
     if (this.filterMode === 'all') {
+      this.prependManagedRoot(visibleUris);
       this.prependRecentRoot(visibleUris);
       this.prependPinnedRoot(allUris);
       return;
@@ -927,6 +1010,14 @@ function compareUriName(a: vscode.Uri, b: vscode.Uri): number {
   return a.fsPath.localeCompare(b.fsPath, undefined, { sensitivity: 'base' });
 }
 
+function isManagedWorkspaceFile(resourceUri: vscode.Uri): boolean {
+  if (!vscode.workspace.getWorkspaceFolder(resourceUri)) return false;
+  const relativePath = vscode.workspace.asRelativePath(resourceUri, false).replace(/\\/g, '/');
+  if (relativePath === MPS_IGNORE_FILE) return true;
+  if (relativePath.includes('/')) return false;
+  return MANAGED_WORKSPACE_FILE_NAMES.has(path.basename(resourceUri.fsPath).toLowerCase());
+}
+
 function applyFileOpenCommand(item: MarkdownFileItem): void {
   const previewable = isPreviewableFileUri(item.resourceUri);
   item.command = {
@@ -945,6 +1036,20 @@ function formatMetadataDescription(
   const value = formatMetadataValue(metadata, sortOrder, language);
   const parts = [metadata.gitStatus, value].filter((part): part is string => Boolean(part));
   return parts.length ? parts.join(' ') : undefined;
+}
+
+function formatVirtualFileDescription(
+  fsPath: string,
+  metadata: MarkdownFileMetadata | undefined,
+  sortOrder: FileBrowserSortOrder,
+  language: AgentDocsLanguage,
+): string {
+  const metadataDescription = formatMetadataDescription(metadata, sortOrder, language);
+  const location = pickLocalized(language, {
+    en: `in ${formatRelativeParentPath(fsPath)}`,
+    ko: `${formatRelativeParentPath(fsPath)}`,
+  });
+  return metadataDescription ? `${location} · ${metadataDescription}` : location;
 }
 
 function formatMetadataValue(
@@ -1168,7 +1273,7 @@ async function filterIgnoredUris(uris: vscode.Uri[]): Promise<vscode.Uri[]> {
       matchersByRoot.set(root, matcher);
     }
     const relativePath = path.relative(workspaceFolder.uri.fsPath, uri.fsPath).replace(/\\/g, '/');
-    if (relativePath === MPS_IGNORE_FILE) {
+    if (MPS_IGNORE_FILES.includes(relativePath)) {
       out.push(uri);
       continue;
     }

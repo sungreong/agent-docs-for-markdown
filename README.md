@@ -12,7 +12,7 @@ For release history, see [CHANGELOG.md](CHANGELOG.md).
 
 - VS Code extension with Agent Docs File Browser, preview, auto-refresh, outline navigation, and export commands.
 - Source Graph webview for Markdown workspaces, backed by a local `.mps/source-graph.sqlite` index.
-- Bundled AI skills that can be downloaded from VS Code and handed to Claude, Codex, or Agents for document writing.
+- Bundled AI skills that can be downloaded from VS Code and handed to Claude, Codex, or Agents for document writing, Markdown graph triage, ignore advice, context packaging, link repair, canonical-source review, and update planning.
 - Browser studio with Markdown editing, live preview, templates, appearance controls, and HTML export.
 - Export targets for standalone HTML, blog-safe embed HTML, and scoped content fragments.
 
@@ -48,15 +48,30 @@ Or from VS Code Quick Open:
 ext install datanewbie-labs.markdown-agent-docs
 ```
 
-Current repository extension version: `0.1.34`.
+Current repository extension version: `0.1.38`.
 
 Common VS Code flows:
 
 - Open Markdown files in the Agent Docs File Browser.
-- Run `Agent Docs: Open Preview` for a live preview.
-- Run `Agent Docs: Export Styled HTML` to export standalone, blog embed, or fragment HTML.
+- Run `Agent Docs: Preview` for a live preview.
+- Run `Agent Docs: Export Styled HTML` and choose by destination: a complete HTML file, blog paste HTML, or a body-only content fragment.
 - Run `Agent Docs: Open Source Graph` to inspect document links.
-- Run `Agent Docs: Install or Export Skills` to export/update AI writing skills.
+- Run the `Source Graph` launcher at the top of the sidebar, then use `Start Graph` for guided setup or `Run Workspace Audit` to open the dedicated audit manager with table rows, pagination, compact view, and batch apply before handing Markdown graph work to an agent.
+- Run `Agent Docs: Download Skill Folder` to export/update AI writing skills.
+
+### Markdown Graph Skills
+
+Install these with `Agent Docs: Install or Export Skills` -> `Install bundled skills to this workspace`. They help an agent use Source Graph evidence to find related Markdown files, URL/link relationships, and document cleanup targets faster than manual search.
+
+| Skill | Use when |
+| --- | --- |
+| `markdown-workspace-search` | You need evidence-based answers from Markdown sources, headings, backlinks, citations, or related notes. |
+| `markdown-graph-triage` | You want to understand the whole Markdown corpus: entry docs, orphan docs, noisy folders, duplicate skill copies, and weak graph structure. |
+| `markdown-ignore-advisor` | You need to decide what should be excluded with `.mpsignore` so Source Graph results focus on useful documents. |
+| `markdown-context-packager` | You want a compact reading bundle for a topic, URL, or target document before writing or updating anything. |
+| `markdown-update-planner` | You plan to edit one document and need to know which linked, related, or backlink documents may also need review. |
+| `markdown-canonicalizer` | Several Markdown pages overlap and you need to pick the primary source, merge target, archive candidate, or keep-separate decision. |
+| `markdown-link-repair` | You need to repair broken internal links, stale URL references, weak backlinks, or other graph-quality problems. |
 
 For details, see [vscode-extension/README.md](vscode-extension/README.md).
 
@@ -98,10 +113,14 @@ npm run md2html -- test/notes.md --out test/notes.blog-embed.html --export-targe
 - Full Korean guide: [README.ko.md](README.ko.md)
 - VS Code extension README: [vscode-extension/README.md](vscode-extension/README.md)
 - VS Code extension guide: [vscode-extension/EXTENSION_GUIDE.md](vscode-extension/EXTENSION_GUIDE.md)
-- Source Graph and MCP skill: [ai_skills/codex/skills/source-graph-search/SKILL.md](ai_skills/codex/skills/source-graph-search/SKILL.md)
+- Source Graph CLI Skill QA: [docs/planning/source-graph-cli-skill-qa.md](docs/planning/source-graph-cli-skill-qa.md)
+- Markdown workspace search skill: [ai_skills/codex/skills/markdown-workspace-search/SKILL.md](ai_skills/codex/skills/markdown-workspace-search/SKILL.md)
+- MD to deck designer skill: [ai_skills/codex/skills/md-to-deck-designer/SKILL.md](ai_skills/codex/skills/md-to-deck-designer/SKILL.md)
+- LLM wiki agent improvement plan: [docs/planning/llm-wiki-agent-improvement-plan.md](docs/planning/llm-wiki-agent-improvement-plan.md)
+- Source Graph launcher UX checklist: [docs/planning/source-graph-launcher-ux-checklist.md](docs/planning/source-graph-launcher-ux-checklist.md)
 - Release history: [CHANGELOG.md](CHANGELOG.md)
 - CLI renderer: [scripts/md-to-html.mjs](scripts/md-to-html.mjs)
-- Source Graph CLI/MCP server: [scripts/source-graph.mjs](scripts/source-graph.mjs)
+- Source Graph CLI: [scripts/source-graph.mjs](scripts/source-graph.mjs)
 - Document CSS: [public/document.css](public/document.css)
 
 ## Development

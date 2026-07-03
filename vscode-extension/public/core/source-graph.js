@@ -8,6 +8,7 @@ const HEADING_RE = /^(#{1,6})\s+(.*)$/;
 
 export function buildSourceGraphIndex(documents = [], options = {}) {
   const now = options.updatedAt || new Date().toISOString();
+  const parseCache = new Map();
   const normalizedDocuments = documents
     .filter((doc) => doc && typeof doc.source === 'string')
     .map((doc, index) => normalizeDocument(doc, index));
@@ -31,7 +32,7 @@ export function buildSourceGraphIndex(documents = [], options = {}) {
   };
 
   for (const doc of normalizedDocuments) {
-    appendParsedDocumentRows(db, doc, pathLookup);
+    appendParsedDocumentRows(db, doc, pathLookup, parseCache);
   }
 
   finalizeSourceGraphDb(db, options);
@@ -39,6 +40,7 @@ export function buildSourceGraphIndex(documents = [], options = {}) {
 }
 
 export function updateSourceGraphDocuments(db, documents = [], options = {}) {
+  const parseCache = new Map();
   const normalizedDocuments = documents
     .filter((doc) => doc && typeof doc.source === 'string')
     .map((doc, index) => normalizeDocument(doc, index));
@@ -62,7 +64,7 @@ export function updateSourceGraphDocuments(db, documents = [], options = {}) {
 
   const pathLookup = createPathLookup([...next.tables.documents, ...normalizedDocuments]);
   for (const doc of normalizedDocuments) {
-    appendParsedDocumentRows(next, doc, pathLookup);
+    appendParsedDocumentRows(next, doc, pathLookup, parseCache);
   }
   next.tables.documents.sort((a, b) => a.path.localeCompare(b.path));
   next.tables.headings.sort((a, b) => a.documentId.localeCompare(b.documentId) || a.line - b.line);
@@ -71,8 +73,8 @@ export function updateSourceGraphDocuments(db, documents = [], options = {}) {
   return next;
 }
 
-function appendParsedDocumentRows(db, doc, pathLookup) {
-  const parsed = parseDocument(doc);
+function appendParsedDocumentRows(db, doc, pathLookup, parseCache = new Map()) {
+  const parsed = parseDocumentCached(doc, parseCache);
   let nextLinkIndex = nextNumericId(db.tables.links, 'link');
   let nextCitationIndex = nextNumericId(db.tables.citations, 'citation');
   db.tables.documents.push({
@@ -81,19 +83,20 @@ function appendParsedDocumentRows(db, doc, pathLookup) {
     title: parsed.title,
     mtimeMs: doc.mtimeMs || 0,
     size: doc.size || doc.source.length,
+    sourceHash: doc.sourceHash || hashSourceGraphSource(doc.source),
     lineCount: parsed.lineCount,
-    wordCount: countWords(doc.source),
+    wordCount: parsed.wordCount,
     headingCount: parsed.headings.length,
     outgoingCount: 0,
     incomingCount: 0,
-    snippet: buildSnippet(doc.source),
+    snippet: parsed.snippet,
   });
   db.tables.headings.push(...parsed.headings.map((heading) => ({ ...heading, documentId: doc.id })));
   db.tables.searchIndex.push({
     documentId: doc.id,
     path: doc.path,
     title: parsed.title,
-    text: normalizeSearchText(`${doc.path}\n${parsed.title}\n${doc.source}`),
+    text: parsed.searchText,
   });
 
   for (const link of parsed.links) {
@@ -190,12 +193,18 @@ function finalizeSourceGraphDb(db, options = {}) {
 }
 
 export function searchSourceGraph(db, query = '', limit = 20) {
-  const terms = normalizeSearchText(query).split(/\s+/).filter(Boolean);
+  const normalizedQuery = normalizeSearchText(query);
+  const terms = normalizedQuery.split(/\s+/).filter(Boolean);
   if (!terms.length) return [];
   const documents = new Map((db?.tables?.documents || []).map((doc) => [doc.id, doc]));
   return (db?.tables?.searchIndex || [])
     .map((entry) => {
       let score = 0;
+      if (normalizedQuery.includes(' ')) {
+        if (entry.title.toLowerCase().includes(normalizedQuery)) score += 80;
+        if (entry.path.toLowerCase().includes(normalizedQuery)) score += 60;
+        if (entry.text.includes(normalizedQuery)) score += 48;
+      }
       for (const term of terms) {
         if (entry.title.toLowerCase().includes(term)) score += 8;
         if (entry.path.toLowerCase().includes(term)) score += 5;
@@ -204,9 +213,31 @@ export function searchSourceGraph(db, query = '', limit = 20) {
       return { score, document: documents.get(entry.documentId) };
     })
     .filter((item) => item.score > 0 && item.document)
-    .sort((a, b) => b.score - a.score || a.document.path.localeCompare(b.document.path))
+    .sort(compareSearchMatches)
     .slice(0, limit)
     .map((item) => ({ ...item.document, score: item.score }));
+}
+
+function compareSearchMatches(a, b) {
+  const scoreDelta = b.score - a.score;
+  if (scoreDelta) return scoreDelta;
+  const priorityDelta = sourceGraphSearchPathPriority(b.document?.path) - sourceGraphSearchPathPriority(a.document?.path);
+  if (priorityDelta) return priorityDelta;
+  return String(a.document?.path || '').localeCompare(String(b.document?.path || ''));
+}
+
+function sourceGraphSearchPathPriority(value = '') {
+  const normalizedPath = String(value || '').replace(/\\/g, '/');
+  if (normalizedPath === 'README.md') return 80;
+  if (/^README(?:\.[^.]+)?\.md$/i.test(normalizedPath)) return 75;
+  if (isBundledSkillPath(normalizedPath)) return 20;
+  if (!normalizedPath.includes('/') && !normalizedPath.startsWith('.')) return 70;
+  if (!normalizedPath.startsWith('.')) return 50;
+  return 30;
+}
+
+function isBundledSkillPath(normalizedPath = '') {
+  return /^(?:vscode-extension\/)?(?:\.codex|\.agents|\.claude|\.gemini|\.cursor|ai_skills\/[^/]+)\/skills\//.test(normalizedPath);
 }
 
 export function getSourceGraphNeighbors(db, pathOrId = '', depth = 1) {
@@ -239,8 +270,51 @@ export function getSourceGraphNeighbors(db, pathOrId = '', depth = 1) {
   };
 }
 
+export function hashSourceGraphSource(value = '') {
+  const text = String(value || '');
+  let h1 = 0xdeadbeef ^ text.length;
+  let h2 = 0x41c6ce57 ^ text.length;
+  for (let index = 0; index < text.length; index += 1) {
+    const ch = text.charCodeAt(index);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return `cyrb53:${text.length}:${(h2 >>> 0).toString(16).padStart(8, '0')}${(h1 >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+function parseDocumentCached(doc, cache) {
+  const source = String(doc.source || '');
+  const cached = cache.get(source);
+  if (cached) {
+    return {
+      ...cached,
+      headings: cached.headings.map((heading, index) => ({
+        ...heading,
+        id: `${doc.id}:heading:${index + 1}`,
+      })),
+      links: cached.links.map((link) => ({ ...link })),
+    };
+  }
+  const parsed = parseDocument(doc);
+  const reusable = {
+    ...parsed,
+    headings: parsed.headings.map((heading) => ({
+      slug: heading.slug,
+      title: heading.title,
+      depth: heading.depth,
+      line: heading.line,
+    })),
+    links: parsed.links.map((link) => ({ ...link })),
+  };
+  cache.set(source, reusable);
+  return parsed;
+}
+
 function parseDocument(doc) {
-  const lines = doc.source.replace(/\r\n?/g, '\n').split('\n');
+  const normalizedSource = doc.source.includes('\r') ? doc.source.replace(/\r\n?/g, '\n') : doc.source;
+  const lines = normalizedSource.split('\n');
   const referenceDefs = new Map();
   const headings = [];
   const links = [];
@@ -303,7 +377,15 @@ function parseDocument(doc) {
     });
   });
 
-  return { title, headings, links, lineCount: lines.length };
+  return {
+    title,
+    headings,
+    links,
+    lineCount: lines.length,
+    wordCount: countWords(doc.source),
+    snippet: buildSnippet(doc.source),
+    searchText: normalizeSearchText(doc.source),
+  };
 }
 
 function collectRegexLinks(line, regex, lineNumber, links, build) {
@@ -356,10 +438,12 @@ function normalizeRelativePath(sourcePath, rawTarget) {
 
 function normalizeDocument(doc, index) {
   const normalizedPath = normalizeSegments(String(doc.path || `document-${index + 1}.md`));
+  const source = String(doc.source || '');
   return {
     id: stableDocumentId(normalizedPath),
     path: normalizedPath,
-    source: String(doc.source || ''),
+    source,
+    sourceHash: String(doc.sourceHash || hashSourceGraphSource(source)),
     mtimeMs: Number(doc.mtimeMs || 0),
     size: Number(doc.size || 0),
   };
@@ -367,17 +451,11 @@ function normalizeDocument(doc, index) {
 
 function createPathLookup(documents = []) {
   const byPath = new Map();
-  const byBasename = new Map();
   for (const doc of documents) {
     const id = doc.id || stableDocumentId(doc.path || '');
     const normalizedPath = normalizeSegments(doc.path || '');
     if (!normalizedPath) continue;
     byPath.set(normalizedPath.toLowerCase(), { id, path: normalizedPath });
-    const stem = basenameWithoutMarkdownExtension(normalizedPath).toLowerCase();
-    if (!stem) continue;
-    const existing = byBasename.get(stem) || [];
-    existing.push({ id, path: normalizedPath });
-    byBasename.set(stem, existing);
   }
   return {
     find(candidate) {
@@ -390,11 +468,6 @@ function createPathLookup(documents = []) {
       const decoded = decodePathText(normalized);
       const decodedExact = byPath.get(decoded.toLowerCase());
       if (decodedExact) return { ...decodedExact, status: 'resolved' };
-      const stem = basenameWithoutMarkdownExtension(decoded || normalized).toLowerCase();
-      const basenameMatches = byBasename.get(stem) || [];
-      if (basenameMatches.length === 1) {
-        return { ...basenameMatches[0], status: 'resolved-by-name' };
-      }
       return null;
     },
   };
@@ -463,12 +536,6 @@ function basename(value) {
   return text.split('/').pop() || text || 'Document';
 }
 
-function basenameWithoutMarkdownExtension(value) {
-  const base = basename(value);
-  const ext = extensionOf(base);
-  return MARKDOWN_EXTENSIONS.includes(ext) ? base.slice(0, -ext.length) : base;
-}
-
 function decodePathText(value) {
   try {
     return decodeURIComponent(String(value || ''));
@@ -495,12 +562,32 @@ function slugify(value) {
 }
 
 function countWords(value) {
-  const words = String(value || '').trim().split(/\s+/).filter(Boolean);
-  return words.length;
+  const text = String(value || '').trim();
+  if (!text) return 0;
+  let count = 0;
+  let inWord = false;
+  for (let index = 0; index < text.length; index += 1) {
+    if (isWhitespaceCode(text.charCodeAt(index))) {
+      inWord = false;
+    } else if (!inWord) {
+      count += 1;
+      inWord = true;
+    }
+  }
+  return count;
+}
+
+function isWhitespaceCode(code) {
+  return code <= 32 || code === 160 || code === 5760 || code === 6158 || code === 8232 || code === 8233 || code === 8239 || code === 8287 || code === 12288;
 }
 
 function buildSnippet(value) {
-  return String(value || '').replace(/^---\n[\s\S]*?\n---/, '').replace(/\s+/g, ' ').trim().slice(0, 260);
+  let text = String(value || '');
+  if (text.startsWith('---\n')) {
+    const end = text.indexOf('\n---', 4);
+    if (end !== -1) text = text.slice(end + 4);
+  }
+  return text.slice(0, 4096).replace(/\s+/g, ' ').trim().slice(0, 260);
 }
 
 function compactLabel(value) {

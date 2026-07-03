@@ -156,6 +156,10 @@ textarea,
   padding-right: 2px;
 }
 
+.topbar-action-link {
+  text-decoration: none;
+}
+
 .topbar-select-label {
   display: grid;
   gap: 6px;
@@ -441,6 +445,13 @@ textarea,
   color: #dbe6ff;
   font-size: 12px;
   line-height: 1.55;
+}
+
+.pattern-insert-button {
+  justify-self: start;
+  min-height: 36px;
+  padding: 8px 12px;
+  font-size: 12px;
 }
 
 .outline-section {
@@ -791,9 +802,22 @@ textarea,
   border-color: rgba(111, 149, 255, 0.38);
 }
 
+.quality-item.is-priority {
+  background: rgba(111, 149, 255, 0.08);
+  border-color: rgba(111, 149, 255, 0.42);
+}
+
 .quality-item span {
   font-size: 12px;
   font-weight: 700;
+}
+
+.quality-item b {
+  display: inline-block;
+  margin-right: 6px;
+  color: #dbe6ff;
+  font-size: 10px;
+  text-transform: uppercase;
 }
 
 .quality-item small {

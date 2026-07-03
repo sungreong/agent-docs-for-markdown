@@ -2,7 +2,9 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 
-export const MPS_IGNORE_FILE = '.mpsignore';
+export const MPS_IGNORE_FILE = '.mps/.mpsignore';
+export const LEGACY_MPS_IGNORE_FILE = '.mpsignore';
+export const MPS_IGNORE_FILES = [MPS_IGNORE_FILE, LEGACY_MPS_IGNORE_FILE];
 
 const DEFAULT_IGNORE_PATTERNS = ['.mps/**'];
 
@@ -13,11 +15,13 @@ export interface SourceIgnoreMatcher {
 
 export async function loadSourceIgnoreMatcher(workspaceFolder: vscode.WorkspaceFolder): Promise<SourceIgnoreMatcher> {
   const patterns = [...DEFAULT_IGNORE_PATTERNS];
-  try {
-    const source = await fs.readFile(path.join(workspaceFolder.uri.fsPath, MPS_IGNORE_FILE), 'utf8');
-    patterns.push(...parseIgnoreRules(source));
-  } catch {
-    // Missing .mpsignore keeps only default generated paths ignored.
+  for (const ignoreFile of MPS_IGNORE_FILES) {
+    try {
+      const source = await fs.readFile(path.join(workspaceFolder.uri.fsPath, ignoreFile), 'utf8');
+      patterns.push(...parseIgnoreRules(source));
+    } catch {
+      // Missing ignore files keep only default generated paths ignored.
+    }
   }
   return createIgnoreMatcher(patterns);
 }

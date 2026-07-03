@@ -1,0 +1,4 @@
+interface:
+  display_name: "Markdown Graph Triage"
+  short_description: "Audit Markdown corpus structure and graph noise"
+  default_prompt: "Use $markdown-graph-triage to audit this Markdown workspace and identify entry docs, noisy folders, orphan docs, and weak graph areas."

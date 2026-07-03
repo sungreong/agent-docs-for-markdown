@@ -255,6 +255,7 @@ function renderPatternGuide() {
       </summary>
       <p>${escapeHtml(item.note)}</p>
       <pre>${escapeHtml(item.snippet)}</pre>
+      <button type="button" class="pattern-insert-button" data-pattern-index="${index}">삽입</button>
     </details>
   `).join('');
 }
@@ -334,11 +335,22 @@ function bindEvents() {
 
   dom.saveMdBtn.addEventListener('click', () => {
     downloadFile('document.md', getSource(), 'text/markdown;charset=utf-8');
+    flashStatus('Markdown 파일 저장됨');
+    pulseButtonLabel(dom.saveMdBtn, '저장됨');
   });
 
   dom.saveHtmlBtn.addEventListener('click', async () => {
-    const html = await buildStandaloneHtml();
-    downloadFile('document.html', html, 'text/html;charset=utf-8');
+    const originalLabel = setButtonPending(dom.saveHtmlBtn, 'HTML 생성 중');
+    try {
+      const html = await buildStandaloneHtml();
+      downloadFile('document.html', html, 'text/html;charset=utf-8');
+      flashStatus('HTML 파일 저장됨');
+      pulseButtonLabel(dom.saveHtmlBtn, '저장됨', 1200, originalLabel);
+    } catch (error) {
+      console.error('[html-export-failed]', error);
+      flashStatus('HTML 저장 실패: 미리보기 오류를 확인하세요', 2400);
+      restoreButtonLabel(dom.saveHtmlBtn, originalLabel);
+    }
   });
 
   dom.sourceGraphBtn?.addEventListener('click', () => {
@@ -372,6 +384,16 @@ function bindEvents() {
     const snippet = SNIPPETS.find((item) => item.name === button.dataset.snippet);
     if (!snippet) return;
     insertText(snippet.text);
+  });
+
+  dom.patternGuide.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-pattern-index]');
+    if (!button) return;
+    const index = Number(button.dataset.patternIndex);
+    const pattern = PATTERN_GUIDE[index];
+    if (!pattern) return;
+    insertText(withInsertionSpacing(pattern.snippet));
+    flashStatus(`${pattern.title} 패턴 삽입됨`);
   });
 
   dom.refreshOutlineBtn.addEventListener('click', () => renderOutline());
@@ -711,6 +733,12 @@ function insertText(text) {
   input.focus();
 }
 
+function withInsertionSpacing(text) {
+  const source = getSource();
+  const needsPrefix = source.trim() ? '\n\n' : '';
+  return `${needsPrefix}${String(text || '')}\n`;
+}
+
 function scheduleRender() {
   clearTimeout(state.renderTimer);
   state.renderTimer = setTimeout(render, 110);
@@ -723,6 +751,30 @@ function flashStatus(message, duration = 1400) {
     if (dom.statusText.textContent === message) {
       dom.statusText.textContent = '\uC2E4\uC2DC\uAC04 \uB80C\uB354 \uC644\uB8CC';
     }
+  }, duration);
+}
+
+function setButtonPending(button, label) {
+  if (!button) return '';
+  const original = button.textContent || '';
+  button.textContent = label;
+  button.disabled = true;
+  return original;
+}
+
+function restoreButtonLabel(button, label) {
+  if (!button) return;
+  button.textContent = label || button.textContent || '';
+  button.disabled = false;
+}
+
+function pulseButtonLabel(button, label, duration = 1200, originalLabel = '') {
+  if (!button) return;
+  const original = originalLabel || button.textContent || '';
+  button.textContent = label;
+  button.disabled = false;
+  window.setTimeout(() => {
+    restoreButtonLabel(button, original);
   }, duration);
 }
 
@@ -1305,7 +1357,8 @@ function renderQualityPanel(renderError = null) {
   if (!dom.qualityPanel) return;
   if (renderError) {
     dom.qualityPanel.innerHTML = `
-      <div class="quality-summary quality-error">Render check failed</div>
+      <div class="quality-summary quality-error">Render check failed · fix this first</div>
+      <div class="quality-empty">문법이 깨진 지점을 고친 뒤 다시 저장하거나 미리보기를 갱신하세요.</div>
       <div class="quality-item level-error">${escapeHtml(renderError.message || String(renderError))}</div>
     `;
     return;
@@ -1316,25 +1369,31 @@ function renderQualityPanel(renderError = null) {
     acc[item.level] = (acc[item.level] || 0) + 1;
     return acc;
   }, {});
+  const nextIssue = issues[0] || null;
   const summary = issues.length
-    ? `Score ${report.score} · ${counts.error || 0} errors · ${counts.warn || 0} warnings · ${counts.info || 0} hints`
+    ? `Fix first: ${nextIssue.title}${nextIssue.line ? ` · L${nextIssue.line}` : ''} · Score ${report.score}`
     : `Score ${report.score} · no document risks found`;
   dom.qualityPanel.innerHTML = `
     <div class="quality-summary">${escapeHtml(summary)}</div>
+    ${
+      issues.length
+        ? `<div class="quality-empty">${counts.error || 0} errors · ${counts.warn || 0} warnings · ${counts.info || 0} hints. Click an item to jump to its line.</div>`
+        : ''
+    }
     ${
       issues.length
         ? issues
             .slice(0, 8)
             .map(
               (issue) => `
-                <button type="button" class="quality-item level-${escapeHtml(issue.level)}" data-quality-line="${Number(issue.line) || 0}">
-                  <span>${escapeHtml(issue.title)}</span>
+                <button type="button" class="quality-item level-${escapeHtml(issue.level)} ${issue === nextIssue ? 'is-priority' : ''}" data-quality-line="${Number(issue.line) || 0}">
+                  <span>${issue === nextIssue ? '<b>먼저 수정</b>' : ''}${escapeHtml(issue.title)}</span>
                   <small>${issue.line ? `L${issue.line} · ` : ''}${escapeHtml(issue.detail)}</small>
                 </button>
               `,
             )
             .join('')
-        : '<div class="quality-empty">문서 구조, 코드, 표, 이미지 기본 체크를 통과했습니다.</div>'
+        : '<div class="quality-empty">문서 구조, 코드, 표, 이미지 기본 체크를 통과했습니다. 다음 단계로 HTML 저장 또는 스타일 점검을 진행하세요.</div>'
     }
   `;
 }

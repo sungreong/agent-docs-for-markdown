@@ -1,4 +1,6 @@
-export const MPS_IGNORE_FILE = '.mpsignore';
+export const MPS_IGNORE_FILE = '.mps/.mpsignore';
+export const LEGACY_MPS_IGNORE_FILE = '.mpsignore';
+export const MPS_IGNORE_FILES = [MPS_IGNORE_FILE, LEGACY_MPS_IGNORE_FILE];
 
 export function parseIgnoreRules(source = '') {
   return String(source || '')

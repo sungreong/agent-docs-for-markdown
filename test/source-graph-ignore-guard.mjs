@@ -13,7 +13,9 @@ const scriptPath = path.join(repoRoot, 'scripts', 'source-graph.mjs');
 try {
   await fs.mkdir(path.join(tmpRoot, 'keep'), { recursive: true });
   await fs.mkdir(path.join(tmpRoot, 'ignored'), { recursive: true });
-  await fs.writeFile(path.join(tmpRoot, '.mpsignore'), ['ignored/**', '*.draft.md', '# comments are ignored', ''].join('\n'), 'utf8');
+  run(['audit', '--root', tmpRoot]);
+  await fs.access(path.join(tmpRoot, '.mps', '.mpsignore'));
+  await fs.writeFile(path.join(tmpRoot, '.mps', '.mpsignore'), ['ignored/**', '*.draft.md', '# comments are ignored', ''].join('\n'), 'utf8');
   await fs.writeFile(path.join(tmpRoot, 'keep', 'visible.md'), '# Visible\n\n[Hidden](../ignored/hidden.md)\n', 'utf8');
   await fs.writeFile(path.join(tmpRoot, 'ignored', 'hidden.md'), '# Hidden\n', 'utf8');
   await fs.writeFile(path.join(tmpRoot, 'notes.draft.md'), '# Draft\n', 'utf8');
@@ -25,13 +27,13 @@ try {
   assert(paths.length === 1 && paths[0] === 'keep/visible.md', `unexpected indexed paths: ${paths.join(', ')}`);
   assert(!db.tables.links.some((link) => link.targetDocumentId), 'ignored document should not become a resolved target');
 
-  await fs.writeFile(path.join(tmpRoot, '.mpsignore'), '', 'utf8');
+  await fs.writeFile(path.join(tmpRoot, '.mps', '.mpsignore'), '', 'utf8');
   run(['update', '--root', tmpRoot, '--json']);
   const unignored = await readSourceGraphSqlite(dbPath);
   assert(
     unignored.tables.documents.some((doc) => doc.path === 'ignored/hidden.md') &&
       unignored.tables.documents.some((doc) => doc.path === 'notes.draft.md'),
-    'clearing .mpsignore should bring ignored markdown back into the graph',
+    'clearing .mps/.mpsignore should bring ignored markdown back into the graph',
   );
 } finally {
   await fs.rm(tmpRoot, { recursive: true, force: true });

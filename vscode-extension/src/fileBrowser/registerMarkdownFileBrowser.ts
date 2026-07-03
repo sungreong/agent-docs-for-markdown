@@ -181,7 +181,11 @@ export function registerMarkdownFileBrowser(
     vscode.commands.registerCommand('markdownAgentDocs.openFileInViewer', async (commandArg?: unknown) => {
       const uri = getResourceUri(commandArg) ?? (await options.resolvePreviewUri(commandArg));
       if (!uri) return;
-      await options.openInViewer(uri);
+      try {
+        await options.openInViewer(uri);
+      } catch {
+        await options.openInEditor(uri);
+      }
     }),
   );
 

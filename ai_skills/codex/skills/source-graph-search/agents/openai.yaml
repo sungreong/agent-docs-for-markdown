@@ -1,4 +1,0 @@
-interface:
-  display_name: "Source Graph Search"
-  short_description: "Search Markdown source graph and related docs"
-  default_prompt: "Use $source-graph-search to find related Markdown sources for this topic."

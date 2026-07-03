@@ -4,9 +4,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { downloadSkillFolderCommand } from './commands/exportSkillFolder.js';
 import { registerSourceGraphCommands } from './commands/sourceGraph.js';
-import { openTemplateBuilderCommand } from './commands/templateBuilder.js';
 import {
   type MarkdownFileBrowserController,
   registerMarkdownFileBrowser,
@@ -20,7 +18,6 @@ import {
   isPreviewableFileUri,
 } from './utils/markdownFiles.js';
 import { assertFileExists, delay, errorToMessage, fileExists } from './utils/runtime.js';
-import { injectPreviewEnhancements } from './webview/previewEnhancements.js';
 import { renderErrorHtml, setPanelStatus } from './webview/statusHtml.js';
 
 type PreviewReason = 'open' | 'refresh' | 'save';
@@ -89,10 +86,23 @@ interface PreviewWebviewMessage {
 }
 
 type ParseMarkdownDocumentFn = (source: string) => { sections?: ParsedSection[] };
+type TemplateBuilderCommandFn = (context: vscode.ExtensionContext) => Promise<void>;
+type DownloadSkillFolderCommandFn = (context: vscode.ExtensionContext) => Promise<void>;
+type InjectPreviewEnhancementsFn = (
+  html: string,
+  options: {
+    preferredViewMode: ExtensionConfig['preferredViewMode'];
+    appearance: AppearanceOptions;
+    outlineCollapsed: boolean;
+  },
+) => string;
 
 const sessions = new Map<string, PreviewSession>();
 const renderQueue = new Map<string, Promise<void>>();
 const parserCache = new Map<string, ParseMarkdownDocumentFn>();
+let templateBuilderCommandPromise: Promise<TemplateBuilderCommandFn> | null = null;
+let downloadSkillFolderCommandPromise: Promise<DownloadSkillFolderCommandFn> | null = null;
+let injectPreviewEnhancementsPromise: Promise<InjectPreviewEnhancementsFn> | null = null;
 const cursorLineCache = new Map<string, number>();
 const cliPromptDismissedUntil = new Map<string, number>();
 let lastPreviewKey: string | null = null;
@@ -117,8 +127,6 @@ const dynamicImportModule = new Function('modulePath', 'return import(modulePath
 export function activate(context: vscode.ExtensionContext) {
   extensionInstallPath = context.extensionPath;
   extensionContextRef = context;
-  outputChannel = vscode.window.createOutputChannel('Agent Docs for Markdown');
-  context.subscriptions.push(outputChannel);
   void updateAutoOnSaveContext();
   context.subscriptions.push(
     vscode.window.registerUriHandler({
@@ -219,13 +227,15 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('markdownAgentDocs.openTemplateBuilder', async () => {
-      await openTemplateBuilderCommand(context);
+      const command = await loadTemplateBuilderCommand();
+      await command(context);
     }),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('markdownAgentDocs.downloadSkillFolder', async () => {
-      await downloadSkillFolderCommand(context);
+      const command = await loadDownloadSkillFolderCommand();
+      await command(context);
     }),
   );
 
@@ -256,6 +266,51 @@ export function deactivate() {
   fileBrowserController = null;
   lastBrowserKey = null;
   outputChannel = null;
+}
+
+function ensureOutputChannel(): vscode.OutputChannel {
+  if (!outputChannel) {
+    outputChannel = vscode.window.createOutputChannel('Agent Docs for Markdown');
+    extensionContextRef?.subscriptions.push(outputChannel);
+  }
+  return outputChannel;
+}
+
+function loadTemplateBuilderCommand(): Promise<TemplateBuilderCommandFn> {
+  templateBuilderCommandPromise ??= importExtensionCommandModule(
+    path.join('dist', 'commands', 'templateBuilder.js'),
+    'openTemplateBuilderCommand',
+  );
+  return templateBuilderCommandPromise;
+}
+
+function loadDownloadSkillFolderCommand(): Promise<DownloadSkillFolderCommandFn> {
+  downloadSkillFolderCommandPromise ??= importExtensionCommandModule(
+    path.join('dist', 'commands', 'exportSkillFolder.js'),
+    'downloadSkillFolderCommand',
+  );
+  return downloadSkillFolderCommandPromise;
+}
+
+function loadInjectPreviewEnhancements(): Promise<InjectPreviewEnhancementsFn> {
+  injectPreviewEnhancementsPromise ??= importExtensionCommandModule(
+    path.join('dist', 'webview', 'previewEnhancements.js'),
+    'injectPreviewEnhancements',
+  );
+  return injectPreviewEnhancementsPromise;
+}
+
+async function importExtensionCommandModule<T extends (...args: never[]) => unknown>(
+  relativePath: string,
+  exportName: string,
+): Promise<T> {
+  const moduleUrl = pathToFileURL(path.join(extensionInstallPath, relativePath)).href;
+  const moduleNs = await dynamicImportModule(moduleUrl);
+  const command = moduleNs[exportName];
+  if (typeof command !== 'function') {
+    throw new Error(`Extension module ${relativePath} does not export ${exportName}.`);
+  }
+  return command as T;
 }
 
 function readConfig(): ExtensionConfig {
@@ -362,40 +417,58 @@ async function transformMarkdownToHtml(commandArg?: unknown): Promise<void> {
     return;
   }
 
-  void vscode.window.showInformationMessage(`${getExportTargetLabel(exportTarget)} generated: ${outputUri.fsPath}`);
+  void vscode.window
+    .showInformationMessage(
+      `${getExportTargetLabel(exportTarget)} generated: ${outputUri.fsPath}. ${getExportTargetNextAction(exportTarget)}`,
+      'Open File',
+    )
+    .then((choice) => {
+      if (choice === 'Open File') {
+        void openUriInTextEditor(outputUri);
+      }
+    });
 }
 
 async function pickHtmlExportTarget(): Promise<ExportTarget | null> {
   const picked = await vscode.window.showQuickPick(
     [
       {
-        label: 'Standalone HTML',
-        description: 'Full-page viewer with Style, Outline, Slides/Stack, and zoom controls',
+        label: 'Complete HTML File',
+        description: 'Best for opening locally, sharing as a file, or archiving the finished document',
+        detail: 'Includes the full viewer with Style, Outline, Slide/Stack, and zoom controls.',
         target: 'standalone' as ExportTarget,
       },
       {
-        label: 'Blog Embed HTML',
-        description: 'Copy/paste fragment for Tistory, WordPress, Velog, and narrow article containers',
+        label: 'Blog Paste HTML',
+        description: 'Best for pasting into Tistory, WordPress, Velog, or an existing article editor',
+        detail: 'Uses scoped CSS and removes fixed viewer chrome so it fits inside another page.',
         target: 'blog-embed' as ExportTarget,
       },
       {
         label: 'Content Fragment',
-        description: 'Scoped document HTML without viewer chrome or scripts',
+        description: 'Best for inserting only the rendered document body into another system',
+        detail: 'Outputs scoped document HTML without viewer controls or scripts.',
         target: 'fragment' as ExportTarget,
       },
     ],
     {
-      title: 'Choose HTML export target',
-      placeHolder: 'Standalone for local files, Blog Embed for copy/paste into an existing site.',
+      title: 'What do you want to do with the exported HTML?',
+      placeHolder: 'Choose by destination: file sharing, blog paste, or body-only integration.',
     },
   );
   return picked?.target ?? null;
 }
 
 function getExportTargetLabel(target: ExportTarget): string {
-  if (target === 'blog-embed') return 'Blog Embed HTML';
+  if (target === 'blog-embed') return 'Blog Paste HTML';
   if (target === 'fragment') return 'Content Fragment HTML';
-  return 'Styled HTML';
+  return 'Complete HTML File';
+}
+
+function getExportTargetNextAction(target: ExportTarget): string {
+  if (target === 'blog-embed') return 'Copy the generated body into your blog editor.';
+  if (target === 'fragment') return 'Insert the fragment into your host page or publishing pipeline.';
+  return 'Open it in a browser or share the file directly.';
 }
 
 function buildDefaultStyledHtmlPath(inputPath: string, exportTarget: ExportTarget = 'standalone'): string {
@@ -737,6 +810,7 @@ async function previewDocument(document: vscode.TextDocument, reason: PreviewRea
       return;
     }
 
+    const injectPreviewEnhancements = await loadInjectPreviewEnhancements();
     const html = injectPreviewEnhancements(
       rewriteLocalFileUris(renderOutput.html, session.panel.webview),
       {
@@ -796,6 +870,7 @@ async function previewHtmlFile(uri: vscode.Uri, reveal: boolean): Promise<void> 
 
     const rawHtml = await fs.readFile(uri.fsPath, 'utf8');
     const htmlDocument = normalizeHtmlForWebview(rawHtml, path.basename(uri.fsPath));
+    const injectPreviewEnhancements = await loadInjectPreviewEnhancements();
     const html = injectPreviewEnhancements(
       rewriteLocalFileUris(htmlDocument, session.panel.webview),
       {
@@ -1284,7 +1359,7 @@ async function diagnoseEnvironment(): Promise<void> {
     lines.push(`${ok ? '[ok]' : '[warn]'} ${label}${detail ? `: ${detail}` : ''}`);
   };
 
-  lines.push(`Agent Docs for Markdown diagnostics`);
+  lines.push(`Agent Docs diagnostics`);
   lines.push(`Time: ${new Date().toISOString()}`);
   lines.push(`Extension: ${extensionInstallPath || '(unknown)'}`);
   lines.push(`Workspace: ${workspaceFolder?.uri.fsPath || '(none)'}`);
@@ -1316,15 +1391,16 @@ async function diagnoseEnvironment(): Promise<void> {
   const nodeCheck = await runVersionCheck(config.nodePath);
   pushCheck('Node executable', nodeCheck.ok, `${config.nodePath}${nodeCheck.detail ? ` (${nodeCheck.detail})` : ''}`);
 
-  outputChannel?.clear();
-  outputChannel?.appendLine(lines.join('\n'));
-  outputChannel?.show(true);
+  const channel = ensureOutputChannel();
+  channel.clear();
+  channel.appendLine(lines.join('\n'));
+  channel.show(true);
   const warningCount = lines.filter((line) => line.startsWith('[warn]')).length;
   void vscode.window.showInformationMessage(
     warningCount ? `Agent Docs diagnostics completed with ${warningCount} warning(s).` : 'Agent Docs diagnostics passed.',
     'Show Output',
   ).then((choice) => {
-    if (choice === 'Show Output') outputChannel?.show(true);
+    if (choice === 'Show Output') ensureOutputChannel().show(true);
   });
 }
 
@@ -1447,8 +1523,9 @@ async function promptForCliScriptPath(
 
 function spawnProcess(command: string, args: string[], cwd: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    outputChannel?.appendLine(`[cli] cwd=${cwd}`);
-    outputChannel?.appendLine(`[cli] ${command} ${args.map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg)).join(' ')}`);
+    const channel = ensureOutputChannel();
+    channel.appendLine(`[cli] cwd=${cwd}`);
+    channel.appendLine(`[cli] ${command} ${args.map((arg) => (/\s/.test(arg) ? `"${arg}"` : arg)).join(' ')}`);
     const child = cp.spawn(command, args, {
       cwd,
       shell: false,
@@ -1465,17 +1542,17 @@ function spawnProcess(command: string, args: string[], cwd: string): Promise<voi
       stderr += String(chunk);
     });
     child.on('error', (error) => {
-      outputChannel?.appendLine(`[cli:error] ${error.message}`);
+      channel.appendLine(`[cli:error] ${error.message}`);
       reject(error);
     });
     child.on('close', (code) => {
       if (code === 0) {
-        if (stdout.trim()) outputChannel?.appendLine(stdout.trim());
+        if (stdout.trim()) channel.appendLine(stdout.trim());
         resolve();
         return;
       }
       const message = [stderr.trim(), stdout.trim()].filter(Boolean).join('\n');
-      outputChannel?.appendLine(`[cli:exit ${code}] ${message}`);
+      channel.appendLine(`[cli:exit ${code}] ${message}`);
       reject(new Error(message || `CLI exited with code ${code}`));
     });
   });
