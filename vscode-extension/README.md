@@ -1,6 +1,6 @@
 # Agent Docs for Markdown
 
-[Install from the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
+[Install from the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-agent-docs)
 
 Browse Markdown as a source graph, package context, and write better docs with AI agent skills. The extension also previews and exports Markdown through the bundled CLI.
 
@@ -237,5 +237,5 @@ npm run package:vsix
 Then install:
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.38.vsix
+code --install-extension .\markdown-agent-docs-0.1.38.vsix
 ```

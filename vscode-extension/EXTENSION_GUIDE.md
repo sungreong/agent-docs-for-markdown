@@ -1,6 +1,6 @@
 # Agent Docs for Markdown Extension Guide
 
-This guide explains how to install, use, and troubleshoot the `markdown-pattern-studio-preview` extension.
+This guide explains how to install, use, and troubleshoot the `markdown-agent-docs` extension.
 
 ## 1) Quick Start
 
@@ -16,7 +16,7 @@ npm run package:vsix
 ### Install
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.38.vsix --force
+code --install-extension .\markdown-agent-docs-0.1.38.vsix --force
 ```
 
 ### Basic Usage
@@ -254,14 +254,14 @@ Example (absolute path):
 - Source: `vscode-extension/src/extension.ts`
 - Build: `npm run build`
 - Package: `npm run package:vsix`
-- Install test: `code --install-extension .\markdown-pattern-studio-preview-0.1.38.vsix --force`
+- Install test: `code --install-extension .\markdown-agent-docs-0.1.38.vsix --force`
 
 ## 11) Uninstall / Cleanup Guide
 
 ### Uninstall extension
 
 ```bash
-code --uninstall-extension datanewbie-labs.markdown-pattern-studio-preview
+code --uninstall-extension datanewbie-labs.markdown-agent-docs
 ```
 
 ### Check installed version
@@ -270,14 +270,14 @@ code --uninstall-extension datanewbie-labs.markdown-pattern-studio-preview
 code --list-extensions --show-versions
 ```
 
-Find `datanewbie-labs.markdown-pattern-studio-preview@...` in the list.
+Find `datanewbie-labs.markdown-agent-docs@...` in the list.
 
 ### Remove packaged file (.vsix)
 
 If you no longer need the package file, delete:
 
 ```text
-vscode-extension/markdown-pattern-studio-preview-0.1.38.vsix
+vscode-extension/markdown-agent-docs-0.1.38.vsix
 ```
 
 ### Optional: remove local extension folder manually
@@ -285,5 +285,5 @@ vscode-extension/markdown-pattern-studio-preview-0.1.38.vsix
 If needed, remove this folder:
 
 ```text
-%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-pattern-studio-preview-0.1.38
+%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-agent-docs-0.1.38
 ```

@@ -1,6 +1,6 @@
 # Agent Docs for Markdown
 
-[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Agent%20Docs%20for%20Markdown-0078d4?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Agent%20Docs%20for%20Markdown-0078d4?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-agent-docs)
 
 Agent Docs for Markdown turns a local Markdown workspace into source graph evidence, packaged context, agent-ready writing skills, and polished HTML exports.
 
@@ -40,12 +40,12 @@ This is the easiest path for normal use. Install the extension, open a Markdown 
 
 Install from the Visual Studio Marketplace:
 
-[Agent Docs for Markdown](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
+[Agent Docs for Markdown](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-agent-docs)
 
 Or from VS Code Quick Open:
 
 ```text
-ext install datanewbie-labs.markdown-pattern-studio-preview
+ext install datanewbie-labs.markdown-agent-docs
 ```
 
 Current repository extension version: `0.1.34`.

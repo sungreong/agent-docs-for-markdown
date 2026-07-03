@@ -1,6 +1,6 @@
 ﻿# Agent Docs for Markdown
 
-[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Agent%20Docs%20for%20Markdown-0078d4?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-pattern-studio-preview)
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-Agent%20Docs%20for%20Markdown-0078d4?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.markdown-agent-docs)
 
 English documentation is available in [README.md](README.md).
 
@@ -17,7 +17,7 @@ Markdown 중심으로 문서를 작성하고, 템플릿/속성 문법으로 보�
 설치:
 
 ```text
-ext install datanewbie-labs.markdown-pattern-studio-preview
+ext install datanewbie-labs.markdown-agent-docs
 ```
 
 기본 흐름:
@@ -592,7 +592,7 @@ npm run package:vsix
 설치:
 
 ```bash
-code --install-extension .\markdown-pattern-studio-preview-0.1.38.vsix
+code --install-extension .\markdown-agent-docs-0.1.38.vsix
 ```
 
 ### 커서 동기화 동작 (Ctrl+S)
