@@ -13,7 +13,7 @@ For release history, see [CHANGELOG.md](CHANGELOG.md).
 - VS Code extension with Agent Docs File Browser, preview, auto-refresh, outline navigation, and export commands.
 - Source Graph webview for Markdown workspaces, backed by a local `.mps/source-graph.sqlite` index.
 - Bundled AI skills that can be downloaded from VS Code and handed to Claude, Codex, or Agents for document writing, Markdown graph triage, ignore advice, context packaging, link repair, canonical-source review, and update planning.
-- Browser studio with Markdown editing, live preview, templates, appearance controls, and HTML export.
+- GitHub-only local web editor with Markdown editing, live preview, templates, appearance controls, and HTML export.
 - Export targets for standalone HTML, blog-safe embed HTML, and scoped content fragments.
 
 ## Screenshots
@@ -26,7 +26,7 @@ For release history, see [CHANGELOG.md](CHANGELOG.md).
 
 ![Agent Docs for Markdown Source Graph webview](assets/images/source-graph-vsix-preview.png)
 
-### Browser Studio
+### GitHub-Only Local Web Editor
 
 ![Agent Docs for Markdown web editor](assets/images/web.png)
 
@@ -75,9 +75,11 @@ Install these with `Agent Docs: Install or Export Skills` -> `Install bundled sk
 
 For details, see [vscode-extension/README.md](vscode-extension/README.md).
 
-## Alternative: Clone And Use Web/CLI
+## GitHub-Only: Local Web Editor And CLI
 
-Use this path when you want the browser studio, local development, scripts, tests, or direct CLI rendering.
+This path is separate from the VS Code extension. Use it only after cloning the GitHub repository when you want the local web editor, local development, scripts, tests, or direct CLI rendering.
+
+The Marketplace extension does not start this server and does not package the browser app shell.
 
 Requirements: Node.js 18+
 

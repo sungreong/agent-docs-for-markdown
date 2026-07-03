@@ -57,6 +57,15 @@ assert(
   !packagedFiles.has('dist/**'),
   'VSIX package should include runtime JS only rather than generated source maps',
 );
+for (const forbidden of [
+  'server.js',
+  'public/index.html',
+  'public/app.js',
+  'public/styles.css',
+  'public/template-builder.html',
+]) {
+  assert(!packagedFiles.has(forbidden), `VSIX package should not include GitHub-only local web editor file ${forbidden}`);
+}
 assert(
   !packagedFiles.has('node_modules/sql.js/**') &&
     !packagedFiles.has('node_modules/yazl/**') &&
@@ -296,14 +305,27 @@ assert(
     extensionReadme.includes('sidebar `Run Workspace Audit` flow'),
   'VS Code README should describe the launcher audit workflow, guided setup, and batch ignore actions',
 );
+for (const [name, doc] of [['README', extensionReadme], ['guide', extensionGuide]]) {
+  assert.doesNotMatch(
+    doc,
+    /Browser Studio|Local Web Editor|npm start|localhost:3188|server\.js|public\/index\.html/i,
+    `VS Code extension ${name} should not document the GitHub-only local web editor`,
+  );
+}
 
 assert(
-  buildTemplateBuilderSource.includes("css.replace(/\\\\/g, '\\\\\\\\')"),
-  'Template builder bundler must escape backslashes with a valid JS regex',
+  buildTemplateBuilderSource.includes("css.replace(/\\\\/g, '\\\\\\\\')") &&
+    buildTemplateBuilderSource.includes("public/template-builder.html") &&
+    buildTemplateBuilderSource.includes("public/template-builder-vscode.html"),
+  'Template builder bundler must escape backslashes and write only the VS Code-dedicated HTML artifact',
 );
 assert(
   syncBundleSource.includes("public/core/ignore-rules.js"),
   'VSIX bundle sync should copy shared ignore rules',
+);
+assert(
+  syncBundleSource.includes('public/template-builder-vscode.html is VSCode-dedicated; do NOT sync from repo root'),
+  'VSIX bundle sync should keep the GitHub-only local web editor separate from VS Code webview assets',
 );
 assert(
     fileBrowserProviderSource.includes('filterIgnoredUris') &&

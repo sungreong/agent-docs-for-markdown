@@ -12,12 +12,11 @@ export interface TemplateBuilderPanelOptions {
 }
 
 /**
- * Creates the Template Builder WebviewPanel by loading the shared
+ * Creates the Template Builder WebviewPanel by loading the VS Code-dedicated
  * `public/template-builder-vscode.html` file and injecting a nonce-based
  * Content-Security-Policy + VS Code bridge.
  *
- * The HTML file is shared between the browser (npm start) and VS Code,
- * so it uses IS_VSCODE detection internally to switch behavior.
+ * The browser app shell remains outside the VS Code extension package.
  */
 export async function createTemplateBuilderPanel(
   context: vscode.ExtensionContext,
@@ -36,7 +35,7 @@ export async function createTemplateBuilderPanel(
     },
   );
 
-  // Load shared HTML and patch CSP / nonce for webview security
+  // Load VS Code HTML and patch CSP / nonce for webview security
   let html = await fs.readFile(options.htmlFilePath, 'utf8');
   const nonce = getNonce();
   html = patchHtmlForWebview(html, nonce, panel.webview, publicDirUri);

@@ -15,7 +15,7 @@ const srcHtml = fs.readFileSync(path.join(repoRoot, 'public/template-builder.htm
 // Replace placeholder with inlined CSS
 const outHtml = srcHtml.replace('DOCUMENT_CSS_PLACEHOLDER', cssEsc);
 
-const outPath = path.join(extRoot, 'public/template-builder.html');
+const outPath = path.join(extRoot, 'public/template-builder-vscode.html');
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, outHtml, 'utf-8');
 console.log(`[build-tb] Written ${outPath} (${outHtml.length} bytes)`);

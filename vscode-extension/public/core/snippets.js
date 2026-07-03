@@ -1,7 +1,7 @@
 /**
  * SNIPPETS — 빠른 삽입 블록 정의
  *
- * app.js와 template-builder.html 양쪽에서 import해서 사용합니다.
+ * 에디터와 template builder에서 공유하는 삽입 블록입니다.
  * 새 블록을 추가할 때는 이 파일만 수정하면 됩니다.
  */
 export const SNIPPETS = [

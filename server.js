@@ -43,6 +43,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`Markdown Pattern Studio running on http://localhost:${port}`);
-  console.log(`Template Builder: http://localhost:${port}/template-builder.html`);
+  console.log(`Agent Docs Local Web Editor running on http://localhost:${port}`);
+  console.log(`GitHub-only Template Builder: http://localhost:${port}/template-builder.html`);
 });
