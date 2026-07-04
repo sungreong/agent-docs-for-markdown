@@ -48,7 +48,7 @@ Or from VS Code Quick Open:
 ext install datanewbie-labs.markdown-agent-docs
 ```
 
-Current repository extension version: `0.1.50`.
+Current repository extension version: `0.1.51`.
 
 Common VS Code flows:
 

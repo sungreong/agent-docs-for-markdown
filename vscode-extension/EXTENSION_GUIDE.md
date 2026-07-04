@@ -16,7 +16,7 @@ npm run package:vsix
 ### Install
 
 ```bash
-code --install-extension .\markdown-agent-docs-0.1.50.vsix --force
+code --install-extension .\markdown-agent-docs-0.1.51.vsix --force
 ```
 
 ### Basic Usage
@@ -254,7 +254,7 @@ Example (absolute path):
 - Source: `vscode-extension/src/extension.ts`
 - Build: `npm run build`
 - Package: `npm run package:vsix`
-- Install test: `code --install-extension .\markdown-agent-docs-0.1.50.vsix --force`
+- Install test: `code --install-extension .\markdown-agent-docs-0.1.51.vsix --force`
 
 ## 11) Uninstall / Cleanup Guide
 
@@ -277,7 +277,7 @@ Find `datanewbie-labs.markdown-agent-docs@...` in the list.
 If you no longer need the package file, delete:
 
 ```text
-vscode-extension/markdown-agent-docs-0.1.50.vsix
+vscode-extension/markdown-agent-docs-0.1.51.vsix
 ```
 
 ### Optional: remove local extension folder manually
@@ -285,5 +285,5 @@ vscode-extension/markdown-agent-docs-0.1.50.vsix
 If needed, remove this folder:
 
 ```text
-%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-agent-docs-0.1.50
+%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-agent-docs-0.1.51
 ```

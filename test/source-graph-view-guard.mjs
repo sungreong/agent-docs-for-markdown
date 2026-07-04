@@ -49,6 +49,9 @@ for (const expected of [
   'function expandFocusedNode',
   'function focusedFilteredNodes',
   'function expandWithHops',
+  'function focusHopDepths',
+  'function applyFocusedHopLayout',
+  'focusFixed',
   'Focus this node and direct neighbors',
   'Expand focused neighborhood by one hop',
   'Hop +',
@@ -325,8 +328,10 @@ assert(
     source.includes('data-focus-hop type="button" title="Expand focused neighborhood by one hop"') &&
     source.includes('state.focusNodeId = selectedId') &&
     source.includes('state.focusDepth = Math.min(4, Math.max(1, state.focusDepth + 1))') &&
-    source.includes('if (state.focusNodeId) return focusedFilteredNodes()'),
-  'selected node details should include Focus and Hop actions that filter the graph to a gradually expanding neighborhood',
+    source.includes('if (state.focusNodeId) return focusedFilteredNodes()') &&
+    source.includes('applyFocusedHopLayout()') &&
+    source.includes('previous.focusFixed'),
+  'selected node details should include Focus and Hop actions that filter the graph into a radial neighborhood layout',
 );
 assert(
   source.includes('>View</button>') && source.includes('>Edit</button>') && source.includes("? 'Full' : 'Slim'"),

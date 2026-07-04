@@ -3062,7 +3062,6 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       updateMeta();
       centerNode(selectedId);
       paint();
-      requestAnimationFrame(() => settleLayout(autoSettleIterations(28), { defer: true }));
     }
     function expandFocusedNode() {
       if (!selectedId && !state.focusNodeId) return;
@@ -3076,7 +3075,6 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       updateMeta();
       centerNode(selectedId);
       paint();
-      requestAnimationFrame(() => settleLayout(autoSettleIterations(24), { defer: true }));
     }
     function groupKeyForNode(node) {
       if (!node || node.kind !== 'document') return '';
@@ -3114,7 +3112,12 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       return expandWithHops(ids, 1);
     }
     function expandWithHops(ids, depth) {
+      return new Set(focusHopDepths(ids, depth).keys());
+    }
+    function focusHopDepths(ids, depth) {
+      const depths = new Map();
       const out = new Set(ids);
+      for (const id of ids) depths.set(id, 0);
       let frontier = new Set(ids);
       const steps = Math.max(1, Math.min(4, Number(depth) || 1));
       for (let hop = 0; hop < steps; hop += 1) {
@@ -3124,13 +3127,14 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
             const other = edge.source === id ? edge.target : edge.source;
             if (!other || out.has(other)) continue;
             out.add(other);
+            depths.set(other, hop + 1);
             next.add(other);
           }
         }
         frontier = next;
         if (!frontier.size) break;
       }
-      return out;
+      return depths;
     }
     function filteredNodes() {
       if (state.focusNodeId) return focusedFilteredNodes();
@@ -3189,14 +3193,50 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const height = Math.max(420, graph.clientHeight || 420);
         const seeded = seedLayout(state.nodes, state.edges);
       for (const node of state.nodes) {
-        state.pos.set(node.id, oldPos.get(node.id) || seeded.get(node.id));
+        const previous = oldPos.get(node.id);
+        state.pos.set(node.id, previous && (!previous.focusFixed || state.focusNodeId) ? previous : seeded.get(node.id));
         state.velocity.set(node.id, oldVelocity.get(node.id) || { x: 0, y: 0 });
       }
-      normalizeLayoutDrift();
       if (selectedId && !state.nodes.some((node) => node.id === selectedId)) selectedId = '';
       highlightNeighborhood(selectedId, false);
+      if (state.focusNodeId) applyFocusedHopLayout();
+      else normalizeLayoutDrift();
       fitGraph();
       reportGraphMetric('rebuildGraphState', started);
+    }
+    function applyFocusedHopLayout() {
+      const rootId = state.focusNodeId || selectedId;
+      if (!rootId || !state.nodes.some((node) => node.id === rootId)) return;
+      const depthById = focusHopDepths(new Set([rootId]), state.focusDepth);
+      const layers = new Map();
+      for (const node of state.nodes) {
+        const depth = depthById.get(node.id);
+        if (node.id === rootId) continue;
+        if (depth === undefined) continue;
+        const layer = layers.get(depth) || [];
+        layer.push(node);
+        layers.set(depth, layer);
+      }
+      state.pos.set(rootId, { x: 0, y: 0, fixed: true, focusFixed: true });
+      state.velocity.set(rootId, { x: 0, y: 0 });
+      for (const [depth, layerNodes] of [...layers.entries()].sort((a, b) => a[0] - b[0])) {
+        const sorted = layerNodes.slice().sort((a, b) => graphDegree(b.id) - graphDegree(a.id) || fileLabel(a).localeCompare(fileLabel(b)));
+        const count = sorted.length;
+        const radius = 130 + depth * 145 + Math.sqrt(count) * 8;
+        const span = count <= 2 ? Math.PI * 0.52 : Math.PI * 1.72;
+        const start = -span / 2 + (depth % 2 === 0 ? 0.14 : 0);
+        sorted.forEach((node, index) => {
+          const angle = count <= 1 ? 0 : start + span * (index / Math.max(1, count - 1));
+          const ringOffset = count > 10 ? (index % 3 - 1) * 18 : 0;
+          state.pos.set(node.id, {
+            x: Math.cos(angle) * (radius + ringOffset) * 1.14,
+            y: Math.sin(angle) * (radius + ringOffset) * 0.82,
+            fixed: true,
+            focusFixed: true,
+          });
+          state.velocity.set(node.id, { x: 0, y: 0 });
+        });
+      }
     }
     function seedLayout(nodes, edges) {
       const pos = new Map();
@@ -3267,6 +3307,13 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       return index * 2.399963229728653;
     }
     function settleLayout(iterations, options = {}) {
+      if (state.focusNodeId) {
+        applyFocusedHopLayout();
+        fitGraph();
+        centerNode(state.focusNodeId);
+        paint();
+        return;
+      }
       if (state.running) cancelAnimationFrame(state.frame);
       state.running = true;
       let remaining = iterations;
