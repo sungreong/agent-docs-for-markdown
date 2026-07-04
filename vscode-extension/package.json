@@ -2,7 +2,7 @@
   "name": "markdown-agent-docs",
   "displayName": "Agent Docs for Markdown",
   "description": "Browse Markdown as a source graph, package context, and write better docs with AI agent skills.",
-  "version": "0.1.49",
+  "version": "0.1.50",
   "publisher": "datanewbie-labs",
   "license": "MIT",
   "icon": "assets/icon.png",

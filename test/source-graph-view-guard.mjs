@@ -35,14 +35,29 @@ for (const expected of [
   'data-toggle-link-compact',
   'data-open-url',
   'data-show-overview',
+  'data-focus-selected',
+  'data-focus-hop',
   'data-overview-page',
   'link-controls',
   'link-direction-tabs',
   'data-link-direction',
   'data-overview-sort',
   'function nodeRelationStats',
+  'focusNodeId',
+  'focusDepth',
+  'function focusSelectedNode',
+  'function expandFocusedNode',
+  'function focusedFilteredNodes',
+  'function expandWithHops',
+  'Focus this node and direct neighbors',
+  'Expand focused neighborhood by one hop',
+  'Hop +',
   'Direct ',
   '2-hop ',
+  "overviewSort: 'direct'",
+  "data-overview-sort=\"' + value + '\"",
+  "sortButton('direct', 'Direct')",
+  "sort === 'links' ? 'direct' : sort",
   'resolveActiveLinkPanel',
   'openUrl',
   'simpleBrowser.show',
@@ -304,6 +319,14 @@ assert(
 assert(
   source.includes('data-show-overview type="button" title="Back to full graph overview" aria-label="Back to full graph overview">&#8617; All</button>'),
   'selected node details should include a compact Back to Overview action with an accessible label',
+);
+assert(
+  source.includes('data-focus-selected type="button" title="Focus this node and direct neighbors"') &&
+    source.includes('data-focus-hop type="button" title="Expand focused neighborhood by one hop"') &&
+    source.includes('state.focusNodeId = selectedId') &&
+    source.includes('state.focusDepth = Math.min(4, Math.max(1, state.focusDepth + 1))') &&
+    source.includes('if (state.focusNodeId) return focusedFilteredNodes()'),
+  'selected node details should include Focus and Hop actions that filter the graph to a gradually expanding neighborhood',
 );
 assert(
   source.includes('>View</button>') && source.includes('>Edit</button>') && source.includes("? 'Full' : 'Slim'"),

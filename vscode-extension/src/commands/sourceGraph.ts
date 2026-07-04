@@ -2241,6 +2241,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     .layer-toggle.image[aria-pressed="true"] { border-color:#c69cff; background:rgba(198,156,255,.15); }
     .layer-toggle.missing[aria-pressed="true"] { border-color:#ff8f8f; background:rgba(255,143,143,.14); }
     .button-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .button-row.three { grid-template-columns:repeat(3,minmax(0,1fr)); }
     .button-row button { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .button-row .wide { grid-column:1 / -1; }
     .link-toolbar { display:grid; gap:8px; }
@@ -2436,11 +2437,13 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       groupsEnabled: false,
       activeGroupKey: '',
       activeGroupLabel: '',
+      focusNodeId: '',
+      focusDepth: 1,
       activeLinkPanel: 'outbound',
       linkFilters: { outbound: 'all', inbound: 'all' },
       linkPages: { outbound: 0, inbound: 0 },
       overviewPage: 0,
-      overviewSort: 'links',
+      overviewSort: 'direct',
       compactLinks: false,
       draggingNode: null,
       running: false,
@@ -2490,9 +2493,11 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const active = Object.entries(state.layers).filter(([, enabled]) => enabled).map(([layer]) => layer);
       const layerSummary = active.length ? 'Layers: ' + active.join(', ') : 'Markdown files only';
       const groupSummary = state.activeGroupKey ? 'Group: ' + state.activeGroupLabel : (state.groupsEnabled ? 'Groups on' : 'Groups off');
+      const focusNode = state.focusNodeId ? currentNodeById().get(state.focusNodeId) : null;
+      const focusSummary = focusNode ? ' · Focus: ' + compact(fileLabel(focusNode)) + ' ' + state.focusDepth + '-hop' : '';
       const localAnchorSummary = localAnchorEdgeCount ? ' · ' + localAnchorEdgeCount + ' local anchors separate' : '';
       const previewSummary = isLargeGraphPreview() ? ' · Preview mode' : '';
-      document.getElementById('meta').textContent = db.tables.documents.length + ' docs · ' + fileEdges.length + ' doc-to-doc links' + localAnchorSummary + ' · ' + connectedNodeIds.size + ' connected · ' + layerSummary + ' · ' + groupSummary + previewSummary + ' · Updated ' + new Date(db.updatedAt).toLocaleString();
+      document.getElementById('meta').textContent = db.tables.documents.length + ' docs · ' + fileEdges.length + ' doc-to-doc links' + localAnchorSummary + ' · ' + connectedNodeIds.size + ' connected · ' + layerSummary + ' · ' + groupSummary + focusSummary + previewSummary + ' · Updated ' + new Date(db.updatedAt).toLocaleString();
     }
     function setSearchMode(mode) {
       if (state.searchMode === mode) return;
@@ -2790,6 +2795,16 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
         showGraphOverview();
         return;
       }
+      const focusSelected = event.target.closest && event.target.closest('[data-focus-selected]');
+      if (focusSelected) {
+        focusSelectedNode();
+        return;
+      }
+      const focusHop = event.target.closest && event.target.closest('[data-focus-hop]');
+      if (focusHop) {
+        expandFocusedNode();
+        return;
+      }
       const fullGraph = event.target.closest && event.target.closest('[data-show-full-graph]');
       if (fullGraph) {
         showFullGraph();
@@ -2806,9 +2821,10 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       }
       const overviewSort = event.target.closest && event.target.closest('[data-overview-sort]');
       if (overviewSort) {
-        const sort = overviewSort.getAttribute('data-overview-sort') || 'links';
-        if (['links', 'hop2', 'name', 'path'].includes(sort)) {
-          state.overviewSort = sort;
+        const sort = overviewSort.getAttribute('data-overview-sort') || 'direct';
+        const nextSort = sort === 'links' ? 'direct' : sort;
+        if (['direct', 'hop2', 'name', 'path'].includes(nextSort)) {
+          state.overviewSort = nextSort;
           state.overviewPage = 0;
           paintDetails();
         }
@@ -2982,11 +2998,13 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       return preferred;
     }
     function isLargeGraphPreview() {
-      return db.tables.documents.length > largeGraphThreshold && !state.fullGraphConfirmed && !state.activeGroupKey;
+      return db.tables.documents.length > largeGraphThreshold && !state.fullGraphConfirmed && !state.activeGroupKey && !state.focusNodeId;
     }
     function showFullGraph() {
       state.fullGraphConfirmed = true;
       state.overviewPage = 0;
+      state.focusNodeId = '';
+      state.focusDepth = 1;
       selectedId = '';
       rebuildGraphState();
       updateMeta();
@@ -2998,6 +3016,8 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       if (!key) return;
       state.activeGroupKey = key;
       state.activeGroupLabel = label || groupLabel(key);
+      state.focusNodeId = '';
+      state.focusDepth = 1;
       selectedId = '';
       rebuildGraphState();
       settleLayout(autoSettleIterations(80), { defer: true });
@@ -3007,6 +3027,8 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     function clearGroupFilter() {
       state.activeGroupKey = '';
       state.activeGroupLabel = '';
+      state.focusNodeId = '';
+      state.focusDepth = 1;
       selectedId = '';
       rebuildGraphState();
       settleLayout(autoSettleIterations(80), { defer: true });
@@ -3016,6 +3038,8 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     function showGraphOverview() {
       state.activeGroupKey = '';
       state.activeGroupLabel = '';
+      state.focusNodeId = '';
+      state.focusDepth = 1;
       state.highlightedEdge = null;
       state.highlightedNodeIds = new Set();
       state.linkFilters = { outbound: 'all', inbound: 'all' };
@@ -3025,6 +3049,34 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       rebuildGraphState();
       updateMeta();
       paint();
+    }
+    function focusSelectedNode() {
+      if (!selectedId) return;
+      state.activeGroupKey = '';
+      state.activeGroupLabel = '';
+      state.focusNodeId = selectedId;
+      state.focusDepth = 1;
+      state.linkPages = { outbound: 0, inbound: 0 };
+      rebuildGraphState();
+      highlightNeighborhood(selectedId, true);
+      updateMeta();
+      centerNode(selectedId);
+      paint();
+      requestAnimationFrame(() => settleLayout(autoSettleIterations(28), { defer: true }));
+    }
+    function expandFocusedNode() {
+      if (!selectedId && !state.focusNodeId) return;
+      state.activeGroupKey = '';
+      state.activeGroupLabel = '';
+      state.focusNodeId = state.focusNodeId || selectedId;
+      selectedId = state.focusNodeId;
+      state.focusDepth = Math.min(4, Math.max(1, state.focusDepth + 1));
+      rebuildGraphState();
+      highlightNeighborhood(selectedId, true);
+      updateMeta();
+      centerNode(selectedId);
+      paint();
+      requestAnimationFrame(() => settleLayout(autoSettleIterations(24), { defer: true }));
     }
     function groupKeyForNode(node) {
       if (!node || node.kind !== 'document') return '';
@@ -3059,16 +3111,29 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       return nodes.filter((node) => visible.has(node.id));
     }
     function expandWithNeighbors(ids) {
+      return expandWithHops(ids, 1);
+    }
+    function expandWithHops(ids, depth) {
       const out = new Set(ids);
-      for (const id of ids) {
-        for (const edge of edgesForNode(id)) {
-          if (edge.source === id) out.add(edge.target);
-          if (edge.target === id) out.add(edge.source);
+      let frontier = new Set(ids);
+      const steps = Math.max(1, Math.min(4, Number(depth) || 1));
+      for (let hop = 0; hop < steps; hop += 1) {
+        const next = new Set();
+        for (const id of frontier) {
+          for (const edge of edgesForNode(id)) {
+            const other = edge.source === id ? edge.target : edge.source;
+            if (!other || out.has(other)) continue;
+            out.add(other);
+            next.add(other);
+          }
         }
+        frontier = next;
+        if (!frontier.size) break;
       }
       return out;
     }
     function filteredNodes() {
+      if (state.focusNodeId) return focusedFilteredNodes();
       const q = search.value.trim().toLowerCase();
       if (q) {
         if (state.bodySearch.query !== search.value.trim() || state.bodySearch.pending && state.bodySearch.ids === null) {
@@ -3089,6 +3154,16 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       state.searchMatchCount = 0;
       updateSearchChrome();
       return defaultFilteredNodes();
+    }
+    function focusedFilteredNodes() {
+      const focusId = state.focusNodeId;
+      if (!focusId) return defaultFilteredNodes();
+      const ids = expandWithHops(new Set([focusId]), state.focusDepth);
+      const nodes = currentNodes()
+        .filter((node) => ids.has(node.id))
+        .sort((a, b) => Number(b.id === focusId) - Number(a.id === focusId) || graphDegree(b.id) - graphDegree(a.id) || fileLabel(a).localeCompare(fileLabel(b)))
+        .slice(0, Math.max(24, Math.min(graphNodeBudget(), 120)));
+      return nodes.length ? nodes : defaultFilteredNodes();
     }
     function defaultFilteredNodes() {
       const connected = groupVisibleNodes(currentNodes())
@@ -3508,21 +3583,23 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const activeOpenSide = activeLinkPanel === 'inbound' ? 'source' : 'target';
       const activeTitle = activeLinkPanel === 'inbound' ? 'Inbound' : 'Outbound';
       const document = docById.get(selected.id);
+      const focusActions = '<div class="button-row three"><button data-focus-selected type="button" title="Focus this node and direct neighbors" aria-label="Focus this node and direct neighbors">Focus</button><button data-focus-hop type="button" title="Expand focused neighborhood by one hop" aria-label="Expand focused neighborhood by one hop">Hop +</button><button data-show-overview type="button" title="Back to full graph overview" aria-label="Back to full graph overview">&#8617; All</button></div>';
       const actions = document
-        ? '<div class="button-row"><button data-open-path="' + escapeHtml(document.path) + '" title="Open in Agent Docs viewer" aria-label="Open in Agent Docs viewer">View</button><button data-open-editor-path="' + escapeHtml(document.path) + '" title="Open in editor" aria-label="Open in editor">Edit</button><button class="wide" data-show-overview type="button" title="Back to full graph overview" aria-label="Back to full graph overview">&#8617; All</button></div>'
-        : '<button data-show-overview type="button" title="Back to full graph overview" aria-label="Back to full graph overview">&#8617; All</button>';
+        ? '<div class="button-row"><button data-open-path="' + escapeHtml(document.path) + '" title="Open in Agent Docs viewer" aria-label="Open in Agent Docs viewer">View</button><button data-open-editor-path="' + escapeHtml(document.path) + '" title="Open in editor" aria-label="Open in editor">Edit</button></div>' + focusActions
+        : focusActions;
       const virtualBadge = isSupplementalNode(selected) ? '<span class="node-badge">virtual link node</span>' : '';
-      details.innerHTML = progress + '<div class="block"><span class="kicker">' + escapeHtml(nodeKindLabel(selected)) + '</span><strong>' + escapeHtml(selected.label || selected.path) + '</strong><small>' + escapeHtml(selected.path || '') + '</small>' + virtualBadge + actions + (state.activeGroupKey ? '<button data-clear-group type="button" title="Show full graph" aria-label="Show full graph">&#8617; All</button>' : '') + supplementalNodeHint(selected) + '<div class="hint">The graph starts with Markdown files and their document links. Turn on URL, Image, or Broken layers when you need external references or unresolved links.</div><div class="legend"><span><i class="swatch file"></i>File</span><span><i class="swatch url"></i>URL</span><span><i class="swatch image"></i>Image</span><span><i class="swatch missing"></i>Broken</span></div></div>' +
+      details.innerHTML = progress + '<div class="block"><span class="kicker">' + escapeHtml(nodeKindLabel(selected)) + '</span><strong>' + escapeHtml(selected.label || selected.path) + '</strong><small>' + escapeHtml(selected.path || '') + '</small>' + virtualBadge + actions + (state.activeGroupKey ? '<button data-clear-group type="button" title="Show full graph" aria-label="Show full graph">&#8617; All</button>' : '') + supplementalNodeHint(selected) + '<div class="hint">Focus shows this node with its direct neighbors. Hop + expands the focused neighborhood one step at a time; All returns to the full graph.</div><div class="legend"><span><i class="swatch file"></i>File</span><span><i class="swatch url"></i>URL</span><span><i class="swatch image"></i>Image</span><span><i class="swatch missing"></i>Broken</span></div></div>' +
         linkDirectionTabs(outbound, inbound, activeLinkPanel) +
         linkPanel(activeTitle, activeLinks, activeOpenSide, activeLinkPanel);
       reportGraphMetric('paintDetails', started);
     }
     function paintOverviewDetails() {
       const rows = state.nodes.map((node) => ({ node, stats: nodeRelationStats(node.id) }));
+      const overviewSortMode = state.overviewSort === 'links' ? 'direct' : state.overviewSort;
       rows.sort((a, b) => {
-        if (state.overviewSort === 'hop2') return b.stats.hop2 - a.stats.hop2 || b.stats.direct - a.stats.direct || fileLabel(a.node).localeCompare(fileLabel(b.node));
-        if (state.overviewSort === 'name') return fileLabel(a.node).localeCompare(fileLabel(b.node)) || b.stats.direct - a.stats.direct;
-        if (state.overviewSort === 'path') return (a.node.path || a.node.label || '').localeCompare(b.node.path || b.node.label || '') || fileLabel(a.node).localeCompare(fileLabel(b.node));
+        if (overviewSortMode === 'hop2') return b.stats.hop2 - a.stats.hop2 || b.stats.direct - a.stats.direct || fileLabel(a.node).localeCompare(fileLabel(b.node));
+        if (overviewSortMode === 'name') return fileLabel(a.node).localeCompare(fileLabel(b.node)) || b.stats.direct - a.stats.direct;
+        if (overviewSortMode === 'path') return (a.node.path || a.node.label || '').localeCompare(b.node.path || b.node.label || '') || fileLabel(a.node).localeCompare(fileLabel(b.node));
         return b.stats.direct - a.stats.direct || b.stats.hop2 - a.stats.hop2 || fileLabel(a.node).localeCompare(fileLabel(b.node));
       });
       const pageSize = 10;
@@ -3534,9 +3611,9 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const summary = rows.length
         ? (start + 1) + '-' + Math.min(rows.length, start + pageSize) + ' of ' + rows.length
         : '0 nodes';
-      const sortButton = (value, label) => '<button type="button" class="link-tab" data-overview-sort="' + value + '" aria-pressed="' + String(state.overviewSort === value) + '">' + label + '</button>';
+      const sortButton = (value, label) => '<button type="button" class="link-tab" data-overview-sort="' + value + '" aria-pressed="' + String(overviewSortMode === value) + '">' + label + '</button>';
       details.innerHTML = progressBlock() + '<div class="block"><span class="kicker">overview</span><strong>Full Graph</strong><small>' + state.nodes.length + ' visible nodes · ' + state.edges.length + ' visible edges · ' + db.tables.documents.length + ' indexed files</small><div class="button-row"><button id="fitOverview" type="button" title="Fit visible graph" aria-label="Fit visible graph">Fit</button><button id="settleOverview" type="button" title="Re-arrange visible nodes" aria-label="Re-arrange visible nodes">Layout</button></div><div class="hint">Select a node to inspect its links. Use ↩ All to return here.</div><div class="legend"><span><i class="swatch file"></i>File</span><span><i class="swatch url"></i>URL</span><span><i class="swatch image"></i>Image</span><span><i class="swatch missing"></i>Broken</span></div></div>' +
-        '<div class="block"><span class="kicker">Visible nodes</span><div class="link-toolbar"><div class="link-tabs">' + sortButton('links', 'Links') + sortButton('hop2', '2-hop') + sortButton('name', 'Name') + sortButton('path', 'Path') + '</div><div class="link-pager"><button type="button" data-overview-page="-1" title="Previous page" aria-label="Previous page"' + (page <= 0 ? ' disabled' : '') + '>&lsaquo;</button><span>' + escapeHtml(summary) + '</span><button type="button" data-overview-page="1" title="Next page" aria-label="Next page"' + (page >= maxPage ? ' disabled' : '') + '>&rsaquo;</button></div></div>' +
+        '<div class="block"><span class="kicker">Visible nodes</span><div class="link-toolbar"><div class="link-tabs">' + sortButton('direct', 'Direct') + sortButton('hop2', '2-hop') + sortButton('name', 'Name') + sortButton('path', 'Path') + '</div><div class="link-pager"><button type="button" data-overview-page="-1" title="Previous page" aria-label="Previous page"' + (page <= 0 ? ' disabled' : '') + '>&lsaquo;</button><span>' + escapeHtml(summary) + '</span><button type="button" data-overview-page="1" title="Next page" aria-label="Next page"' + (page >= maxPage ? ' disabled' : '') + '>&rsaquo;</button></div></div>' +
         (pageItems.length ? pageItems.map(({ node, stats }) => overviewNodeRow(node, stats)).join('') : '<small>No graph data.</small>') + '</div>';
       const fit = document.getElementById('fitOverview');
       if (fit) fit.addEventListener('click', () => { fitGraph(); paint({ details: false }); });
