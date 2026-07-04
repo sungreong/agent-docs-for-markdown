@@ -62,6 +62,30 @@ Then select the agent folders you want to update. The extension can update `.cla
 
 This normal setup installs `markdown-manager`, a single slash command that routes Markdown search, Source Graph cleanup, link repair, context packaging, update planning, reports, decks, export checks, and setup diagnostics. Use `Advanced: choose source and target` only when you want individual low-level skills installed as separate slash commands.
 
+## How To Use The Skill In Your Agent
+
+After installation, start the agent request with `markdown-manager`. If your agent UI supports slash commands, type `/markdown-manager`. If it does not, write `Use markdown-manager` in the prompt.
+
+You can describe the task naturally. The router chooses the internal workflow for search, graph triage, ignore advice, context packaging, update planning, canonicalization, link repair, presentation composition, export QA, or setup diagnostics.
+
+```text
+/markdown-manager 이 문서와 연결된 관련 문서까지 찾아서 업데이트 범위를 알려줘.
+```
+
+```text
+Use markdown-manager.
+
+Before editing this Markdown workspace, find broken links, orphan docs, duplicate generated content, and .mpsignore candidates.
+```
+
+```text
+/markdown-manager 이 주제에 대해 에이전트가 먼저 읽어야 할 최소 문서 묶음을 만들어줘.
+```
+
+```text
+Use markdown-manager to turn @brief.md into a polished Agent Docs report with evidence, better structure, and an export-readiness checklist.
+```
+
 ## Built-In Skill Router And Example Questions
 
 | Skill | Use it for | Ask your agent |
@@ -137,10 +161,10 @@ The canonical ignore file is:
 .mps/.mpsignore
 ```
 
-When `markdown-manager` routes to Markdown search, it can use the workspace CLI directly:
+When `markdown-manager` routes to Markdown search, use the bundled script inside the installed skill folder. This example uses Codex; replace `.codex` with `.claude`, `.agents`, `.gemini`, or `.cursor` if that is where you installed the skill:
 
 ```bash
-node scripts/source-graph.mjs search --root . --query "topic" --include-links --links-depth 1 --include-headings
+node .codex/skills/markdown-manager/scripts/source-graph.mjs search --root . --query "topic" --include-links --links-depth 1 --include-headings
 ```
 
 Ask the agent to summarize `Path`, `Title`, `Why it matters`, `Heading evidence`, `Link evidence`, and `Next action`. Use `Agent Docs: Edit Source Ignore` when `.mpsignore` patterns need review.
@@ -180,7 +204,7 @@ npm run package:vsix
 Install the local package:
 
 ```bash
-code --install-extension .\markdown-agent-docs-0.1.54.vsix
+code --install-extension .\markdown-agent-docs-0.1.55.vsix
 ```
 
 For full operations and troubleshooting, see [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md).

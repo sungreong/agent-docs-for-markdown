@@ -31,6 +31,7 @@ for (const root of roots) {
     const skillPath = path.join(repoRoot, root, skill, 'SKILL.md');
     await assertExists(skillPath, `${root}/${skill}/SKILL.md`);
     await assertExists(path.join(repoRoot, root, skill, 'agents', 'openai.yaml'), `${root}/${skill}/agents/openai.yaml`);
+    await assertExists(path.join(repoRoot, root, skill, 'scripts', 'source-graph.mjs'), `${root}/${skill}/scripts/source-graph.mjs`);
   }
   for (const skill of skillNames) {
     const skillPath = path.join(repoRoot, root, skill, 'SKILL.md');
@@ -63,6 +64,8 @@ assert(managerSkill.includes('markdown-workspace-search'), 'markdown-manager sho
 assert(managerSkill.includes('markdown-link-repair'), 'markdown-manager should route link repair requests');
 assert(managerSkill.includes('md-presentation-composer'), 'markdown-manager should route writing requests');
 assert(managerSkill.includes('document-production-advisor'), 'markdown-manager should route export QA requests');
+assert(managerSkill.includes('.codex/skills/markdown-manager/scripts/source-graph.mjs'), 'markdown-manager should prefer its bundled script');
+assert(managerSkill.includes('Do not assume the user'), 'markdown-manager should not assume workspace scripts exist');
 assert(searchSkill.includes('references/markdown-graph-skill-map.md'), 'markdown-workspace-search should route to companion graph skills');
 assert(searchSkill.includes('OS-Aware Execution'), 'markdown-workspace-search should document OS-aware commands');
 assert(searchSkill.includes('Large Output Rule'), 'markdown-workspace-search should document persisted-output handling');
@@ -177,6 +180,36 @@ const portableOutputMeta = JSON.parse(portableOutput.stdout);
 assert(portableOutputMeta.outputPath.endsWith('portable-search.json'), 'portable --output should print saved output metadata');
 await assertExists(path.join(portableRoot, '.mps', 'portable-search.json'), 'portable search output file');
 await fs.rm(portableRoot, { recursive: true, force: true });
+
+const managerPortableRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'mps-manager-skill-portable-'));
+await fs.mkdir(path.join(managerPortableRoot, '.codex', 'skills', 'markdown-manager', 'scripts'), { recursive: true });
+await fs.mkdir(path.join(managerPortableRoot, 'docs'), { recursive: true });
+await fs.copyFile(
+  path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-manager', 'scripts', 'source-graph.mjs'),
+  path.join(managerPortableRoot, '.codex', 'skills', 'markdown-manager', 'scripts', 'source-graph.mjs'),
+);
+await fs.writeFile(path.join(managerPortableRoot, 'README.md'), '# Home\n\nSee [Guide](docs/guide.md).\n', 'utf8');
+await fs.writeFile(path.join(managerPortableRoot, 'docs', 'guide.md'), '# Guide\n\nManagerPortableFallbackToken\n', 'utf8');
+const managerPortableSearch = spawnSync(
+  process.execPath,
+  [
+    '.codex/skills/markdown-manager/scripts/source-graph.mjs',
+    'search',
+    '--root',
+    '.',
+    '--query',
+    'ManagerPortableFallbackToken',
+    '--compact',
+  ],
+  { cwd: managerPortableRoot, encoding: 'utf8' },
+);
+assert(
+  managerPortableSearch.status === 0,
+  `markdown-manager bundled source graph should work without workspace scripts/source-graph.mjs:\n${managerPortableSearch.stderr || managerPortableSearch.stdout}`,
+);
+const managerPortableResults = JSON.parse(managerPortableSearch.stdout);
+assert(managerPortableResults.some((doc) => doc.path === 'docs/guide.md'), 'markdown-manager portable fallback should find Markdown body matches');
+await fs.rm(managerPortableRoot, { recursive: true, force: true });
 
 console.log('markdown graph skill pack guard passed');
 

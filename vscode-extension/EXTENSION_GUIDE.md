@@ -16,7 +16,7 @@ npm run package:vsix
 ### Install
 
 ```bash
-code --install-extension .\markdown-agent-docs-0.1.54.vsix --force
+code --install-extension .\markdown-agent-docs-0.1.55.vsix --force
 ```
 
 ### Basic Usage
@@ -118,7 +118,7 @@ Source Graph is the document-link index for one VS Code workspace. It creates `.
 4. Confirm `.mps/source-graph.sqlite` exists in that workspace.
 5. Run `Agent Docs: Install or Export Skills`, then choose `Install recommended Markdown Manager skill`.
 6. Confirm `markdown-manager` appears under the matching workspace skill roots such as `.codex/skills`, `.agents/skills`, or `.claude/skills`.
-7. In Codex, ask it to use the `markdown-manager` skill for a document question. For search-oriented questions, it should route to the internal `markdown-workspace-search` workflow and run `node scripts/source-graph.mjs search --root . --query "README" --limit 3 --include-links --links-depth 1 --include-headings`.
+7. In Codex, ask it to use the `markdown-manager` skill for a document question. For search-oriented questions, it should run the bundled manager script, for example `node .codex/skills/markdown-manager/scripts/source-graph.mjs search --root . --query "README" --limit 3 --include-links --links-depth 1 --include-headings`.
 8. Ask it to summarize `Path`, `Title`, `Why it matters`, `Heading evidence`, `Link evidence`, and `Next action`.
 
 This is the Source Graph equivalent of a project-local init step such as `codegraph init`: each workspace owns its own `.mps/source-graph.sqlite`.
@@ -159,12 +159,12 @@ After editing `.mpsignore`, run `Agent Docs: Update Source Graph` or reopen Sour
 
 ### CLI commands used by the Markdown workspace search skill
 
-- `node scripts/source-graph.mjs update --root .`: rebuilds `.mps/source-graph.sqlite`.
-- `node scripts/source-graph.mjs search --root . --query "topic" --include-links --links-depth 1 --include-headings`: searches indexed documents with linked context and heading evidence.
-- `node scripts/source-graph.mjs related --root . --path "README.md" --include-headings`: finds related documents around a query or path.
-- `node scripts/source-graph.mjs neighbors --root . --path "README.md"`: returns inbound/outbound neighbors for a document.
+- `node .codex/skills/markdown-manager/scripts/source-graph.mjs update --root .`: rebuilds or refreshes the local graph data. Replace `.codex` with the agent folder you installed into.
+- `node .codex/skills/markdown-manager/scripts/source-graph.mjs search --root . --query "topic" --include-links --links-depth 1 --include-headings`: searches indexed documents with linked context and heading evidence.
+- `node .codex/skills/markdown-manager/scripts/source-graph.mjs related --root . --path "README.md" --include-headings`: finds related documents around a query or path.
+- `node .codex/skills/markdown-manager/scripts/source-graph.mjs neighbors --root . --path "README.md"`: returns inbound/outbound neighbors for a document.
 
-The bundled Codex skill `markdown-manager` routes natural-language requests to internal workflows such as `markdown-workspace-search`, graph triage, ignore advice, context packaging, update planning, canonicalization, link repair, presentation composition, deck design, export QA, or install diagnostics. For document discovery, backlink checks, related sources, and stale-index refreshes, it uses the same Source Graph commands shown above. `search` and `related` collapse duplicate skill copies by default so results are closer to codegraph-style focused context. Pass `--include-copies` only when auditing whether `.codex`, `.agents`, and bundled skill folders are synced.
+The bundled Codex skill `markdown-manager` routes natural-language requests to internal workflows such as `markdown-workspace-search`, graph triage, ignore advice, context packaging, update planning, canonicalization, link repair, presentation composition, deck design, export QA, or install diagnostics. In slash-command UIs, start with `/markdown-manager`; in plain chat UIs, start with `Use markdown-manager`. For document discovery, backlink checks, related sources, and stale-index refreshes, it uses the same Source Graph commands shown above. `search` and `related` collapse duplicate skill copies by default so results are closer to codegraph-style focused context. Pass `--include-copies` only when auditing whether `.codex`, `.agents`, and bundled skill folders are synced.
 
 For a full first-install-to-agent-search checklist, see `docs/planning/source-graph-cli-skill-qa.md` in the repository root.
 ## 6) Folder Focus
@@ -254,7 +254,7 @@ Example (absolute path):
 - Source: `vscode-extension/src/extension.ts`
 - Build: `npm run build`
 - Package: `npm run package:vsix`
-- Install test: `code --install-extension .\markdown-agent-docs-0.1.54.vsix --force`
+- Install test: `code --install-extension .\markdown-agent-docs-0.1.55.vsix --force`
 
 ## 11) Uninstall / Cleanup Guide
 
@@ -277,7 +277,7 @@ Find `datanewbie-labs.markdown-agent-docs@...` in the list.
 If you no longer need the package file, delete:
 
 ```text
-vscode-extension/markdown-agent-docs-0.1.54.vsix
+vscode-extension/markdown-agent-docs-0.1.55.vsix
 ```
 
 ### Optional: remove local extension folder manually
@@ -285,5 +285,5 @@ vscode-extension/markdown-agent-docs-0.1.54.vsix
 If needed, remove this folder:
 
 ```text
-%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-agent-docs-0.1.54
+%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-agent-docs-0.1.55
 ```

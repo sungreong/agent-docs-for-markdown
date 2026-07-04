@@ -9,7 +9,7 @@ Agent Docs for Markdown is a VS Code extension for people who keep knowledge in 
 한국어 가이드는 [README.ko.md](README.ko.md)를 참고하세요.  
 Extension-specific Marketplace copy lives in [vscode-extension/README.md](vscode-extension/README.md).
 
-Current repository extension version: `0.1.54`.
+Current repository extension version: `0.1.55`.
 
 ## What It Does
 
@@ -90,6 +90,32 @@ Agent Docs: Install or Export Skills
 Choose `Install recommended Markdown Manager skill`, then select the target agent folders you use. Missing folders are created automatically. This installs the single recommended slash command, `markdown-manager`, so the agent can route your request internally instead of making you choose among many small skills.
 
 Advanced users can still install individual low-level skills from `Advanced: choose source and target`.
+
+### How To Use The Skill In Chat
+
+After installation, use `markdown-manager` as the first instruction in your AI agent chat. In slash-command UIs, type `/markdown-manager`. In plain chat UIs, write `Use markdown-manager` or `markdown-manager를 사용해줘`.
+
+You do not need to choose the low-level skill yourself. Describe the document task in normal language, and `markdown-manager` decides whether the request needs search, graph triage, ignore advice, context packaging, update planning, canonicalization, link repair, presentation composition, export QA, or setup diagnostics.
+
+Good starting prompts:
+
+```text
+/markdown-manager 이 문서와 연결된 관련 문서까지 찾아서 업데이트 범위를 알려줘.
+```
+
+```text
+Use markdown-manager.
+
+Find broken links, orphan docs, duplicate generated content, and .mpsignore candidates before I ask an agent to update this workspace.
+```
+
+```text
+/markdown-manager 이 주제에 대해 글을 쓰기 전에 에이전트가 먼저 읽어야 할 최소 문서 묶음을 만들어줘.
+```
+
+```text
+Use markdown-manager to turn @brief.md into a polished Agent Docs report. Keep evidence, improve structure, and include an export-readiness checklist.
+```
 
 ### Start Here
 

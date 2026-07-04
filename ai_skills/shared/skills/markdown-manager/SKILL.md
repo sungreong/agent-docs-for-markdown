@@ -30,48 +30,53 @@ Start by naming the route you chose in one short sentence, for example: "I'll ha
 - Use one primary route by default. Combine two only when the user clearly needs both, such as context packaging plus update planning.
 - For simple exact text or filename discovery, use `rg` first.
 - Use Source Graph when the answer depends on links, backlinks, related docs, headings, broken links, URL references, update impact, or corpus health.
-- Prefer the workspace CLI when present: `node scripts/source-graph.mjs`.
-- If the workspace CLI is missing, use a bundled `markdown-workspace-search/scripts/source-graph.mjs` script from the active agent skills folder when available.
+- Do not assume the user's workspace contains `scripts/source-graph.mjs`. Many installed workspaces only have this skill folder.
+- Prefer this skill's bundled script: `node .codex/skills/markdown-manager/scripts/source-graph.mjs`, `node .claude/skills/markdown-manager/scripts/source-graph.mjs`, `node .agents/skills/markdown-manager/scripts/source-graph.mjs`, `node .gemini/skills/markdown-manager/scripts/source-graph.mjs`, or `node .cursor/skills/markdown-manager/scripts/source-graph.mjs`, depending on the active agent folder.
+- The bundled script is OS-aware and runs on Windows, macOS, and Linux. It delegates to a workspace `scripts/source-graph.mjs` only when one actually exists; otherwise it uses a portable Markdown scanner.
 - If a narrower skill is installed in the current agent, follow it after choosing the route. If it is not installed, use the routing table and command patterns in this manager.
 - Do not load every Markdown workflow. Pick the route, gather evidence, answer with paths and next actions.
 
 ## Common Commands
 
+Use the installed `markdown-manager` script path for your current agent folder. Examples below use `.codex`; replace it with `.claude`, `.agents`, `.gemini`, or `.cursor` when that is where the skill is installed.
+
 Refresh the local graph:
 
 ```bash
-node scripts/source-graph.mjs update --root .
+node .codex/skills/markdown-manager/scripts/source-graph.mjs update --root .
 ```
 
 Search with compact evidence:
 
 ```bash
-node scripts/source-graph.mjs search --root . --query "topic" --limit 10 --compact --heading-limit 5
+node .codex/skills/markdown-manager/scripts/source-graph.mjs search --root . --query "topic" --limit 10 --compact --heading-limit 5
 ```
 
 Search with links and headings:
 
 ```bash
-node scripts/source-graph.mjs search --root . --query "topic" --limit 5 --include-links --links-depth 1 --include-headings --heading-limit 8
+node .codex/skills/markdown-manager/scripts/source-graph.mjs search --root . --query "topic" --limit 5 --include-links --links-depth 1 --include-headings --heading-limit 8
 ```
 
 Find related documents:
 
 ```bash
-node scripts/source-graph.mjs related --root . --path "README.md" --limit 8 --include-headings
+node .codex/skills/markdown-manager/scripts/source-graph.mjs related --root . --path "README.md" --limit 8 --include-headings
 ```
 
 Inspect direct neighbors:
 
 ```bash
-node scripts/source-graph.mjs neighbors --root . --path "README.md" --depth 1
+node .codex/skills/markdown-manager/scripts/source-graph.mjs neighbors --root . --path "README.md" --depth 1
 ```
 
 Audit the workspace:
 
 ```bash
-node scripts/source-graph.mjs audit --root .
+node .codex/skills/markdown-manager/scripts/source-graph.mjs audit --root .
 ```
+
+If none of the agent skill paths exists, use `rg` as a degraded fallback for exact text discovery and tell the user the bundled skill script is missing.
 
 ## Example User Requests
 

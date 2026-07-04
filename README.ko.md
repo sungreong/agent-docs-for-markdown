@@ -9,7 +9,7 @@ Agent Docs for Markdown은 Markdown으로 지식베이스, 리서치 노트, 위
 English guide: [README.md](README.md)  
 VS Code Marketplace용 문서: [vscode-extension/README.md](vscode-extension/README.md)
 
-현재 저장소 확장 버전: `0.1.54`
+현재 저장소 확장 버전: `0.1.55`
 
 ## 한 문장으로
 
@@ -93,6 +93,32 @@ Install recommended Markdown Manager skill
 기본 설치는 `markdown-manager` 하나만 설치합니다. 사용자는 slash command 목록에서 여러 개를 고를 필요 없이 `/markdown-manager`로 시작하고, 그 안에서 검색, 그래프 진단, 링크 수리, 업데이트 계획, 보고서 작성 같은 내부 workflow를 자동으로 고르게 됩니다.
 
 세부 스킬을 직접 설치하고 싶을 때만 `Advanced: choose source and target`를 사용하면 됩니다.
+
+### 에이전트 채팅에서는 이렇게 사용합니다
+
+설치가 끝나면 AI 에이전트 채팅에서 `markdown-manager`를 첫 지시로 넣으면 됩니다. slash command를 지원하는 곳에서는 `/markdown-manager`를 입력하고, 일반 채팅에서는 `markdown-manager를 사용해줘` 또는 `Use markdown-manager`라고 쓰면 됩니다.
+
+사용자가 하위 스킬을 직접 고를 필요는 없습니다. 평소처럼 문서 작업을 설명하면 `markdown-manager`가 검색, 그래프 진단, ignore 추천, 읽기 묶음 구성, 업데이트 계획, canonical 판단, 링크 수리, 보고서/발표 구성, export 점검, 환경 진단 중 무엇이 필요한지 내부에서 고릅니다.
+
+바로 쓸 수 있는 시작 문장:
+
+```text
+/markdown-manager 이 문서와 연결된 관련 문서까지 찾아서 업데이트 범위를 알려줘.
+```
+
+```text
+markdown-manager를 사용해줘.
+
+이 Markdown 워크스페이스를 AI에게 맡기기 전에 깨진 링크, 고립 문서, 중복 생성물, .mpsignore 후보를 먼저 찾아줘.
+```
+
+```text
+/markdown-manager 이 주제에 대해 글을 쓰기 전에 에이전트가 먼저 읽어야 할 최소 문서 묶음을 만들어줘.
+```
+
+```text
+markdown-manager를 사용해서 @brief.md를 Agent Docs 보고서로 재구성해줘. 근거는 유지하고 구조를 개선한 뒤 export 점검 목록까지 넣어줘.
+```
 
 ### 가장 먼저 쓸 스킬
 
