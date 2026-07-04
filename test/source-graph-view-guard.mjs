@@ -71,6 +71,10 @@ for (const expected of [
   'function selectedNodeLinks',
   'function edgeDirectionCue',
   'circle.edge-cue',
+  'Show broken or unresolved Markdown links',
+  '>Broken</button>',
+  '>Layout</button>',
+  '>Refresh</button>',
   'Virtual link node',
   'virtual link node',
   'data-virtual-node',
@@ -270,7 +274,7 @@ assert(
 );
 assert(
   source.includes('layers: { url: false, image: false, missing: false }'),
-  'source graph webview should start with optional URL/Image/Missing layers disabled',
+  'source graph webview should start with optional URL/Image/Broken layers disabled',
 );
 assert(
   !source.includes('runProgressiveStage('),

@@ -2341,18 +2341,18 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
           <input id="search" type="search" placeholder="Search body text..." aria-label="Search Source Graph body text" />
           <span id="searchStatus" class="search-status" aria-live="polite"></span>
         </div>
-        <button id="layerUrl" class="layer-toggle url" type="button" aria-pressed="false" title="Show external URL nodes">URLs</button>
-        <button id="layerImage" class="layer-toggle image" type="button" aria-pressed="false" title="Show image/asset links" aria-label="Show image and asset links">Img</button>
-        <button id="layerMissing" class="layer-toggle missing" type="button" aria-pressed="false" title="Show unresolved links" aria-label="Show unresolved links">Miss</button>
-        <button id="toggleGroups" type="button" aria-pressed="false" title="Show folder group regions" aria-label="Show folder groups">Grp</button>
-        <button id="fit" type="button">Fit</button>
-        <button id="settle" type="button">Settle</button>
-        <button id="refresh" type="button" title="Update Source Graph">Sync</button>
+        <button id="layerUrl" class="layer-toggle url" type="button" aria-pressed="false" title="Show external URL references" aria-label="Show external URL references">URLs</button>
+        <button id="layerImage" class="layer-toggle image" type="button" aria-pressed="false" title="Show image and asset references" aria-label="Show image and asset references">Images</button>
+        <button id="layerMissing" class="layer-toggle missing" type="button" aria-pressed="false" title="Show broken or unresolved Markdown links" aria-label="Show broken or unresolved Markdown links">Broken</button>
+        <button id="toggleGroups" type="button" aria-pressed="false" title="Show folder group regions" aria-label="Show folder group regions">Groups</button>
+        <button id="fit" type="button" title="Fit visible graph to the panel" aria-label="Fit visible graph to the panel">Fit</button>
+        <button id="settle" type="button" title="Re-arrange visible nodes" aria-label="Re-arrange visible nodes">Layout</button>
+        <button id="refresh" type="button" title="Refresh Source Graph index" aria-label="Refresh Source Graph index">Refresh</button>
       </div>
     </header>
     <main>
       <svg id="graph" role="img" aria-label="Markdown source graph"></svg>
-      <aside id="details"><div class="block stage"><span class="kicker">Booting cached graph</span><strong>Preparing Markdown files...</strong><small>Opening document-to-document links first. Turn on URLs, Images, Missing, or Groups when you need extra context.</small><div class="bar"><i></i></div></div></aside>
+      <aside id="details"><div class="block stage"><span class="kicker">Booting cached graph</span><strong>Preparing Markdown files...</strong><small>Opening document-to-document links first. Turn on URLs, Images, Broken, or Groups when you need extra context.</small><div class="bar"><i></i></div></div></aside>
     </main>
   </div>
   <script nonce="${nonce}">
@@ -2553,9 +2553,9 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       if (active.length || state.groupsEnabled || state.activeGroupKey) return '';
       if (!fileEdges.length) {
         const suffix = localAnchorEdgeCount ? ' Local anchor jumps stay in the link details instead of counting as document-to-document connections.' : '';
-        return '<div class="block stage"><span class="kicker">Markdown files only</span><strong>No document-to-document links yet</strong><small>Showing Markdown files as a starting map. Turn on URLs, Images, Missing, or Groups when you need extra references.' + suffix + '</small></div>';
+        return '<div class="block stage"><span class="kicker">Markdown files only</span><strong>No document-to-document links yet</strong><small>Showing Markdown files as a starting map. Turn on URLs, Images, Broken, or Groups when you need extra references.' + suffix + '</small></div>';
       }
-      return '<div class="block stage"><span class="kicker">Markdown files only</span><strong>Extra layers are off</strong><small>The canvas starts with Markdown files and document-to-document links. Turn on URLs, Images, Missing, or Groups when you need those layers.</small></div>';
+      return '<div class="block stage"><span class="kicker">Markdown files only</span><strong>Extra layers are off</strong><small>The canvas starts with Markdown files and document-to-document links. Turn on URLs, Images, Broken, or Groups when you need those layers.</small></div>';
     }
     function isMeaningfulDocumentEdge(edge) {
       return Boolean(edge && edge.source && edge.target && edge.source !== edge.target && edge.status !== 'local-anchor');
@@ -3326,7 +3326,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       if (!node) return 'File node';
       if (node.kind === 'url') return 'URL node';
       if (node.kind === 'image') return 'Image reference node';
-      if (node.kind === 'missing') return 'Missing link node';
+      if (node.kind === 'missing') return 'Broken link node';
       return 'File node';
     }
     function supplementalNodeHint(node) {
@@ -3445,7 +3445,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
         ? '<div class="button-row"><button data-open-path="' + escapeHtml(document.path) + '" title="Open in Agent Docs viewer" aria-label="Open in Agent Docs viewer">View</button><button data-open-editor-path="' + escapeHtml(document.path) + '" title="Open in editor" aria-label="Open in editor">Edit</button><button class="wide" data-show-overview type="button" title="Back to full graph overview" aria-label="Back to full graph overview">&#8617; All</button></div>'
         : '<button data-show-overview type="button" title="Back to full graph overview" aria-label="Back to full graph overview">&#8617; All</button>';
       const virtualBadge = isSupplementalNode(selected) ? '<span class="node-badge">virtual link node</span>' : '';
-      details.innerHTML = progress + '<div class="block"><span class="kicker">' + escapeHtml(nodeKindLabel(selected)) + '</span><strong>' + escapeHtml(selected.label || selected.path) + '</strong><small>' + escapeHtml(selected.path || '') + '</small>' + virtualBadge + actions + (state.activeGroupKey ? '<button data-clear-group type="button" title="Show full graph" aria-label="Show full graph">&#8617; All</button>' : '') + supplementalNodeHint(selected) + '<div class="hint">The graph starts with Markdown files and their document links. Turn on URL, Image, or Missing layers when you need external references or unresolved links.</div><div class="legend"><span><i class="swatch file"></i>File</span><span><i class="swatch url"></i>URL</span><span><i class="swatch image"></i>Image</span><span><i class="swatch missing"></i>Missing</span></div></div>' +
+      details.innerHTML = progress + '<div class="block"><span class="kicker">' + escapeHtml(nodeKindLabel(selected)) + '</span><strong>' + escapeHtml(selected.label || selected.path) + '</strong><small>' + escapeHtml(selected.path || '') + '</small>' + virtualBadge + actions + (state.activeGroupKey ? '<button data-clear-group type="button" title="Show full graph" aria-label="Show full graph">&#8617; All</button>' : '') + supplementalNodeHint(selected) + '<div class="hint">The graph starts with Markdown files and their document links. Turn on URL, Image, or Broken layers when you need external references or unresolved links.</div><div class="legend"><span><i class="swatch file"></i>File</span><span><i class="swatch url"></i>URL</span><span><i class="swatch image"></i>Image</span><span><i class="swatch missing"></i>Broken</span></div></div>' +
         linkDirectionTabs(outbound, inbound, activeLinkPanel) +
         linkPanel(activeTitle, activeLinks, activeOpenSide, activeLinkPanel);
       reportGraphMetric('paintDetails', started);
@@ -3463,7 +3463,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const summary = nodes.length
         ? (start + 1) + '-' + Math.min(nodes.length, start + pageSize) + ' of ' + nodes.length
         : '0 nodes';
-      details.innerHTML = progressBlock() + '<div class="block"><span class="kicker">overview</span><strong>Full Graph</strong><small>' + state.nodes.length + ' visible nodes · ' + state.edges.length + ' visible edges · ' + db.tables.documents.length + ' indexed files</small><div class="button-row"><button id="fitOverview" type="button" title="Fit visible graph" aria-label="Fit visible graph">Fit</button><button id="settleOverview" type="button" title="Settle graph layout" aria-label="Settle graph layout">Settle</button></div><div class="hint">Select a node to inspect its links. Use ↩ All to return here.</div><div class="legend"><span><i class="swatch file"></i>File</span><span><i class="swatch url"></i>URL</span><span><i class="swatch image"></i>Image</span><span><i class="swatch missing"></i>Missing</span></div></div>' +
+      details.innerHTML = progressBlock() + '<div class="block"><span class="kicker">overview</span><strong>Full Graph</strong><small>' + state.nodes.length + ' visible nodes · ' + state.edges.length + ' visible edges · ' + db.tables.documents.length + ' indexed files</small><div class="button-row"><button id="fitOverview" type="button" title="Fit visible graph" aria-label="Fit visible graph">Fit</button><button id="settleOverview" type="button" title="Re-arrange visible nodes" aria-label="Re-arrange visible nodes">Layout</button></div><div class="hint">Select a node to inspect its links. Use ↩ All to return here.</div><div class="legend"><span><i class="swatch file"></i>File</span><span><i class="swatch url"></i>URL</span><span><i class="swatch image"></i>Image</span><span><i class="swatch missing"></i>Broken</span></div></div>' +
         '<div class="block"><span class="kicker">Visible nodes</span><div class="link-toolbar"><div class="link-pager"><button type="button" data-overview-page="-1" title="Previous page" aria-label="Previous page"' + (page <= 0 ? ' disabled' : '') + '>&lsaquo;</button><span>' + escapeHtml(summary) + '</span><button type="button" data-overview-page="1" title="Next page" aria-label="Next page"' + (page >= maxPage ? ' disabled' : '') + '>&rsaquo;</button></div></div>' +
         (pageItems.length ? pageItems.map((node) => '<div class="row" data-pick-node="' + escapeHtml(node.id) + '"><span>' + escapeHtml(fileLabel(node)) + '</span><small>' + escapeHtml((node.layer || 'file') + ' · ' + (node.path || node.label || '')) + '</small></div>').join('') : '<small>No graph data.</small>') + '</div>';
       const fit = document.getElementById('fitOverview');
