@@ -257,5 +257,5 @@ npm run package:vsix
 Then install:
 
 ```bash
-code --install-extension .\markdown-agent-docs-0.1.51.vsix
+code --install-extension .\markdown-agent-docs-0.1.52.vsix
 ```

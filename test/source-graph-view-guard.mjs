@@ -45,12 +45,17 @@ for (const expected of [
   'function nodeRelationStats',
   'focusNodeId',
   'focusDepth',
+  'focusVisibleIds',
+  'focusNewNodeIds',
+  'focusBranchNodeId',
   'function focusSelectedNode',
   'function expandFocusedNode',
+  'function resetFocusExpansion',
   'function focusedFilteredNodes',
   'function expandWithHops',
   'function focusHopDepths',
   'function applyFocusedHopLayout',
+  'function applyFocusedBranchLayout',
   'focusFixed',
   'Focus this node and direct neighbors',
   'Expand focused neighborhood by one hop',
@@ -327,11 +332,14 @@ assert(
   source.includes('data-focus-selected type="button" title="Focus this node and direct neighbors"') &&
     source.includes('data-focus-hop type="button" title="Expand focused neighborhood by one hop"') &&
     source.includes('state.focusNodeId = selectedId') &&
-    source.includes('state.focusDepth = Math.min(4, Math.max(1, state.focusDepth + 1))') &&
+    source.includes('state.focusVisibleIds = expandWithHops(new Set([selectedId]), 1)') &&
+    source.includes('const branchId = selectedId || state.focusNodeId') &&
+    source.includes('state.focusNewNodeIds = new Set([...state.focusVisibleIds].filter((id) => !before.has(id)))') &&
     source.includes('if (state.focusNodeId) return focusedFilteredNodes()') &&
     source.includes('applyFocusedHopLayout()') &&
+    source.includes('applyFocusedBranchLayout(rootId)') &&
     source.includes('previous.focusFixed'),
-  'selected node details should include Focus and Hop actions that filter the graph into a radial neighborhood layout',
+  'selected node details should include Focus and Hop actions that preserve the visible focus graph while expanding from the selected branch node',
 );
 assert(
   source.includes('>View</button>') && source.includes('>Edit</button>') && source.includes("? 'Full' : 'Slim'"),

@@ -2439,6 +2439,10 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       activeGroupLabel: '',
       focusNodeId: '',
       focusDepth: 1,
+      focusVisibleIds: new Set(),
+      focusNewNodeIds: new Set(),
+      focusBranchNodeId: '',
+      focusLayoutReady: false,
       activeLinkPanel: 'outbound',
       linkFilters: { outbound: 'all', inbound: 'all' },
       linkPages: { outbound: 0, inbound: 0 },
@@ -2494,7 +2498,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const layerSummary = active.length ? 'Layers: ' + active.join(', ') : 'Markdown files only';
       const groupSummary = state.activeGroupKey ? 'Group: ' + state.activeGroupLabel : (state.groupsEnabled ? 'Groups on' : 'Groups off');
       const focusNode = state.focusNodeId ? currentNodeById().get(state.focusNodeId) : null;
-      const focusSummary = focusNode ? ' · Focus: ' + compact(fileLabel(focusNode)) + ' ' + state.focusDepth + '-hop' : '';
+      const focusSummary = focusNode ? ' · Focus: ' + compact(fileLabel(focusNode)) + ' · ' + state.focusVisibleIds.size + ' visible' : '';
       const localAnchorSummary = localAnchorEdgeCount ? ' · ' + localAnchorEdgeCount + ' local anchors separate' : '';
       const previewSummary = isLargeGraphPreview() ? ' · Preview mode' : '';
       document.getElementById('meta').textContent = db.tables.documents.length + ' docs · ' + fileEdges.length + ' doc-to-doc links' + localAnchorSummary + ' · ' + connectedNodeIds.size + ' connected · ' + layerSummary + ' · ' + groupSummary + focusSummary + previewSummary + ' · Updated ' + new Date(db.updatedAt).toLocaleString();
@@ -3005,6 +3009,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       state.overviewPage = 0;
       state.focusNodeId = '';
       state.focusDepth = 1;
+      resetFocusExpansion();
       selectedId = '';
       rebuildGraphState();
       updateMeta();
@@ -3018,6 +3023,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       state.activeGroupLabel = label || groupLabel(key);
       state.focusNodeId = '';
       state.focusDepth = 1;
+      resetFocusExpansion();
       selectedId = '';
       rebuildGraphState();
       settleLayout(autoSettleIterations(80), { defer: true });
@@ -3029,6 +3035,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       state.activeGroupLabel = '';
       state.focusNodeId = '';
       state.focusDepth = 1;
+      resetFocusExpansion();
       selectedId = '';
       rebuildGraphState();
       settleLayout(autoSettleIterations(80), { defer: true });
@@ -3040,6 +3047,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       state.activeGroupLabel = '';
       state.focusNodeId = '';
       state.focusDepth = 1;
+      resetFocusExpansion();
       state.highlightedEdge = null;
       state.highlightedNodeIds = new Set();
       state.linkFilters = { outbound: 'all', inbound: 'all' };
@@ -3056,6 +3064,10 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       state.activeGroupLabel = '';
       state.focusNodeId = selectedId;
       state.focusDepth = 1;
+      state.focusVisibleIds = expandWithHops(new Set([selectedId]), 1);
+      state.focusNewNodeIds = new Set(state.focusVisibleIds);
+      state.focusBranchNodeId = selectedId;
+      state.focusLayoutReady = false;
       state.linkPages = { outbound: 0, inbound: 0 };
       rebuildGraphState();
       highlightNeighborhood(selectedId, true);
@@ -3067,14 +3079,26 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       if (!selectedId && !state.focusNodeId) return;
       state.activeGroupKey = '';
       state.activeGroupLabel = '';
-      state.focusNodeId = state.focusNodeId || selectedId;
-      selectedId = state.focusNodeId;
+      const branchId = selectedId || state.focusNodeId;
+      state.focusNodeId = state.focusNodeId || branchId;
+      if (!state.focusVisibleIds.size) state.focusVisibleIds = expandWithHops(new Set([state.focusNodeId]), 1);
+      const before = new Set(state.focusVisibleIds);
+      const additions = expandWithNeighbors(new Set([branchId]));
+      for (const id of additions) state.focusVisibleIds.add(id);
+      state.focusNewNodeIds = new Set([...state.focusVisibleIds].filter((id) => !before.has(id)));
+      state.focusBranchNodeId = branchId;
       state.focusDepth = Math.min(4, Math.max(1, state.focusDepth + 1));
       rebuildGraphState();
       highlightNeighborhood(selectedId, true);
       updateMeta();
-      centerNode(selectedId);
+      centerNode(branchId);
       paint();
+    }
+    function resetFocusExpansion() {
+      state.focusVisibleIds = new Set();
+      state.focusNewNodeIds = new Set();
+      state.focusBranchNodeId = '';
+      state.focusLayoutReady = false;
     }
     function groupKeyForNode(node) {
       if (!node || node.kind !== 'document') return '';
@@ -3162,7 +3186,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     function focusedFilteredNodes() {
       const focusId = state.focusNodeId;
       if (!focusId) return defaultFilteredNodes();
-      const ids = expandWithHops(new Set([focusId]), state.focusDepth);
+      const ids = state.focusVisibleIds.size ? state.focusVisibleIds : expandWithHops(new Set([focusId]), state.focusDepth);
       const nodes = currentNodes()
         .filter((node) => ids.has(node.id))
         .sort((a, b) => Number(b.id === focusId) - Number(a.id === focusId) || graphDegree(b.id) - graphDegree(a.id) || fileLabel(a).localeCompare(fileLabel(b)))
@@ -3207,6 +3231,10 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     function applyFocusedHopLayout() {
       const rootId = state.focusNodeId || selectedId;
       if (!rootId || !state.nodes.some((node) => node.id === rootId)) return;
+      if (state.focusLayoutReady) {
+        applyFocusedBranchLayout(rootId);
+        return;
+      }
       const depthById = focusHopDepths(new Set([rootId]), state.focusDepth);
       const layers = new Map();
       for (const node of state.nodes) {
@@ -3237,6 +3265,42 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
           state.velocity.set(node.id, { x: 0, y: 0 });
         });
       }
+      state.focusLayoutReady = true;
+      state.focusNewNodeIds = new Set();
+    }
+    function applyFocusedBranchLayout(rootId) {
+      const branchId = state.focusBranchNodeId || selectedId || rootId;
+      const rootPoint = state.pos.get(rootId) || { x: 0, y: 0 };
+      const branchPoint = state.pos.get(branchId) || rootPoint;
+      const newNodes = state.nodes
+        .filter((node) => state.focusNewNodeIds.has(node.id))
+        .sort((a, b) => graphDegree(b.id) - graphDegree(a.id) || fileLabel(a).localeCompare(fileLabel(b)));
+      for (const node of state.nodes) {
+        const point = state.pos.get(node.id);
+        if (!point) continue;
+        point.fixed = true;
+        point.focusFixed = true;
+      }
+      if (!newNodes.length) return;
+      const dx = branchPoint.x - rootPoint.x;
+      const dy = branchPoint.y - rootPoint.y;
+      const baseAngle = Math.abs(dx) + Math.abs(dy) > 1 ? Math.atan2(dy, dx) : 0;
+      const count = newNodes.length;
+      const span = count <= 2 ? Math.PI * 0.34 : Math.min(Math.PI * 0.9, Math.PI * 0.22 + count * 0.08);
+      const radius = 132 + Math.sqrt(count) * 14;
+      newNodes.forEach((node, index) => {
+        const offset = count <= 1 ? 0 : -span / 2 + span * (index / Math.max(1, count - 1));
+        const ringOffset = count > 8 ? (index % 3 - 1) * 16 : 0;
+        const angle = baseAngle + offset;
+        state.pos.set(node.id, {
+          x: branchPoint.x + Math.cos(angle) * (radius + ringOffset),
+          y: branchPoint.y + Math.sin(angle) * (radius + ringOffset),
+          fixed: true,
+          focusFixed: true,
+        });
+        state.velocity.set(node.id, { x: 0, y: 0 });
+      });
+      state.focusNewNodeIds = new Set();
     }
     function seedLayout(nodes, edges) {
       const pos = new Map();
