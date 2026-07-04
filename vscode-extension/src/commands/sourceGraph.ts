@@ -2227,6 +2227,13 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     .search-status { min-width:70px; color:var(--muted); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     input { width:min(320px,42vw); min-width:160px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:#0b111c; color:var(--text); outline:none; }
     button { border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:rgba(255,255,255,.04); color:var(--text); cursor:pointer; }
+    .icon-button { display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+    .control-icon { display:inline-grid; place-items:center; min-width:22px; height:16px; padding:0 4px; border:1px solid var(--line); border-radius:999px; color:var(--muted); background:rgba(255,255,255,.035); font-size:9px; font-weight:800; line-height:1; letter-spacing:0; }
+    .control-icon.url { color:#5fc4a8; border-color:rgba(95,196,168,.55); background:rgba(95,196,168,.11); }
+    .control-icon.image { color:#c69cff; border-color:rgba(198,156,255,.55); background:rgba(198,156,255,.11); }
+    .control-icon.missing { color:#ff8f8f; border-color:rgba(255,143,143,.55); background:rgba(255,143,143,.10); }
+    .control-icon.group { color:#f6d67a; border-color:rgba(246,214,122,.48); background:rgba(246,214,122,.10); }
+    .control-icon.action { color:#dbe6ff; border-color:rgba(126,160,255,.45); background:rgba(126,160,255,.10); }
     button:hover { border-color:var(--accent); }
     button[aria-pressed="true"] { border-color:var(--accent); background:rgba(126,160,255,.16); }
     .layer-toggle[aria-pressed="true"] { border-color:var(--accent); background:rgba(126,160,255,.16); }
@@ -2266,8 +2273,22 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     .row { display:grid; gap:3px; padding:8px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.025); }
     .row[data-open-path], .row[data-open-url] { cursor:pointer; }
     .row[data-open-path]:hover, .row[data-open-url]:hover { border-color:var(--accent); background:rgba(126,160,255,.08); }
+    .row[data-pick-node] { cursor:pointer; }
+    .row[data-pick-node]:hover { border-color:var(--accent); background:rgba(126,160,255,.08); }
     .row.is-focused { border-color:#dbe6ff; background:rgba(126,160,255,.14); box-shadow:0 0 0 1px rgba(126,160,255,.28) inset; }
     .row span, .row small, .block strong, .block small { overflow-wrap:anywhere; }
+    .node-row { gap:7px; padding:9px; }
+    .node-title { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px; }
+    .node-title strong { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+    .node-meta { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+    .meta-chip, .type-chip { display:inline-flex; align-items:center; gap:5px; min-width:0; border:1px solid var(--line); border-radius:999px; padding:3px 7px; background:rgba(255,255,255,.035); color:var(--muted); font-size:10px; font-weight:700; line-height:1.1; }
+    .meta-chip.direct { color:#dbe6ff; border-color:rgba(126,160,255,.42); background:rgba(126,160,255,.10); }
+    .meta-chip.hop { color:#f6d67a; border-color:rgba(246,214,122,.42); background:rgba(246,214,122,.10); }
+    .type-chip.file { color:#b8c7e6; border-color:rgba(126,160,255,.42); background:rgba(126,160,255,.08); }
+    .type-chip.url { color:#5fc4a8; border-color:rgba(95,196,168,.5); background:rgba(95,196,168,.10); }
+    .type-chip.image { color:#c69cff; border-color:rgba(198,156,255,.5); background:rgba(198,156,255,.10); }
+    .type-chip.missing { color:#ff8f8f; border-color:rgba(255,143,143,.5); background:rgba(255,143,143,.10); }
+    .node-preview { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; color:var(--muted); line-height:1.35; }
     line { stroke:rgba(154,171,195,.52); stroke-width:1.2; }
     line.layer-file { stroke:rgba(154,171,195,.58); }
     line.layer-url { stroke:rgba(95,196,168,.62); stroke-dasharray:6 4; }
@@ -2321,8 +2342,8 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     @keyframes edgePulse { from { stroke-opacity:.72; } to { stroke-opacity:1; filter:drop-shadow(0 0 10px rgba(126,160,255,1)); } }
     @keyframes loadSlide { from { transform:translateX(-18%); opacity:.65; } to { transform:translateX(180%); opacity:1; } }
     @media (max-width: 1120px) { header { grid-template-columns:1fr; align-items:start; } .actions { width:100%; justify-content:flex-start; } .search-tools { flex:1 1 420px; min-width:min(100%,420px); } }
-    @media (max-width: 860px) { main { grid-template-columns:1fr; grid-template-rows:minmax(320px,1fr) 260px; } aside { border-left:0; border-top:1px solid var(--line); } input { width:100%; } .actions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); } .actions button { min-width:0; padding:7px 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .search-tools { grid-column:1 / -1; width:100%; min-width:0; display:grid; grid-template-columns:auto minmax(0,1fr) auto; } .search-tools input { min-width:0; width:100%; } .search-status { min-width:0; max-width:78px; } }
-    @media (max-width: 520px) { header { padding:10px; gap:9px; } .actions { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; } .search-tools { grid-template-columns:1fr; } .search-mode { grid-template-columns:1fr 1fr; } .search-status { max-width:100%; } }
+    @media (max-width: 860px) { main { grid-template-columns:1fr; grid-template-rows:minmax(320px,1fr) 260px; } aside { border-left:0; border-top:1px solid var(--line); } input { width:100%; } .actions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); } .actions button { min-width:0; padding:7px 8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .icon-button span:last-child { min-width:0; overflow:hidden; text-overflow:ellipsis; } .search-tools { grid-column:1 / -1; width:100%; min-width:0; display:grid; grid-template-columns:auto minmax(0,1fr) auto; } .search-tools input { min-width:0; width:100%; } .search-status { min-width:0; max-width:78px; } }
+    @media (max-width: 520px) { header { padding:10px; gap:9px; } .actions { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; } .control-icon { min-width:18px; padding:0 3px; } .search-tools { grid-template-columns:1fr; } .search-mode { grid-template-columns:1fr 1fr; } .search-status { max-width:100%; } .node-title { grid-template-columns:1fr; gap:5px; } .type-chip { width:max-content; } }
   </style>
 </head>
 <body>
@@ -2341,13 +2362,13 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
           <input id="search" type="search" placeholder="Search body text..." aria-label="Search Source Graph body text" />
           <span id="searchStatus" class="search-status" aria-live="polite"></span>
         </div>
-        <button id="layerUrl" class="layer-toggle url" type="button" aria-pressed="false" title="Show external URL references" aria-label="Show external URL references">URLs</button>
-        <button id="layerImage" class="layer-toggle image" type="button" aria-pressed="false" title="Show image and asset references" aria-label="Show image and asset references">Images</button>
-        <button id="layerMissing" class="layer-toggle missing" type="button" aria-pressed="false" title="Show broken or unresolved Markdown links" aria-label="Show broken or unresolved Markdown links">Broken</button>
-        <button id="toggleGroups" type="button" aria-pressed="false" title="Show folder group regions" aria-label="Show folder group regions">Groups</button>
-        <button id="fit" type="button" title="Fit visible graph to the panel" aria-label="Fit visible graph to the panel">Fit</button>
-        <button id="settle" type="button" title="Re-arrange visible nodes" aria-label="Re-arrange visible nodes">Layout</button>
-        <button id="refresh" type="button" title="Refresh Source Graph index" aria-label="Refresh Source Graph index">Refresh</button>
+        <button id="layerUrl" class="layer-toggle url icon-button" type="button" aria-pressed="false" title="Show external URL references" aria-label="Show external URL references"><span class="control-icon url" aria-hidden="true">URL</span><span>URLs</span></button>
+        <button id="layerImage" class="layer-toggle image icon-button" type="button" aria-pressed="false" title="Show image and asset references" aria-label="Show image and asset references"><span class="control-icon image" aria-hidden="true">IMG</span><span>Images</span></button>
+        <button id="layerMissing" class="layer-toggle missing icon-button" type="button" aria-pressed="false" title="Show broken or unresolved Markdown links" aria-label="Show broken or unresolved Markdown links"><span class="control-icon missing" aria-hidden="true">BRK</span><span>Broken</span></button>
+        <button id="toggleGroups" class="icon-button" type="button" aria-pressed="false" title="Show folder group regions" aria-label="Show folder group regions"><span class="control-icon group" aria-hidden="true">GRP</span><span>Groups</span></button>
+        <button id="fit" class="icon-button" type="button" title="Fit visible graph to the panel" aria-label="Fit visible graph to the panel"><span class="control-icon action" aria-hidden="true">FIT</span><span>Fit</span></button>
+        <button id="settle" class="icon-button" type="button" title="Re-arrange visible nodes" aria-label="Re-arrange visible nodes"><span class="control-icon action" aria-hidden="true">LAY</span><span>Layout</span></button>
+        <button id="refresh" class="icon-button" type="button" title="Refresh Source Graph index" aria-label="Refresh Source Graph index"><span class="control-icon action" aria-hidden="true">REF</span><span>Refresh</span></button>
       </div>
     </header>
     <main>
@@ -3355,6 +3376,26 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       if (node.kind === 'missing') return 'Broken link node';
       return 'File node';
     }
+    function nodeLayerClass(node) {
+      if (!node) return 'file';
+      if (node.kind === 'url' || node.layer === 'url') return 'url';
+      if (node.kind === 'image' || node.layer === 'image') return 'image';
+      if (node.kind === 'missing' || node.layer === 'missing') return 'missing';
+      return 'file';
+    }
+    function nodeTypeChip(node) {
+      const layer = nodeLayerClass(node);
+      const label = layer === 'url' ? 'URL' : layer === 'image' ? 'Image' : layer === 'missing' ? 'Broken' : 'File';
+      return '<span class="type-chip ' + layer + '"><i class="swatch ' + layer + '"></i>' + label + '</span>';
+    }
+    function overviewNodeRow(node, stats) {
+      const pathText = node.path || node.label || node.id;
+      return '<div class="row node-row" data-pick-node="' + escapeHtml(node.id) + '">' +
+        '<div class="node-title"><strong>' + escapeHtml(fileLabel(node)) + '</strong>' + nodeTypeChip(node) + '</div>' +
+        '<div class="node-meta"><span class="meta-chip direct">Direct ' + stats.direct + '</span><span class="meta-chip hop">2-hop ' + stats.hop2 + '</span></div>' +
+        '<small class="node-preview">' + escapeHtml(pathText) + '</small>' +
+        '</div>';
+    }
     function supplementalNodeHint(node) {
       if (!isSupplementalNode(node)) return '';
       return '<div class="hint">Virtual link node: this is generated from a Markdown reference, not a real Markdown file. It can be selected for context, but it will not open in the editor unless a source link row is available.</div>';
@@ -3496,7 +3537,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       const sortButton = (value, label) => '<button type="button" class="link-tab" data-overview-sort="' + value + '" aria-pressed="' + String(state.overviewSort === value) + '">' + label + '</button>';
       details.innerHTML = progressBlock() + '<div class="block"><span class="kicker">overview</span><strong>Full Graph</strong><small>' + state.nodes.length + ' visible nodes · ' + state.edges.length + ' visible edges · ' + db.tables.documents.length + ' indexed files</small><div class="button-row"><button id="fitOverview" type="button" title="Fit visible graph" aria-label="Fit visible graph">Fit</button><button id="settleOverview" type="button" title="Re-arrange visible nodes" aria-label="Re-arrange visible nodes">Layout</button></div><div class="hint">Select a node to inspect its links. Use ↩ All to return here.</div><div class="legend"><span><i class="swatch file"></i>File</span><span><i class="swatch url"></i>URL</span><span><i class="swatch image"></i>Image</span><span><i class="swatch missing"></i>Broken</span></div></div>' +
         '<div class="block"><span class="kicker">Visible nodes</span><div class="link-toolbar"><div class="link-tabs">' + sortButton('links', 'Links') + sortButton('hop2', '2-hop') + sortButton('name', 'Name') + sortButton('path', 'Path') + '</div><div class="link-pager"><button type="button" data-overview-page="-1" title="Previous page" aria-label="Previous page"' + (page <= 0 ? ' disabled' : '') + '>&lsaquo;</button><span>' + escapeHtml(summary) + '</span><button type="button" data-overview-page="1" title="Next page" aria-label="Next page"' + (page >= maxPage ? ' disabled' : '') + '>&rsaquo;</button></div></div>' +
-        (pageItems.length ? pageItems.map(({ node, stats }) => '<div class="row" data-pick-node="' + escapeHtml(node.id) + '"><span>' + escapeHtml(fileLabel(node)) + '</span><small>' + escapeHtml('Direct ' + stats.direct + ' · 2-hop ' + stats.hop2 + ' · ' + (node.layer || 'file') + ' · ' + (node.path || node.label || '')) + '</small></div>').join('') : '<small>No graph data.</small>') + '</div>';
+        (pageItems.length ? pageItems.map(({ node, stats }) => overviewNodeRow(node, stats)).join('') : '<small>No graph data.</small>') + '</div>';
       const fit = document.getElementById('fitOverview');
       if (fit) fit.addEventListener('click', () => { fitGraph(); paint({ details: false }); });
       const settle = document.getElementById('settleOverview');
