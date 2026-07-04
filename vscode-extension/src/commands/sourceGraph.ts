@@ -2419,6 +2419,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       linkFilters: { outbound: 'all', inbound: 'all' },
       linkPages: { outbound: 0, inbound: 0 },
       overviewPage: 0,
+      overviewSort: 'links',
       compactLinks: false,
       draggingNode: null,
       running: false,
@@ -2782,6 +2783,16 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
         }
         return;
       }
+      const overviewSort = event.target.closest && event.target.closest('[data-overview-sort]');
+      if (overviewSort) {
+        const sort = overviewSort.getAttribute('data-overview-sort') || 'links';
+        if (['links', 'hop2', 'name', 'path'].includes(sort)) {
+          state.overviewSort = sort;
+          state.overviewPage = 0;
+          paintDetails();
+        }
+        return;
+      }
       const openUrl = event.target.closest && event.target.closest('[data-open-url]');
       if (openUrl) {
         const nodeId = openUrl.getAttribute('data-focus-node') || '';
@@ -2918,6 +2929,21 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     }
     function graphDegree(id) {
       return visualGraph().degreeByNode.get(id) || 0;
+    }
+    function nodeRelationStats(nodeId) {
+      const direct = new Set();
+      for (const edge of edgesForNode(nodeId)) {
+        const other = edge.source === nodeId ? edge.target : edge.source;
+        if (other && other !== nodeId) direct.add(other);
+      }
+      const hop2 = new Set();
+      for (const directId of direct) {
+        for (const edge of edgesForNode(directId)) {
+          const other = edge.source === directId ? edge.target : edge.source;
+          if (other && other !== nodeId && !direct.has(other)) hop2.add(other);
+        }
+      }
+      return { direct: direct.size, hop2: hop2.size };
     }
     function graphNodeBudget(kind = 'default') {
       const previewActive = typeof state !== 'undefined' && db.tables.documents.length > 1000 && !state.fullGraphConfirmed && !state.activeGroupKey;
@@ -3451,21 +3477,26 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
       reportGraphMetric('paintDetails', started);
     }
     function paintOverviewDetails() {
-      const nodes = state.nodes
-        .slice()
-        .sort((a, b) => graphDegree(b.id) - graphDegree(a.id) || fileLabel(a).localeCompare(fileLabel(b)));
+      const rows = state.nodes.map((node) => ({ node, stats: nodeRelationStats(node.id) }));
+      rows.sort((a, b) => {
+        if (state.overviewSort === 'hop2') return b.stats.hop2 - a.stats.hop2 || b.stats.direct - a.stats.direct || fileLabel(a.node).localeCompare(fileLabel(b.node));
+        if (state.overviewSort === 'name') return fileLabel(a.node).localeCompare(fileLabel(b.node)) || b.stats.direct - a.stats.direct;
+        if (state.overviewSort === 'path') return (a.node.path || a.node.label || '').localeCompare(b.node.path || b.node.label || '') || fileLabel(a.node).localeCompare(fileLabel(b.node));
+        return b.stats.direct - a.stats.direct || b.stats.hop2 - a.stats.hop2 || fileLabel(a.node).localeCompare(fileLabel(b.node));
+      });
       const pageSize = 10;
-      const maxPage = Math.max(0, Math.ceil(nodes.length / pageSize) - 1);
+      const maxPage = Math.max(0, Math.ceil(rows.length / pageSize) - 1);
       const page = Math.min(state.overviewPage || 0, maxPage);
       state.overviewPage = page;
       const start = page * pageSize;
-      const pageItems = nodes.slice(start, start + pageSize);
-      const summary = nodes.length
-        ? (start + 1) + '-' + Math.min(nodes.length, start + pageSize) + ' of ' + nodes.length
+      const pageItems = rows.slice(start, start + pageSize);
+      const summary = rows.length
+        ? (start + 1) + '-' + Math.min(rows.length, start + pageSize) + ' of ' + rows.length
         : '0 nodes';
+      const sortButton = (value, label) => '<button type="button" class="link-tab" data-overview-sort="' + value + '" aria-pressed="' + String(state.overviewSort === value) + '">' + label + '</button>';
       details.innerHTML = progressBlock() + '<div class="block"><span class="kicker">overview</span><strong>Full Graph</strong><small>' + state.nodes.length + ' visible nodes · ' + state.edges.length + ' visible edges · ' + db.tables.documents.length + ' indexed files</small><div class="button-row"><button id="fitOverview" type="button" title="Fit visible graph" aria-label="Fit visible graph">Fit</button><button id="settleOverview" type="button" title="Re-arrange visible nodes" aria-label="Re-arrange visible nodes">Layout</button></div><div class="hint">Select a node to inspect its links. Use ↩ All to return here.</div><div class="legend"><span><i class="swatch file"></i>File</span><span><i class="swatch url"></i>URL</span><span><i class="swatch image"></i>Image</span><span><i class="swatch missing"></i>Broken</span></div></div>' +
-        '<div class="block"><span class="kicker">Visible nodes</span><div class="link-toolbar"><div class="link-pager"><button type="button" data-overview-page="-1" title="Previous page" aria-label="Previous page"' + (page <= 0 ? ' disabled' : '') + '>&lsaquo;</button><span>' + escapeHtml(summary) + '</span><button type="button" data-overview-page="1" title="Next page" aria-label="Next page"' + (page >= maxPage ? ' disabled' : '') + '>&rsaquo;</button></div></div>' +
-        (pageItems.length ? pageItems.map((node) => '<div class="row" data-pick-node="' + escapeHtml(node.id) + '"><span>' + escapeHtml(fileLabel(node)) + '</span><small>' + escapeHtml((node.layer || 'file') + ' · ' + (node.path || node.label || '')) + '</small></div>').join('') : '<small>No graph data.</small>') + '</div>';
+        '<div class="block"><span class="kicker">Visible nodes</span><div class="link-toolbar"><div class="link-tabs">' + sortButton('links', 'Links') + sortButton('hop2', '2-hop') + sortButton('name', 'Name') + sortButton('path', 'Path') + '</div><div class="link-pager"><button type="button" data-overview-page="-1" title="Previous page" aria-label="Previous page"' + (page <= 0 ? ' disabled' : '') + '>&lsaquo;</button><span>' + escapeHtml(summary) + '</span><button type="button" data-overview-page="1" title="Next page" aria-label="Next page"' + (page >= maxPage ? ' disabled' : '') + '>&rsaquo;</button></div></div>' +
+        (pageItems.length ? pageItems.map(({ node, stats }) => '<div class="row" data-pick-node="' + escapeHtml(node.id) + '"><span>' + escapeHtml(fileLabel(node)) + '</span><small>' + escapeHtml('Direct ' + stats.direct + ' · 2-hop ' + stats.hop2 + ' · ' + (node.layer || 'file') + ' · ' + (node.path || node.label || '')) + '</small></div>').join('') : '<small>No graph data.</small>') + '</div>';
       const fit = document.getElementById('fitOverview');
       if (fit) fit.addEventListener('click', () => { fitGraph(); paint({ details: false }); });
       const settle = document.getElementById('settleOverview');
