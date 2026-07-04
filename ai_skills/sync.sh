@@ -1,10 +1,11 @@
 #!/bin/bash
-# Edit files in claude/ only, then run this to sync to other AI tools.
+# Skills now live in shared/ only. Agent-specific folders are created at install time.
 
-SOURCE="$(dirname "$0")/claude"
+SOURCE="$(dirname "$0")/shared"
 
-for TARGET in agents codex; do
-  rm -rf "$(dirname "$0")/$TARGET"
-  cp -r "$SOURCE" "$(dirname "$0")/$TARGET"
-  echo "Synced -> $TARGET/"
-done
+if [ ! -d "$SOURCE/skills" ]; then
+  echo "Missing shared skills source: $SOURCE/skills" >&2
+  exit 1
+fi
+
+echo "Shared skills source is ready: $SOURCE/skills"

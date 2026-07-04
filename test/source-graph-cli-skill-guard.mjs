@@ -13,11 +13,11 @@ await fs.writeFile(path.join(tmpRoot, 'guide.md'), '# Guide\n\nRelated to [[refe
 await fs.writeFile(path.join(tmpRoot, 'reference.md'), '# Reference\n\nBack to [Index](index.md).\n', 'utf8');
 await fs.mkdir(path.join(tmpRoot, '.codex', 'skills', 'markdown-workspace-search', 'references'), { recursive: true });
 await fs.mkdir(path.join(tmpRoot, '.agents', 'skills', 'markdown-workspace-search', 'references'), { recursive: true });
-await fs.mkdir(path.join(tmpRoot, 'ai_skills', 'codex', 'skills', 'markdown-workspace-search', 'references'), { recursive: true });
+await fs.mkdir(path.join(tmpRoot, 'ai_skills', 'shared', 'skills', 'markdown-workspace-search', 'references'), { recursive: true });
 const copiedSkillReference = '# Source Graph CLI Commands\n\nUnique CLI duplicate marker.\n';
 await fs.writeFile(path.join(tmpRoot, '.codex', 'skills', 'markdown-workspace-search', 'references', 'cli-commands.md'), copiedSkillReference, 'utf8');
 await fs.writeFile(path.join(tmpRoot, '.agents', 'skills', 'markdown-workspace-search', 'references', 'cli-commands.md'), copiedSkillReference, 'utf8');
-await fs.writeFile(path.join(tmpRoot, 'ai_skills', 'codex', 'skills', 'markdown-workspace-search', 'references', 'cli-commands.md'), copiedSkillReference, 'utf8');
+await fs.writeFile(path.join(tmpRoot, 'ai_skills', 'shared', 'skills', 'markdown-workspace-search', 'references', 'cli-commands.md'), copiedSkillReference, 'utf8');
 
 const scriptPath = path.join(repoRoot, 'scripts', 'source-graph.mjs');
 

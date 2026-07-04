@@ -1,4 +1,0 @@
-interface:
-  display_name: "Markdown Context Packager"
-  short_description: "Package related docs, links, and headings for a topic"
-  default_prompt: "Use $markdown-context-packager to build a compact context bundle for this topic, URL, or target Markdown document."

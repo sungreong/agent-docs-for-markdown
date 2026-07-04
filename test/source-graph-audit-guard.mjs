@@ -16,7 +16,7 @@ try {
   await fs.mkdir(path.join(tmpRoot, '.codex', 'skills', 'markdown-context-packager'), { recursive: true });
   await fs.mkdir(path.join(tmpRoot, '.claude', 'skills', 'markdown-context-packager'), { recursive: true });
   await fs.mkdir(path.join(tmpRoot, '.gemini', 'skills', 'markdown-context-packager'), { recursive: true });
-  await fs.mkdir(path.join(tmpRoot, 'ai_skills', 'codex', 'skills', 'markdown-context-packager'), { recursive: true });
+  await fs.mkdir(path.join(tmpRoot, 'ai_skills', 'shared', 'skills', 'markdown-context-packager'), { recursive: true });
   await fs.mkdir(path.join(tmpRoot, '.mps'), { recursive: true });
 
   await fs.writeFile(path.join(tmpRoot, '.mps', '.mpsignore'), ['.claude/**', 'ignored/**', ''].join('\n'), 'utf8');
@@ -28,7 +28,7 @@ try {
   await fs.writeFile(path.join(tmpRoot, '.codex', 'skills', 'markdown-context-packager', 'SKILL.md'), '# Skill\n', 'utf8');
   await fs.writeFile(path.join(tmpRoot, '.claude', 'skills', 'markdown-context-packager', 'SKILL.md'), '# Skill\n', 'utf8');
   await fs.writeFile(path.join(tmpRoot, '.gemini', 'skills', 'markdown-context-packager', 'SKILL.md'), '# Skill\n', 'utf8');
-  await fs.writeFile(path.join(tmpRoot, 'ai_skills', 'codex', 'skills', 'markdown-context-packager', 'SKILL.md'), '# Skill\n', 'utf8');
+  await fs.writeFile(path.join(tmpRoot, 'ai_skills', 'shared', 'skills', 'markdown-context-packager', 'SKILL.md'), '# Skill\n', 'utf8');
 
   const audit = JSON.parse(runCli(['audit', '--root', tmpRoot]));
   assert(audit.ignore.userPatterns.includes('.claude/**'), 'expected user ignore patterns to include .claude/**');

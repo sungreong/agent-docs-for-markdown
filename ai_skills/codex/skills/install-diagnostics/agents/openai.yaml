@@ -1,4 +1,0 @@
-interface:
-  display_name: "Install Diagnostics"
-  short_description: "OS-aware dependency checks with install history"
-  default_prompt: "Use $install-diagnostics to check missing setup requirements before using this skill."

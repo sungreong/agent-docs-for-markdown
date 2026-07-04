@@ -1,4 +1,0 @@
-interface:
-  display_name: "Markdown Canonicalizer"
-  short_description: "Choose the primary source among overlapping Markdown pages"
-  default_prompt: "Use $markdown-canonicalizer to compare overlapping Markdown pages and recommend the canonical source or merge plan."

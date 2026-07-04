@@ -1,0 +1,4 @@
+interface:
+  display_name: "Markdown Manager"
+  short_description: "One entry point that routes Markdown search, graph, link, cleanup, update, and writing tasks"
+  default_prompt: "Use $markdown-manager to understand this Markdown request, choose the right internal Agent Docs workflow, gather Source Graph evidence, and return the next action."

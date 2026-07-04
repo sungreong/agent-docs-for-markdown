@@ -2,23 +2,15 @@
 import { readFile } from 'node:fs/promises';
 
 const skillFiles = [
-  'ai_skills/codex/skills/markdown-workspace-search/SKILL.md',
-  'ai_skills/agents/skills/markdown-workspace-search/SKILL.md',
-  'ai_skills/claude/skills/markdown-workspace-search/SKILL.md',
-  'vscode-extension/ai_skills/codex/skills/markdown-workspace-search/SKILL.md',
-  'vscode-extension/ai_skills/agents/skills/markdown-workspace-search/SKILL.md',
-  'vscode-extension/ai_skills/claude/skills/markdown-workspace-search/SKILL.md',
+  'ai_skills/shared/skills/markdown-workspace-search/SKILL.md',
+  'vscode-extension/ai_skills/shared/skills/markdown-workspace-search/SKILL.md',
   '.codex/skills/markdown-workspace-search/SKILL.md',
   '.agents/skills/markdown-workspace-search/SKILL.md',
 ];
 
 const referenceFiles = [
-  'ai_skills/codex/skills/markdown-workspace-search/references/cli-commands.md',
-  'ai_skills/agents/skills/markdown-workspace-search/references/cli-commands.md',
-  'ai_skills/claude/skills/markdown-workspace-search/references/cli-commands.md',
-  'vscode-extension/ai_skills/codex/skills/markdown-workspace-search/references/cli-commands.md',
-  'vscode-extension/ai_skills/agents/skills/markdown-workspace-search/references/cli-commands.md',
-  'vscode-extension/ai_skills/claude/skills/markdown-workspace-search/references/cli-commands.md',
+  'ai_skills/shared/skills/markdown-workspace-search/references/cli-commands.md',
+  'vscode-extension/ai_skills/shared/skills/markdown-workspace-search/references/cli-commands.md',
   '.codex/skills/markdown-workspace-search/references/cli-commands.md',
   '.agents/skills/markdown-workspace-search/references/cli-commands.md',
 ];

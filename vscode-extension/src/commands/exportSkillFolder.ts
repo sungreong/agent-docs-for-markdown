@@ -79,8 +79,10 @@ interface SkillInstallRecord {
 }
 
 const bundledSourceIdPrefix = 'bundled-';
+const bundledSharedSourceId = 'bundled-shared';
 const workspaceTargetIdPrefix = 'workspace-';
 const configuredTargetId = 'workspace-configured';
+const recommendedBundledSkillIds = new Set(['markdown-manager']);
 
 const skillAgentProfiles = [
   {
@@ -115,10 +117,16 @@ const skillAgentProfiles = [
   },
 ] as const;
 
-const bundledProfiles = skillAgentProfiles.map((profile) => ({
-  id: profile.id,
-  label: profile.bundledLabel,
-}));
+const bundledProfiles = [
+  {
+    id: 'shared',
+    label: 'Bundled Shared',
+  },
+  ...skillAgentProfiles.map((profile) => ({
+    id: profile.id,
+    label: profile.bundledLabel,
+  })),
+];
 
 const excludedNames = new Set(['.git', 'node_modules', '.DS_Store', 'Thumbs.db', 'desktop.ini']);
 let skillInventoryChannel: vscode.OutputChannel | null = null;
@@ -217,12 +225,13 @@ async function installBundledSkillsToMatchingWorkspace(
   }
 
   const workspaceRoot = workspaceFolder.uri.fsPath;
+  const sharedSource = sources.find((candidate) => candidate.id === bundledSharedSourceId) ?? null;
   const bundledSourcesByProfile = new Map<string, SkillSource>();
   for (const source of sources.filter((candidate) => candidate.id.startsWith(bundledSourceIdPrefix))) {
     const profile = skillAgentProfileForSource(source);
     if (profile) bundledSourcesByProfile.set(profile.id, source);
   }
-  const fallbackSource = bundledSourcesByProfile.get('codex') ?? bundledSourcesByProfile.get('agents') ?? bundledSourcesByProfile.get('claude') ?? null;
+  const fallbackSource = sharedSource ?? bundledSourcesByProfile.get('codex') ?? bundledSourcesByProfile.get('agents') ?? bundledSourcesByProfile.get('claude') ?? null;
   const skillsBySource = new Map<string, ExportableSkill[]>();
   const plans: BundledInstallPlan[] = [];
   for (const profile of skillAgentProfiles) {
@@ -231,10 +240,11 @@ async function installBundledSkillsToMatchingWorkspace(
     const cachedSkills = skillsBySource.get(source.id);
     const skills = cachedSkills ?? await scanExportableSkills(source);
     skillsBySource.set(source.id, skills);
-    if (skills.length === 0) continue;
+    const recommendedSkills = selectRecommendedBundledSkills(skills);
+    if (recommendedSkills.length === 0) continue;
     plans.push({
       source,
-      skills,
+      skills: recommendedSkills,
       usesFallbackSource: !bundledSourcesByProfile.has(profile.id),
       target: {
         id: workspaceTargetIdForAgent(profile.id),
@@ -256,7 +266,7 @@ async function installBundledSkillsToMatchingWorkspace(
   const summary = selectedPlans
     .map((plan) => {
       const relativeTarget = vscode.workspace.asRelativePath(vscode.Uri.file(plan.target.rootDir), false);
-      const fallbackText = plan.usesFallbackSource ? ' fallback' : '';
+      const fallbackText = plan.usesFallbackSource ? ' shared' : '';
       return `${plan.source.label}${fallbackText} -> ${relativeTarget} (${plan.skills.length} skill${plan.skills.length === 1 ? '' : 's'})`;
     })
     .join('\n');
@@ -313,7 +323,7 @@ async function installBundledSkillsToMatchingWorkspace(
 async function pickBundledInstallPlans(plans: BundledInstallPlan[]): Promise<BundledInstallPlan[] | null> {
   const picks: BundledInstallPick[] = await Promise.all(plans.map(async (plan) => {
     const relativeTarget = vscode.workspace.asRelativePath(vscode.Uri.file(plan.target.rootDir), false);
-    const fallbackText = plan.usesFallbackSource ? `Uses ${plan.source.label} because no matching bundled set exists yet.` : 'Uses the matching bundled skill set.';
+    const fallbackText = plan.usesFallbackSource ? `Uses ${plan.source.label} as the shared bundled skill source.` : 'Uses the matching bundled skill set.';
     return {
       label: plan.target.label,
       description: `${plan.skills.length} skill${plan.skills.length === 1 ? '' : 's'} -> ${relativeTarget}`,
@@ -331,6 +341,11 @@ async function pickBundledInstallPlans(plans: BundledInstallPlan[]): Promise<Bun
     title: 'Install bundled skills to selected agent folders',
   });
   return selected?.map((pick) => pick.plan) ?? null;
+}
+
+function selectRecommendedBundledSkills(skills: ExportableSkill[]): ExportableSkill[] {
+  const recommended = skills.filter((skill) => recommendedBundledSkillIds.has(skill.id));
+  return recommended.length > 0 ? recommended : skills;
 }
 
 async function downloadSkillAsZip(
@@ -379,13 +394,14 @@ async function resolveSkillSources(
   const sources: SkillSource[] = [];
 
   for (const profile of bundledProfiles) {
+    const sourceId = profile.id === 'shared' ? bundledSharedSourceId : `bundled-${profile.id}`;
     const rootDir = await firstExistingDirectory([
       path.join(context.extensionPath, 'ai_skills', profile.id, 'skills'),
       path.resolve(context.extensionPath, '..', 'ai_skills', profile.id, 'skills'),
     ]);
     if (rootDir) {
       sources.push({
-        id: `bundled-${profile.id}`,
+        id: sourceId,
         label: profile.label,
         description: rootDir,
         rootDir,
@@ -435,9 +451,9 @@ async function pickSkillWorkflow(
   const items: WorkflowPick[] = [];
   if (hasBundledSources) {
     items.push({
-      label: 'Install bundled skills to this workspace',
+      label: 'Install recommended Markdown Manager skill',
       description: workspaceFolder ? 'Choose Claude, Agents, Codex, Gemini, Cursor targets' : 'Open a workspace first',
-      detail: 'Recommended: multi-select the workspace agent folders you want to update from bundled skills.',
+      detail: 'Recommended: installs the shared markdown-manager router so agent slash commands stay focused. Use Advanced for individual low-level skills.',
       action: 'install-bundled-matching',
     });
   }
@@ -730,6 +746,7 @@ function targetLabelForSource(source: SkillSource): string {
 function skillAgentProfileForSource(source: SkillSource): (typeof skillAgentProfiles)[number] | null {
   if (!source.id.startsWith(bundledSourceIdPrefix)) return null;
   const profileId = source.id.slice(bundledSourceIdPrefix.length);
+  if (profileId === 'shared') return null;
   return skillAgentProfiles.find((profile) => profile.id === profileId) ?? null;
 }
 

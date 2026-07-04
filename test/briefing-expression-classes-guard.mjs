@@ -40,7 +40,7 @@ await execFileAsync('node', [
 const html = await fs.readFile(outputPath, 'utf8');
 const css = await fs.readFile(path.join(repoRoot, 'public', 'document.css'), 'utf8');
 const skill = await fs.readFile(
-  path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'document-production-advisor', 'SKILL.md'),
+  path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'document-production-advisor', 'SKILL.md'),
   'utf8',
 );
 

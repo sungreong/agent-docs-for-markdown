@@ -2,30 +2,18 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const skillFiles = [
-  'ai_skills/codex/skills/md-to-deck-designer/SKILL.md',
-  'ai_skills/agents/skills/md-to-deck-designer/SKILL.md',
-  'ai_skills/claude/skills/md-to-deck-designer/SKILL.md',
-  'vscode-extension/ai_skills/codex/skills/md-to-deck-designer/SKILL.md',
-  'vscode-extension/ai_skills/agents/skills/md-to-deck-designer/SKILL.md',
-  'vscode-extension/ai_skills/claude/skills/md-to-deck-designer/SKILL.md',
+  'ai_skills/shared/skills/md-to-deck-designer/SKILL.md',
+  'vscode-extension/ai_skills/shared/skills/md-to-deck-designer/SKILL.md',
 ];
 
 const sourceContractFiles = [
-  'ai_skills/codex/skills/md-to-deck-designer/references/source-contract.md',
-  'ai_skills/agents/skills/md-to-deck-designer/references/source-contract.md',
-  'ai_skills/claude/skills/md-to-deck-designer/references/source-contract.md',
-  'vscode-extension/ai_skills/codex/skills/md-to-deck-designer/references/source-contract.md',
-  'vscode-extension/ai_skills/agents/skills/md-to-deck-designer/references/source-contract.md',
-  'vscode-extension/ai_skills/claude/skills/md-to-deck-designer/references/source-contract.md',
+  'ai_skills/shared/skills/md-to-deck-designer/references/source-contract.md',
+  'vscode-extension/ai_skills/shared/skills/md-to-deck-designer/references/source-contract.md',
 ];
 
 const deckExecutionFiles = [
-  'ai_skills/codex/skills/md-to-deck-designer/references/deck-execution.md',
-  'ai_skills/agents/skills/md-to-deck-designer/references/deck-execution.md',
-  'ai_skills/claude/skills/md-to-deck-designer/references/deck-execution.md',
-  'vscode-extension/ai_skills/codex/skills/md-to-deck-designer/references/deck-execution.md',
-  'vscode-extension/ai_skills/agents/skills/md-to-deck-designer/references/deck-execution.md',
-  'vscode-extension/ai_skills/claude/skills/md-to-deck-designer/references/deck-execution.md',
+  'ai_skills/shared/skills/md-to-deck-designer/references/deck-execution.md',
+  'vscode-extension/ai_skills/shared/skills/md-to-deck-designer/references/deck-execution.md',
 ];
 
 await assertCopiesMatch(skillFiles, 'md-to-deck-designer SKILL.md');

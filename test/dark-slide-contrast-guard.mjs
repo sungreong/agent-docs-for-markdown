@@ -70,19 +70,19 @@ const html = await fs.readFile(outputPath, 'utf8');
 const css = await fs.readFile(path.join(repoRoot, 'public', 'document.css'), 'utf8');
 const extensionCss = await fs.readFile(path.join(repoRoot, 'vscode-extension', 'public', 'document.css'), 'utf8');
 const validationRules = await fs.readFile(
-  path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'md-presentation-composer', 'references', 'validation-rules.md'),
+  path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'md-presentation-composer', 'references', 'validation-rules.md'),
   'utf8',
 );
 const extensionValidationRules = await fs.readFile(
-  path.join(repoRoot, 'vscode-extension', 'ai_skills', 'codex', 'skills', 'md-presentation-composer', 'references', 'validation-rules.md'),
+  path.join(repoRoot, 'vscode-extension', 'ai_skills', 'shared', 'skills', 'md-presentation-composer', 'references', 'validation-rules.md'),
   'utf8',
 );
 const advisorHarness = await fs.readFile(
-  path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'document-production-advisor', 'references', 'request-fulfillment-harness.md'),
+  path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'document-production-advisor', 'references', 'request-fulfillment-harness.md'),
   'utf8',
 );
 const extensionAdvisorHarness = await fs.readFile(
-  path.join(repoRoot, 'vscode-extension', 'ai_skills', 'codex', 'skills', 'document-production-advisor', 'references', 'request-fulfillment-harness.md'),
+  path.join(repoRoot, 'vscode-extension', 'ai_skills', 'shared', 'skills', 'document-production-advisor', 'references', 'request-fulfillment-harness.md'),
   'utf8',
 );
 

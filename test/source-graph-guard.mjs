@@ -28,11 +28,11 @@ await fs.mkdir(path.join(tmpRoot, '.agents', 'skills', 'vibe-planning'), { recur
 await fs.writeFile(path.join(tmpRoot, '.agents', 'skills', 'vibe-planning', 'README.md'), '# Skill Install\n\nREADME marker for a nested skill.\n', 'utf8');
 await fs.mkdir(path.join(tmpRoot, '.codex', 'skills', 'markdown-workspace-search', 'references'), { recursive: true });
 await fs.mkdir(path.join(tmpRoot, '.agents', 'skills', 'markdown-workspace-search', 'references'), { recursive: true });
-await fs.mkdir(path.join(tmpRoot, 'ai_skills', 'codex', 'skills', 'markdown-workspace-search', 'references'), { recursive: true });
+await fs.mkdir(path.join(tmpRoot, 'ai_skills', 'shared', 'skills', 'markdown-workspace-search', 'references'), { recursive: true });
 const copiedSkillReference = '# Source Graph CLI Commands\n\nUniqueDuplicatedCopyToken.\n\nSee [Alpha](/alpha.md).\n';
 await fs.writeFile(path.join(tmpRoot, '.codex', 'skills', 'markdown-workspace-search', 'references', 'cli-commands.md'), copiedSkillReference, 'utf8');
 await fs.writeFile(path.join(tmpRoot, '.agents', 'skills', 'markdown-workspace-search', 'references', 'cli-commands.md'), copiedSkillReference, 'utf8');
-await fs.writeFile(path.join(tmpRoot, 'ai_skills', 'codex', 'skills', 'markdown-workspace-search', 'references', 'cli-commands.md'), copiedSkillReference, 'utf8');
+await fs.writeFile(path.join(tmpRoot, 'ai_skills', 'shared', 'skills', 'markdown-workspace-search', 'references', 'cli-commands.md'), copiedSkillReference, 'utf8');
 
 const scriptPath = path.join(repoRoot, 'scripts', 'source-graph.mjs');
 const update = spawnSync(process.execPath, [scriptPath, 'update', '--root', tmpRoot, '--json'], {

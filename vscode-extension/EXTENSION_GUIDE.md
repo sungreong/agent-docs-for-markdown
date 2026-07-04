@@ -16,7 +16,7 @@ npm run package:vsix
 ### Install
 
 ```bash
-code --install-extension .\markdown-agent-docs-0.1.53.vsix --force
+code --install-extension .\markdown-agent-docs-0.1.54.vsix --force
 ```
 
 ### Basic Usage
@@ -27,7 +27,7 @@ code --install-extension .\markdown-agent-docs-0.1.53.vsix --force
 4. Use `Agent Docs: Refresh Preview` for manual force refresh.
 5. Use `Agent Docs: Export Styled HTML` to export the currently open markdown file as styled HTML.
 6. Use `Agent Docs: Open in Viewer` from the Agent Docs File Browser sidebar or Command Palette. From the palette it falls back to the active markdown document and shows a clear message if no markdown target is available.
-7. Use `Agent Docs: Install or Export Skills` to install bundled skills into workspace agent folders or export a skill as a ready-to-share ZIP folder.
+7. Use `Agent Docs: Install or Export Skills` to install the recommended bundled `markdown-manager` skill into workspace agent folders or export a skill as a ready-to-share ZIP folder.
 8. Right-click a folder in the Agent Docs File Browser sidebar and choose `FOCUS` to narrow only that browser until `Agent Docs: Clear Folder Focus` is run.
 9. Use the preview `Style` menu to switch document appearance; the selected style is reused for preview refresh and HTML transform.
 10. Use `Agent Docs: Initialize Source Graph` once per workspace when you want a document graph DB at `.mps/source-graph.sqlite`.
@@ -95,10 +95,10 @@ Outline state:
 
 `Agent Docs: Install or Export Skills` is available from the Command Palette and the Agent Docs File Browser sidebar title bar.
 
-1. Choose `Install bundled skills to this workspace` for the normal setup flow.
+1. Choose `Install recommended Markdown Manager skill` for the normal setup flow.
 2. Select the workspace agent targets you want to update. Claude, Agents, and Codex use matching bundled skill sets; Gemini and Cursor can use the bundled Codex-compatible skill set when no dedicated bundle exists yet.
 3. Choose `Export one skill as ZIP` when you want a portable archive for manual installation in another tool.
-4. Choose `Advanced: choose source and target` when you need source-by-source updates, selected-skill updates, or a custom workspace skill root.
+4. Choose `Advanced: choose source and target` when you need source-by-source updates, selected-skill updates, low-level skills as separate slash commands, or a custom workspace skill root.
 5. Missing target folders are created automatically before files are copied.
 6. For custom targets, choose a skill root folder such as `.claude/skills`, not an individual skill folder such as `.claude/skills/md-presentation-composer`.
 7. If saving a ZIP, choose a skill folder with a root `SKILL.md`, then pick a save location. The output archive is named `{skill-id}.zip` by default.
@@ -116,9 +116,9 @@ Source Graph is the document-link index for one VS Code workspace. It creates `.
 2. Open the folder that contains your Markdown documents in VS Code.
 3. Run `Agent Docs: Initialize Source Graph`.
 4. Confirm `.mps/source-graph.sqlite` exists in that workspace.
-5. Run `Agent Docs: Install or Export Skills`, then choose `Install bundled skills to this workspace`.
-6. Confirm `markdown-workspace-search` appears under the matching workspace skill roots such as `.codex/skills`, `.agents/skills`, or `.claude/skills`.
-7. In Codex, ask it to use the `markdown-workspace-search` skill for a document question. The skill should run `node scripts/source-graph.mjs search --root . --query "README" --limit 3 --include-links --links-depth 1 --include-headings`.
+5. Run `Agent Docs: Install or Export Skills`, then choose `Install recommended Markdown Manager skill`.
+6. Confirm `markdown-manager` appears under the matching workspace skill roots such as `.codex/skills`, `.agents/skills`, or `.claude/skills`.
+7. In Codex, ask it to use the `markdown-manager` skill for a document question. For search-oriented questions, it should route to the internal `markdown-workspace-search` workflow and run `node scripts/source-graph.mjs search --root . --query "README" --limit 3 --include-links --links-depth 1 --include-headings`.
 8. Ask it to summarize `Path`, `Title`, `Why it matters`, `Heading evidence`, `Link evidence`, and `Next action`.
 
 This is the Source Graph equivalent of a project-local init step such as `codegraph init`: each workspace owns its own `.mps/source-graph.sqlite`.
@@ -164,7 +164,7 @@ After editing `.mpsignore`, run `Agent Docs: Update Source Graph` or reopen Sour
 - `node scripts/source-graph.mjs related --root . --path "README.md" --include-headings`: finds related documents around a query or path.
 - `node scripts/source-graph.mjs neighbors --root . --path "README.md"`: returns inbound/outbound neighbors for a document.
 
-The bundled Codex skill `markdown-workspace-search` tells Codex when to run these commands for document discovery, backlink checks, related sources, and stale-index refreshes. `search` and `related` collapse duplicate skill copies by default so results are closer to codegraph-style focused context. Pass `--include-copies` only when auditing whether `.codex`, `.agents`, and bundled skill folders are synced.
+The bundled Codex skill `markdown-manager` routes natural-language requests to internal workflows such as `markdown-workspace-search`, graph triage, ignore advice, context packaging, update planning, canonicalization, link repair, presentation composition, deck design, export QA, or install diagnostics. For document discovery, backlink checks, related sources, and stale-index refreshes, it uses the same Source Graph commands shown above. `search` and `related` collapse duplicate skill copies by default so results are closer to codegraph-style focused context. Pass `--include-copies` only when auditing whether `.codex`, `.agents`, and bundled skill folders are synced.
 
 For a full first-install-to-agent-search checklist, see `docs/planning/source-graph-cli-skill-qa.md` in the repository root.
 ## 6) Folder Focus
@@ -247,14 +247,14 @@ Example (absolute path):
 - Confirm Node.js is installed and `markdownAgentDocs.nodePath` points to a working `node` executable.
 - Confirm the workspace has `scripts/source-graph.mjs` when asking an agent to run CLI searches.
 - Run `Agent Docs: Initialize Source Graph` again if `.mps/source-graph.sqlite` is missing.
-- Run `Agent Docs: Install or Export Skills`, then choose `Install bundled skills to this workspace` again if `.codex/skills/markdown-workspace-search`, `.agents/skills/markdown-workspace-search`, or `.claude/skills/markdown-workspace-search` is missing.
+- Run `Agent Docs: Install or Export Skills`, then choose `Install recommended Markdown Manager skill` again if `.codex/skills/markdown-manager`, `.agents/skills/markdown-manager`, or `.claude/skills/markdown-manager` is missing.
 
 ## 10) Development Notes
 
 - Source: `vscode-extension/src/extension.ts`
 - Build: `npm run build`
 - Package: `npm run package:vsix`
-- Install test: `code --install-extension .\markdown-agent-docs-0.1.53.vsix --force`
+- Install test: `code --install-extension .\markdown-agent-docs-0.1.54.vsix --force`
 
 ## 11) Uninstall / Cleanup Guide
 
@@ -277,7 +277,7 @@ Find `datanewbie-labs.markdown-agent-docs@...` in the list.
 If you no longer need the package file, delete:
 
 ```text
-vscode-extension/markdown-agent-docs-0.1.53.vsix
+vscode-extension/markdown-agent-docs-0.1.54.vsix
 ```
 
 ### Optional: remove local extension folder manually
@@ -285,5 +285,5 @@ vscode-extension/markdown-agent-docs-0.1.53.vsix
 If needed, remove this folder:
 
 ```text
-%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-agent-docs-0.1.53
+%USERPROFILE%\.vscode\extensions\datanewbie-labs.markdown-agent-docs-0.1.54
 ```

@@ -69,27 +69,27 @@ const previewEnhancements = await fs.readFile(
   'utf8',
 );
 const composerSkill = await fs.readFile(
-  path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'md-presentation-composer', 'SKILL.md'),
+  path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'md-presentation-composer', 'SKILL.md'),
   'utf8',
 );
 const advisorSkill = await fs.readFile(
-  path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'document-production-advisor', 'SKILL.md'),
+  path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'document-production-advisor', 'SKILL.md'),
   'utf8',
 );
 const bundledComposerSkill = await fs.readFile(
-  path.join(repoRoot, 'vscode-extension', 'ai_skills', 'codex', 'skills', 'md-presentation-composer', 'SKILL.md'),
+  path.join(repoRoot, 'vscode-extension', 'ai_skills', 'shared', 'skills', 'md-presentation-composer', 'SKILL.md'),
   'utf8',
 );
 const bundledAdvisorSkill = await fs.readFile(
-  path.join(repoRoot, 'vscode-extension', 'ai_skills', 'codex', 'skills', 'document-production-advisor', 'SKILL.md'),
+  path.join(repoRoot, 'vscode-extension', 'ai_skills', 'shared', 'skills', 'document-production-advisor', 'SKILL.md'),
   'utf8',
 );
 const imagePlacementRules = await fs.readFile(
-  path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'md-presentation-composer', 'references', 'image-placement-rules.md'),
+  path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'md-presentation-composer', 'references', 'image-placement-rules.md'),
   'utf8',
 );
 const bundledImagePlacementRules = await fs.readFile(
-  path.join(repoRoot, 'vscode-extension', 'ai_skills', 'codex', 'skills', 'md-presentation-composer', 'references', 'image-placement-rules.md'),
+  path.join(repoRoot, 'vscode-extension', 'ai_skills', 'shared', 'skills', 'md-presentation-composer', 'references', 'image-placement-rules.md'),
   'utf8',
 );
 

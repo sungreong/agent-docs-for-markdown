@@ -1,4 +1,0 @@
-﻿interface:
-  display_name: "Markdown Workspace Search"
-  short_description: "Search Markdown docs with heading and link evidence"
-  default_prompt: "Use $markdown-workspace-search to find related Markdown sources for this topic."

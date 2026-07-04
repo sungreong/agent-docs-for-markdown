@@ -9,7 +9,7 @@ Agent Docs for Markdown은 Markdown으로 지식베이스, 리서치 노트, 위
 English guide: [README.md](README.md)  
 VS Code Marketplace용 문서: [vscode-extension/README.md](vscode-extension/README.md)
 
-현재 저장소 확장 버전: `0.1.53`
+현재 저장소 확장 버전: `0.1.54`
 
 ## 한 문장으로
 
@@ -72,7 +72,7 @@ ext install datanewbie-labs.markdown-agent-docs
 3. `Open Graph` 또는 `Agent Docs: Open Source Graph`를 실행합니다.
 4. `Run Workspace Audit`로 정리 후보를 확인합니다.
 5. `Agent Docs: Install or Export Skills`를 실행합니다.
-6. 아래 예시처럼 에이전트에게 스킬 사용을 요청합니다.
+6. 아래 예시처럼 에이전트에게 `markdown-manager` 사용을 요청합니다.
 
 ## 내장 스킬은 어떻게 쓰나
 
@@ -85,14 +85,24 @@ Agent Docs: Install or Export Skills
 추천 선택:
 
 ```text
-Install bundled skills to this workspace
+Install recommended Markdown Manager skill
 ```
 
 그 다음 사용할 에이전트 폴더를 선택합니다. `.claude/skills`, `.agents/skills`, `.codex/skills`, `.gemini/skills`, `.cursor/skills` 같은 대상 폴더가 없으면 자동 생성됩니다.
 
-### 스킬별로 어떤 질문을 하면 좋은가
+기본 설치는 `markdown-manager` 하나만 설치합니다. 사용자는 slash command 목록에서 여러 개를 고를 필요 없이 `/markdown-manager`로 시작하고, 그 안에서 검색, 그래프 진단, 링크 수리, 업데이트 계획, 보고서 작성 같은 내부 workflow를 자동으로 고르게 됩니다.
+
+세부 스킬을 직접 설치하고 싶을 때만 `Advanced: choose source and target`를 사용하면 됩니다.
+
+### 가장 먼저 쓸 스킬
 
 | 스킬 | 이런 상황에서 사용 | 에이전트에게 이렇게 물어보기 |
+| --- | --- | --- |
+| `markdown-manager` | Markdown 검색, 그래프 정리, 링크 점검, 업데이트 계획, 보고서/덱 작성, export 점검을 한 입구에서 처리하고 싶을 때 | `markdown-manager를 사용해서 이 요청을 이해하고 알맞은 Agent Docs workflow를 골라줘. wiki/concepts/agentic-ai.md를 수정하려는데 관련 문서와 깨진 링크를 놓치고 싶지 않아.` |
+
+### `markdown-manager`가 내부에서 고르는 workflow
+
+| 내부 workflow | 이런 상황에서 사용 | 에이전트에게 이렇게 물어보기 |
 | --- | --- | --- |
 | `markdown-workspace-search` | Markdown 안의 근거를 찾아 답해야 할 때 | `markdown-workspace-search를 사용해서 이 워크스페이스에서 NVIDIA agent evaluation 관련 내용을 찾아줘. 경로, heading, backlink, 관련 문서를 같이 보여줘.` |
 | `markdown-graph-triage` | 문서 묶음 전체 상태를 점검할 때 | `markdown-graph-triage를 사용해서 이 Markdown 워크스페이스를 진단해줘. 진입 문서, 고립 문서, 노이즈 폴더, 중복 skill copy, 약한 그래프 구조를 찾아줘.` |
@@ -111,7 +121,7 @@ Install bundled skills to this workspace
 문서 검색:
 
 ```text
-markdown-workspace-search를 사용해줘.
+markdown-manager를 사용해줘.
 
 질문: 이 워크스페이스에서 "agent evaluation"을 어떻게 설명하고 있어?
 반드시 포함:
@@ -125,7 +135,7 @@ markdown-workspace-search를 사용해줘.
 문서 수정 전 계획:
 
 ```text
-markdown-context-packager와 markdown-update-planner를 사용해줘.
+markdown-manager를 사용해줘.
 
 목표: wiki/concepts/agentic-ai.md를 업데이트하고 싶어.
 먼저 수정하지 말고 아래만 알려줘:
@@ -139,7 +149,7 @@ markdown-context-packager와 markdown-update-planner를 사용해줘.
 워크스페이스 정리:
 
 ```text
-markdown-graph-triage와 markdown-ignore-advisor를 사용해줘.
+markdown-manager를 사용해줘.
 
 이 Markdown 워크스페이스를 AI에게 맡기기 전에 정리하고 싶어.
 Source Graph audit 결과를 기준으로:
@@ -154,7 +164,7 @@ Source Graph audit 결과를 기준으로:
 보고서 작성:
 
 ```text
-md-presentation-composer와 document-production-advisor를 사용해줘.
+markdown-manager를 사용해줘.
 
 @brief.md를 Agent Docs for Markdown 보고서로 재구성해줘.
 대상: 기술 리더

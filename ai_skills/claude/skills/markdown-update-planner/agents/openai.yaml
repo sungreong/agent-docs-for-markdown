@@ -1,4 +1,0 @@
-interface:
-  display_name: "Markdown Update Planner"
-  short_description: "Plan related Markdown updates before editing"
-  default_prompt: "Use $markdown-update-planner to identify which linked, related, or backlink documents should be reviewed before editing."

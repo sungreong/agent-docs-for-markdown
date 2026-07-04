@@ -17,16 +17,21 @@ const skillNames = [
   'markdown-link-repair',
 ];
 
+const routerSkillNames = [
+  'markdown-manager',
+];
+
 const roots = [
-  'ai_skills/codex/skills',
-  'ai_skills/agents/skills',
-  'ai_skills/claude/skills',
-  'vscode-extension/ai_skills/codex/skills',
-  'vscode-extension/ai_skills/agents/skills',
-  'vscode-extension/ai_skills/claude/skills',
+  'ai_skills/shared/skills',
+  'vscode-extension/ai_skills/shared/skills',
 ];
 
 for (const root of roots) {
+  for (const skill of routerSkillNames) {
+    const skillPath = path.join(repoRoot, root, skill, 'SKILL.md');
+    await assertExists(skillPath, `${root}/${skill}/SKILL.md`);
+    await assertExists(path.join(repoRoot, root, skill, 'agents', 'openai.yaml'), `${root}/${skill}/agents/openai.yaml`);
+  }
   for (const skill of skillNames) {
     const skillPath = path.join(repoRoot, root, skill, 'SKILL.md');
     await assertExists(skillPath, `${root}/${skill}/SKILL.md`);
@@ -39,19 +44,25 @@ for (const root of roots) {
   }
 }
 
-const searchSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'markdown-workspace-search', 'SKILL.md'), 'utf8');
-const triageSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'markdown-graph-triage', 'SKILL.md'), 'utf8');
-const ignoreSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'markdown-ignore-advisor', 'SKILL.md'), 'utf8');
-const updatePlannerSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'markdown-update-planner', 'SKILL.md'), 'utf8');
+const searchSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-workspace-search', 'SKILL.md'), 'utf8');
+const managerSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-manager', 'SKILL.md'), 'utf8');
+const triageSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-graph-triage', 'SKILL.md'), 'utf8');
+const ignoreSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-ignore-advisor', 'SKILL.md'), 'utf8');
+const updatePlannerSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-update-planner', 'SKILL.md'), 'utf8');
 const searchScript = await fs.readFile(
-  path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'markdown-workspace-search', 'scripts', 'source-graph.mjs'),
+  path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-workspace-search', 'scripts', 'source-graph.mjs'),
   'utf8',
 );
 const skillMap = await fs.readFile(
-  path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'markdown-graph-triage', 'references', 'markdown-graph-skill-map.md'),
+  path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-graph-triage', 'references', 'markdown-graph-skill-map.md'),
   'utf8',
 );
 
+assert(managerSkill.includes('## Routing'), 'markdown-manager should route Markdown requests to internal workflows');
+assert(managerSkill.includes('markdown-workspace-search'), 'markdown-manager should route search requests');
+assert(managerSkill.includes('markdown-link-repair'), 'markdown-manager should route link repair requests');
+assert(managerSkill.includes('md-presentation-composer'), 'markdown-manager should route writing requests');
+assert(managerSkill.includes('document-production-advisor'), 'markdown-manager should route export QA requests');
 assert(searchSkill.includes('references/markdown-graph-skill-map.md'), 'markdown-workspace-search should route to companion graph skills');
 assert(searchSkill.includes('OS-Aware Execution'), 'markdown-workspace-search should document OS-aware commands');
 assert(searchSkill.includes('Large Output Rule'), 'markdown-workspace-search should document persisted-output handling');
@@ -80,7 +91,7 @@ const portableRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'mps-markdown-skill
 await fs.mkdir(path.join(portableRoot, '.codex', 'skills', 'markdown-workspace-search', 'scripts'), { recursive: true });
 await fs.mkdir(path.join(portableRoot, 'docs'), { recursive: true });
 await fs.copyFile(
-  path.join(repoRoot, 'ai_skills', 'codex', 'skills', 'markdown-workspace-search', 'scripts', 'source-graph.mjs'),
+  path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-workspace-search', 'scripts', 'source-graph.mjs'),
   path.join(portableRoot, '.codex', 'skills', 'markdown-workspace-search', 'scripts', 'source-graph.mjs'),
 );
 await fs.mkdir(path.join(portableRoot, '.agents', 'skills', 'md-presentation-composer', 'references'), { recursive: true });

@@ -44,7 +44,7 @@ Workspace Cleanup Audit reviews the corpus before you ask an agent to search, re
 - `.mps/.mpsignore` shared by Source Graph and Agent Docs File Browser.
 - Works with Markdown files outside the current workspace through the bundled CLI.
 
-## Install Skills For Your Agent
+## Install The Skill Router For Your Agent
 
 Run:
 
@@ -55,14 +55,22 @@ Agent Docs: Install or Export Skills
 Choose:
 
 ```text
-Install bundled skills to this workspace
+Install recommended Markdown Manager skill
 ```
 
 Then select the agent folders you want to update. The extension can update `.claude/skills`, `.agents/skills`, `.codex/skills`, `.gemini/skills`, and `.cursor/skills`. Missing folders are created automatically.
 
-## Built-In Skills And Example Questions
+This normal setup installs `markdown-manager`, a single slash command that routes Markdown search, Source Graph cleanup, link repair, context packaging, update planning, reports, decks, export checks, and setup diagnostics. Use `Advanced: choose source and target` only when you want individual low-level skills installed as separate slash commands.
+
+## Built-In Skill Router And Example Questions
 
 | Skill | Use it for | Ask your agent |
+| --- | --- | --- |
+| `markdown-manager` | one entry point for Markdown search, graph cleanup, links, updates, reports, decks, and export checks | `Use markdown-manager to understand this Markdown request, choose the right Agent Docs workflow, gather Source Graph evidence, and return the next action.` |
+
+### Internal Routes Used By `markdown-manager`
+
+| Route | Use it for | Ask your agent |
 | --- | --- | --- |
 | `markdown-workspace-search` | grounded answers from local Markdown | `Use markdown-workspace-search to find what this workspace says about agent evaluation. Include paths, headings, backlinks, and related documents.` |
 | `markdown-graph-triage` | whole-corpus health review | `Use markdown-graph-triage to audit this Markdown workspace for entry docs, orphan docs, noisy folders, duplicate skill copies, and weak graph structure.` |
@@ -79,7 +87,7 @@ Then select the agent folders you want to update. The extension can update `.cla
 ### Strong Prompt For Graph-Grounded Work
 
 ```text
-Use markdown-context-packager first, then markdown-update-planner.
+Use markdown-manager.
 
 Goal: update wiki/concepts/agentic-ai.md without drifting from related docs.
 Return:
@@ -94,7 +102,7 @@ Do not edit until the plan is clear.
 ### Strong Prompt For Writing
 
 ```text
-Use md-presentation-composer and document-production-advisor.
+Use markdown-manager.
 
 Turn @brief.md into a polished Agent Docs for Markdown report.
 Audience: technical leadership
@@ -112,8 +120,8 @@ Include:
 1. Open a Markdown workspace.
 2. Open the Agent Docs sidebar.
 3. Use `Open Graph` or run `Agent Docs: Open Source Graph`.
-4. If the graph has not been initialized, run `Start Graph`.
-5. Run `Run Workspace Audit` to review cleanup candidates.
+4. If the graph has not been initialized, run `Agent Docs: Initialize Source Graph`; `Start Graph will build the first index` at `.mps/source-graph.sqlite`.
+5. Use the sidebar `Run Workspace Audit` flow to review cleanup candidates and batch-apply ignore suggestions with `Apply Selected`.
 6. Install bundled skills.
 7. Ask an agent to use the relevant skill.
 
@@ -128,6 +136,14 @@ The canonical ignore file is:
 ```text
 .mps/.mpsignore
 ```
+
+When `markdown-manager` routes to Markdown search, it can use the workspace CLI directly:
+
+```bash
+node scripts/source-graph.mjs search --root . --query "topic" --include-links --links-depth 1 --include-headings
+```
+
+Ask the agent to summarize `Path`, `Title`, `Why it matters`, `Heading evidence`, `Link evidence`, and `Next action`. Use `Agent Docs: Edit Source Ignore` when `.mpsignore` patterns need review.
 
 ## HTML Export Targets
 
@@ -164,7 +180,7 @@ npm run package:vsix
 Install the local package:
 
 ```bash
-code --install-extension .\markdown-agent-docs-0.1.53.vsix
+code --install-extension .\markdown-agent-docs-0.1.54.vsix
 ```
 
 For full operations and troubleshooting, see [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md).

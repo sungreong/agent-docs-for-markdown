@@ -1,4 +1,0 @@
-interface:
-  display_name: "Markdown Link Repair"
-  short_description: "Prioritize broken links, stale URLs, and backlink gaps"
-  default_prompt: "Use $markdown-link-repair to find and prioritize broken Markdown links, stale URL references, and graph-quality fixes."

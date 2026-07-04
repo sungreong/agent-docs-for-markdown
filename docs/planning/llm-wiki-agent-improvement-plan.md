@@ -26,7 +26,7 @@ Markdown Pattern Studio를 `문서 렌더러 + Source Graph + 번들 스킬` 조
 
 - Source Graph CLI는 이미 `update`, `search`, `related`, `neighbors`를 제공한다: [scripts/source-graph.mjs](/C:/Users/leesu/Documents/ProjectCode/01_2026_EXP/markdown-pattern-studio/scripts/source-graph.mjs:1)
 - VS Code extension은 `.mpsignore` 편집 명령은 있지만 추천/진단은 없다: [vscode-extension/src/commands/sourceGraph.ts](/C:/Users/leesu/Documents/ProjectCode/01_2026_EXP/markdown-pattern-studio/vscode-extension/src/commands/sourceGraph.ts:754)
-- 번들 스킬은 현재 `search`, `writing`, `production check` 중심이라 `triage`, `ignore`, `update impact`, `canonical` 계층이 비어 있었다: [ai_skills/codex/skills](/C:/Users/leesu/Documents/ProjectCode/01_2026_EXP/markdown-pattern-studio/ai_skills/codex/skills)
+- 번들 스킬은 현재 `search`, `writing`, `production check` 중심이라 `triage`, `ignore`, `update impact`, `canonical` 계층이 비어 있었다: [ai_skills/shared/skills](/C:/Users/leesu/Documents/ProjectCode/01_2026_EXP/markdown-pattern-studio/ai_skills/shared/skills)
 
 ## 현재 워크스페이스 진단 스냅샷
 
@@ -128,7 +128,7 @@ Markdown Pattern Studio now helps agents clean up a Markdown wiki before they to
 - Source Graph CLI: [scripts/source-graph.mjs](/C:/Users/leesu/Documents/ProjectCode/01_2026_EXP/markdown-pattern-studio/scripts/source-graph.mjs:1)
 - VS Code bundled CLI copy: [vscode-extension/scripts/source-graph.mjs](/C:/Users/leesu/Documents/ProjectCode/01_2026_EXP/markdown-pattern-studio/vscode-extension/scripts/source-graph.mjs:1)
 - Ignore file bootstrap: [vscode-extension/src/commands/sourceGraph.ts](/C:/Users/leesu/Documents/ProjectCode/01_2026_EXP/markdown-pattern-studio/vscode-extension/src/commands/sourceGraph.ts:754)
-- Bundled skills: [ai_skills/codex/skills](/C:/Users/leesu/Documents/ProjectCode/01_2026_EXP/markdown-pattern-studio/ai_skills/codex/skills)
+- Bundled skills: [ai_skills/shared/skills](/C:/Users/leesu/Documents/ProjectCode/01_2026_EXP/markdown-pattern-studio/ai_skills/shared/skills)
 
 ### 변경 금지 범위
 
@@ -223,7 +223,7 @@ Go. 현재 병목은 분명하고, 기존 CLI와 스킬 구조에 얹을 수 있
 - docs/planning/llm-wiki-agent-improvement-plan.md
 - scripts/source-graph.mjs
 - vscode-extension/src/commands/sourceGraph.ts
-- ai_skills/codex/skills/*
+- ai_skills/shared/skills/*
 
 확인할 것:
 1. audit JSON 계약

@@ -9,7 +9,7 @@ Agent Docs for Markdown is a VS Code extension for people who keep knowledge in 
 한국어 가이드는 [README.ko.md](README.ko.md)를 참고하세요.  
 Extension-specific Marketplace copy lives in [vscode-extension/README.md](vscode-extension/README.md).
 
-Current repository extension version: `0.1.53`.
+Current repository extension version: `0.1.54`.
 
 ## What It Does
 
@@ -18,7 +18,7 @@ Current repository extension version: `0.1.53`.
 - Build a local `.mps/source-graph.sqlite` index from documents, links, URLs, images, broken links, and related notes.
 - Use Source Graph Focus and Hop controls to explore a document neighborhood without losing the larger structure.
 - Run Workspace Cleanup Audit before asking an AI agent to search, rewrite, or reorganize a large Markdown corpus.
-- Install bundled skills into `.claude/skills`, `.agents/skills`, `.codex/skills`, `.gemini/skills`, or `.cursor/skills`.
+- Install the bundled `markdown-manager` router skill into `.claude/skills`, `.agents/skills`, `.codex/skills`, `.gemini/skills`, or `.cursor/skills`.
 
 ## Why It Exists
 
@@ -77,9 +77,9 @@ Recommended first run:
 3. Run `Open Graph` or `Agent Docs: Open Source Graph`.
 4. Run `Run Workspace Audit` and review cleanup suggestions.
 5. Run `Agent Docs: Install or Export Skills`.
-6. Ask your agent to use one of the installed skills with the examples below.
+6. Ask your agent to use `markdown-manager` with the examples below.
 
-## Built-In Skills And What To Ask
+## Built-In Skill Router And What To Ask
 
 Install skills with:
 
@@ -87,9 +87,19 @@ Install skills with:
 Agent Docs: Install or Export Skills
 ```
 
-Choose `Install bundled skills to this workspace`, then select the target agent folders you use. Missing folders are created automatically.
+Choose `Install recommended Markdown Manager skill`, then select the target agent folders you use. Missing folders are created automatically. This installs the single recommended slash command, `markdown-manager`, so the agent can route your request internally instead of making you choose among many small skills.
+
+Advanced users can still install individual low-level skills from `Advanced: choose source and target`.
+
+### Start Here
 
 | Skill | Ask this when you want... | Example prompt |
+| --- | --- | --- |
+| `markdown-manager` | one natural-language entry point for Markdown search, graph cleanup, links, update planning, reports, decks, and export checks | `Use markdown-manager to inspect this workspace and decide the right Agent Docs workflow. I want to update wiki/concepts/agentic-ai.md without missing related docs or broken links.` |
+
+### Internal Routes Used By `markdown-manager`
+
+| Route | Ask this when you want... | Example prompt |
 | --- | --- | --- |
 | `markdown-workspace-search` | evidence-backed answers from local Markdown | `Use markdown-workspace-search to find what this workspace says about NVIDIA agent evaluation. Include paths, headings, backlinks, and next docs to read.` |
 | `markdown-graph-triage` | a corpus-level health check | `Use markdown-graph-triage to audit this Markdown workspace. Find entry docs, orphan docs, noisy folders, duplicate skill copies, and weak graph areas.` |
@@ -106,7 +116,7 @@ Choose `Install bundled skills to this workspace`, then select the target agent 
 ### A Good Agent Prompt Pattern
 
 ```text
-Use markdown-context-packager first, then markdown-update-planner.
+Use markdown-manager.
 
 Goal: update wiki/concepts/agentic-ai.md without drifting from related docs.
 Return:
@@ -121,7 +131,7 @@ Do not edit until the plan is clear.
 ### A Good Writing Prompt Pattern
 
 ```text
-Use md-presentation-composer and document-production-advisor.
+Use markdown-manager.
 
 Turn @brief.md into a polished Agent Docs for Markdown report.
 Audience: technical leadership

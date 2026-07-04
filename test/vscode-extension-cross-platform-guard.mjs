@@ -272,11 +272,13 @@ assert(
       command.title === 'Agent Docs: Install or Export Skills',
   ) &&
     exportSkillFolderSource.includes('async function pickSkillWorkflow') &&
-    exportSkillFolderSource.includes("label: 'Install bundled skills to this workspace'") &&
+    exportSkillFolderSource.includes("label: 'Install recommended Markdown Manager skill'") &&
+    exportSkillFolderSource.includes("const recommendedBundledSkillIds = new Set(['markdown-manager'])") &&
+    exportSkillFolderSource.includes('function selectRecommendedBundledSkills') &&
     exportSkillFolderSource.includes('async function pickBundledInstallPlans') &&
     exportSkillFolderSource.includes('canPickMany: true') &&
     exportSkillFolderSource.includes("bundledSourcesByProfile.get('codex')") &&
-    exportSkillFolderSource.includes('Uses ${plan.source.label} because no matching bundled set exists yet.') &&
+    exportSkillFolderSource.includes('Uses ${plan.source.label} as the shared bundled skill source.') &&
     exportSkillFolderSource.includes('Choose Claude, Agents, Codex, Gemini, Cursor targets') &&
     exportSkillFolderSource.includes('async function installBundledSkillsToMatchingWorkspace') &&
     exportSkillFolderSource.includes('skillAgentProfileForSource(source)') &&
@@ -286,9 +288,9 @@ assert(
     exportSkillFolderSource.includes("channel.appendLine('Failed')") &&
     exportSkillFolderSource.includes("channel.appendLine('Next')") &&
     exportSkillFolderSource.includes('Choose a skill root folder such as .claude/skills') &&
-    extensionReadme.includes('Install bundled skills to this workspace') &&
-    extensionGuide.includes('Install bundled skills to this workspace'),
-  'Skill install/export UX should lead with bundled-to-matching-workspace install and guard against selecting individual skill folders',
+    extensionReadme.includes('Install recommended Markdown Manager skill') &&
+    extensionGuide.includes('Install recommended Markdown Manager skill'),
+  'Skill install/export UX should lead with the recommended markdown-manager install and guard against selecting individual skill folders',
 );
 assert(
   extensionSource.includes('isSessionAlive(session)') &&
@@ -392,13 +394,13 @@ for (const doc of [extensionGuide, extensionReadme]) {
   );
   assert(
     doc.includes('Agent Docs: Install or Export Skills') &&
-      doc.includes('Install bundled skills to this workspace') &&
+      doc.includes('Install recommended Markdown Manager skill') &&
       doc.includes('node scripts/source-graph.mjs search'),
-    'User docs should explain bundled Markdown workspace search skill setup and CLI search',
+    'User docs should explain bundled Markdown Manager setup and CLI search',
   );
   assert(
-    doc.includes('markdown-workspace-search'),
-    'User docs should mention the bundled Codex markdown workspace search skill',
+    doc.includes('markdown-manager') && doc.includes('markdown-workspace-search'),
+    'User docs should mention the bundled Markdown Manager and its workspace search route',
   );
   assert(
     doc.includes('--include-headings'),

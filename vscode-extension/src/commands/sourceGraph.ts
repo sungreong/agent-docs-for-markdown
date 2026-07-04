@@ -1520,7 +1520,7 @@ async function showSourceGraphError(command: string, error: unknown): Promise<vo
       '',
       '- Run `Agent Docs: Update Source Graph`.',
       '- Confirm Node.js is installed and `markdownAgentDocs.nodePath` is correct.',
-      '- Run `Agent Docs: Install or Export Skills`, then choose `Install bundled skills to this workspace` if agent skills are missing.',
+      '- Run `Agent Docs: Install or Export Skills`, then choose `Install recommended Markdown Manager skill` if agent skills are missing.',
       '',
     ].join('\n'),
   });
