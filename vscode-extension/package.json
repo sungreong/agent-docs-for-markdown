@@ -2,7 +2,7 @@
   "name": "markdown-agent-docs",
   "displayName": "Agent Docs for Markdown",
   "description": "Browse Markdown as a source graph, package context, and write better docs with AI agent skills.",
-  "version": "0.1.55",
+  "version": "0.1.57",
   "publisher": "datanewbie-labs",
   "license": "MIT",
   "icon": "assets/icon.png",
@@ -32,6 +32,7 @@
     "onCommand:markdownAgentDocs.disableAutoOnSave",
     "onCommand:markdownAgentDocs.openTemplateBuilder",
     "onCommand:markdownAgentDocs.openSourceGraph",
+    "onCommand:markdownAgentDocs.focusSourceGraph",
     "onCommand:markdownAgentDocs.initializeSourceGraphWorkspace",
     "onCommand:markdownAgentDocs.updateSourceGraph",
     "onCommand:markdownAgentDocs.searchSourceGraph",
@@ -117,6 +118,11 @@
         "command": "markdownAgentDocs.openSourceGraph",
         "title": "Agent Docs: Open Source Graph",
         "icon": "$(graph)"
+      },
+      {
+        "command": "markdownAgentDocs.focusSourceGraph",
+        "title": "Focus in Source Graph",
+        "icon": "$(target)"
       },
       {
         "command": "markdownAgentDocs.initializeSourceGraphWorkspace",
@@ -349,6 +355,10 @@
           "when": "false"
         },
         {
+          "command": "markdownAgentDocs.focusSourceGraph",
+          "when": "false"
+        },
+        {
           "command": "markdownAgentDocs.openSourceIgnoreFile",
           "when": "false"
         },
@@ -571,37 +581,47 @@
           "group": "navigation@2"
         },
         {
-          "command": "markdownAgentDocs.transformMarkdownToHtml",
+          "command": "markdownAgentDocs.focusSourceGraph",
           "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
           "group": "navigation@3"
         },
         {
-          "command": "markdownAgentDocsFileBrowser.copyPath",
-          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
+          "command": "markdownAgentDocs.transformMarkdownToHtml",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned)",
           "group": "navigation@4"
         },
         {
-          "command": "markdownAgentDocsFileBrowser.copyRelativePath",
+          "command": "markdownAgentDocsFileBrowser.copyPath",
           "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
           "group": "navigation@5"
         },
         {
-          "command": "markdownAgentDocsFileBrowser.copyFileName",
+          "command": "markdownAgentDocsFileBrowser.copyRelativePath",
           "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
           "group": "navigation@6"
         },
         {
-          "command": "markdownAgentDocsFileBrowser.hideItem",
+          "command": "markdownAgentDocsFileBrowser.copyFileName",
           "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
           "group": "navigation@7"
         },
         {
-          "command": "markdownAgentDocsFileBrowser.delete",
+          "command": "markdownAgentDocsFileBrowser.hideItem",
           "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
           "group": "navigation@8"
+        },
+        {
+          "command": "markdownAgentDocsFileBrowser.delete",
+          "when": "view == markdownAgentDocsFileBrowser && (viewItem == mdFolder || viewItem == mdFile || viewItem == mdFilePinned || viewItem == mdPinnedFile || viewItem == mdRecentFile || viewItem == mdFilterFile || viewItem == mdFilterFilePinned || viewItem == mdExtraFile || viewItem == mdExtraFilePinned || viewItem == mdExtraPinnedFile || viewItem == mdExtraRecentFile || viewItem == mdExtraFilterFile || viewItem == mdExtraFilterFilePinned)",
+          "group": "navigation@9"
         }
       ],
       "explorer/context": [
+        {
+          "command": "markdownAgentDocs.focusSourceGraph",
+          "when": "resourceLangId == markdown",
+          "group": "navigation@9"
+        },
         {
           "command": "markdownAgentDocs.transformMarkdownToHtml",
           "when": "resourceLangId == markdown",

@@ -4,6 +4,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { getUriFromCommandArg, isMarkdownFileUri } from '../utils/markdownFiles.js';
 import { MPS_IGNORE_FILE, MPS_IGNORE_FILES, isSourceIgnoredUri } from '../utils/sourceIgnore.js';
 
 interface SourceGraphDb {
@@ -94,6 +95,11 @@ interface SourceGraphWebviewMessage {
   patterns?: unknown;
 }
 
+interface OpenSourceGraphOptions {
+  workspaceFolder?: vscode.WorkspaceFolder;
+  initialFocusPath?: string;
+}
+
 interface SourceGraphAuditResult {
   root: string;
   updatedAt: string;
@@ -160,6 +166,7 @@ let sourceGraphWorkspaceFolder: vscode.WorkspaceFolder | null = null;
 let sourceGraphAuditWorkspaceFolder: vscode.WorkspaceFolder | null = null;
 let sourceGraphLatestAudit: SourceGraphAuditResult | null = null;
 let sourceGraphRenderGeneration = 0;
+let sourceGraphCurrentInitialFocusPath = '';
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let openRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let sourceGraphSqliteModulePromise: Promise<SourceGraphSqliteModule> | null = null;
@@ -207,6 +214,9 @@ export function registerSourceGraphCommands(context: vscode.ExtensionContext): v
     registerSourceGraphCommand('markdownAgentDocs.openSourceGraph', async () => {
       await openSourceGraphPanel(context);
     }),
+    registerSourceGraphCommand('markdownAgentDocs.focusSourceGraph', async (commandArg?: unknown) => {
+      await focusSourceGraphFile(context, commandArg);
+    }),
     registerSourceGraphCommand('markdownAgentDocs.initializeSourceGraphWorkspace', async () => {
       const workspaceFolder = await pickWorkspaceFolder();
       if (!workspaceFolder) return;
@@ -236,7 +246,7 @@ export function registerSourceGraphCommands(context: vscode.ExtensionContext): v
   const ignoreWatchers = MPS_IGNORE_FILES.map((ignoreFile) => vscode.workspace.createFileSystemWatcher(`**/${ignoreFile}`));
   context.subscriptions.push(
     watcher,
-    watcher.onDidCreate((uri) => scheduleWorkspaceGraphRefresh(context, uri, 'full')),
+    watcher.onDidCreate((uri) => scheduleWorkspaceGraphRefresh(context, uri, 'file')),
     watcher.onDidChange((uri) => scheduleWorkspaceGraphRefresh(context, uri, 'file')),
     watcher.onDidDelete((uri) => scheduleWorkspaceGraphRefresh(context, uri, 'full')),
     ...ignoreWatchers.flatMap((ignoreWatcher) => [
@@ -968,9 +978,11 @@ function registerSourceGraphCommand(command: string, handler: (...args: unknown[
   });
 }
 
-async function openSourceGraphPanel(context: vscode.ExtensionContext): Promise<void> {
-  const workspaceFolder = await pickWorkspaceFolder();
+async function openSourceGraphPanel(context: vscode.ExtensionContext, options: OpenSourceGraphOptions = {}): Promise<void> {
+  const workspaceFolder = options.workspaceFolder ?? await pickWorkspaceFolder();
   if (!workspaceFolder) return;
+  const initialFocusPath = normalizeInitialSourceGraphFocusPath(options.initialFocusPath);
+  sourceGraphCurrentInitialFocusPath = initialFocusPath;
   sourceGraphWorkspaceFolder = workspaceFolder;
   const generation = ++sourceGraphRenderGeneration;
 
@@ -993,6 +1005,7 @@ async function openSourceGraphPanel(context: vscode.ExtensionContext): Promise<v
       }
       sourceGraphPanel = null;
       sourceGraphWorkspaceFolder = null;
+      sourceGraphCurrentInitialFocusPath = '';
     });
     sourceGraphPanel.webview.onDidReceiveMessage((message: SourceGraphWebviewMessage) => {
       if (!message || typeof message !== 'object') return;
@@ -1010,7 +1023,7 @@ async function openSourceGraphPanel(context: vscode.ExtensionContext): Promise<v
         void respondToSourceGraphSearch(context, activeWorkspaceFolder, sourceGraphPanel?.webview, message);
       }
       if (message.type === 'refresh') {
-        void openSourceGraphPanel(context);
+        void openSourceGraphPanel(context, { workspaceFolder: activeWorkspaceFolder, initialFocusPath });
       }
     });
   } else {
@@ -1030,7 +1043,7 @@ async function openSourceGraphPanel(context: vscode.ExtensionContext): Promise<v
     const db = await readDb(context, workspaceFolder);
     cachedDb = db;
     renderedCachedDb = true;
-    sourceGraphPanel.webview.html = renderSourceGraphHtml(db, sourceGraphPanel.webview);
+    sourceGraphPanel.webview.html = renderSourceGraphHtml(db, sourceGraphPanel.webview, initialFocusPath);
   } catch {
     sourceGraphPanel.webview.html = renderSourceGraphLoadingHtml(
       sourceGraphPanel.webview,
@@ -1039,7 +1052,34 @@ async function openSourceGraphPanel(context: vscode.ExtensionContext): Promise<v
     );
   }
 
-  scheduleOpenSourceGraphRefresh(context, workspaceFolder, generation, renderedCachedDb, cachedDb);
+  scheduleOpenSourceGraphRefresh(context, workspaceFolder, generation, renderedCachedDb, cachedDb, initialFocusPath);
+}
+
+async function focusSourceGraphFile(context: vscode.ExtensionContext, commandArg?: unknown): Promise<void> {
+  const uri = getUriFromCommandArg(commandArg) ?? vscode.window.activeTextEditor?.document.uri;
+  if (!uri || !isMarkdownFileUri(uri)) {
+    void vscode.window.showErrorMessage('Choose a Markdown file to focus in Source Graph.');
+    return;
+  }
+
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+  if (!workspaceFolder) {
+    void vscode.window.showErrorMessage('Source Graph can only focus Markdown files inside the current workspace.');
+    return;
+  }
+
+  const initialFocusPath = toWorkspaceRelativeGraphPath(workspaceFolder, uri);
+  if (!initialFocusPath) {
+    void vscode.window.showErrorMessage('Source Graph could not resolve the selected file inside the current workspace.');
+    return;
+  }
+
+  try {
+    await updateSourceGraphFile(context, workspaceFolder, uri);
+  } catch {
+    await updateSourceGraphIndex(context, workspaceFolder);
+  }
+  await openSourceGraphPanel(context, { workspaceFolder, initialFocusPath });
 }
 
 function scheduleOpenSourceGraphRefresh(
@@ -1048,6 +1088,7 @@ function scheduleOpenSourceGraphRefresh(
   generation: number,
   renderedCachedDb: boolean,
   cachedDb: SourceGraphDb | null,
+  initialFocusPath = '',
 ): void {
   if (cachedDb && isFreshSourceGraphDb(cachedDb)) return;
   if (openRefreshTimer) clearTimeout(openRefreshTimer);
@@ -1056,7 +1097,7 @@ function scheduleOpenSourceGraphRefresh(
     void updateSourceGraphIndex(context, workspaceFolder)
       .then((db) => {
         if (!sourceGraphPanel || generation !== sourceGraphRenderGeneration) return;
-        sourceGraphPanel.webview.html = renderSourceGraphHtml(db, sourceGraphPanel.webview);
+        sourceGraphPanel.webview.html = renderSourceGraphHtml(db, sourceGraphPanel.webview, initialFocusPath);
       })
       .catch((error) => {
         if (!sourceGraphPanel || generation !== sourceGraphRenderGeneration) return;
@@ -1718,6 +1759,16 @@ async function pickWorkspaceFolder(): Promise<vscode.WorkspaceFolder | null> {
   return picked?.folder ?? null;
 }
 
+function toWorkspaceRelativeGraphPath(workspaceFolder: vscode.WorkspaceFolder, uri: vscode.Uri): string {
+  const relativePath = path.relative(workspaceFolder.uri.fsPath, uri.fsPath);
+  if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) return '';
+  return normalizeInitialSourceGraphFocusPath(relativePath);
+}
+
+function normalizeInitialSourceGraphFocusPath(value: unknown): string {
+  return String(value || '').replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+/g, '/').replace(/\/$/, '');
+}
+
 function resolveWorkspaceRelativeFile(workspaceFolder: vscode.WorkspaceFolder, relativePath: string): vscode.Uri | null {
   const cleanPath = String(relativePath || '').replace(/\\/g, '/').replace(/^\/+/, '');
   if (!cleanPath || /^[a-z][a-z0-9+.-]*:/i.test(cleanPath)) return null;
@@ -1785,7 +1836,7 @@ async function scheduleWorkspaceGraphRefresh(
         ? updateSourceGraphFile(context, workspaceFolder, uri).catch(() => updateSourceGraphIndex(context, workspaceFolder))
         : updateSourceGraphIndex(context, workspaceFolder);
     void update.then((db) => {
-      if (sourceGraphPanel) sourceGraphPanel.webview.html = renderSourceGraphHtml(db, sourceGraphPanel.webview);
+      if (sourceGraphPanel) sourceGraphPanel.webview.html = renderSourceGraphHtml(db, sourceGraphPanel.webview, sourceGraphCurrentInitialFocusPath);
     });
   }, 600);
 }
@@ -2199,9 +2250,10 @@ function renderSourceGraphLoadingHtml(webview: vscode.Webview, title: string, de
 </html>`;
 }
 
-function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): string {
+function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview, initialFocusPath = ''): string {
   const nonce = createNonce();
   const json = JSON.stringify(toWebviewSourceGraphDb(db)).replace(/</g, '\\u003c');
+  const focusPathJson = JSON.stringify(normalizeInitialSourceGraphFocusPath(initialFocusPath)).replace(/</g, '\\u003c');
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -2389,6 +2441,7 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     window.addEventListener('error', (event) => showEarlyBootFailure(event.error || event.message));
     window.addEventListener('unhandledrejection', (event) => showEarlyBootFailure(event.reason));
     const db = ${json};
+    const initialFocusPath = ${focusPathJson};
     const documentNodeIds = new Set((db.tables.documents || []).map((doc) => doc.id));
     const docById = new Map((db.tables.documents || []).map((doc) => [doc.id, doc]));
     const documentNodes = (db.graph.nodes || []).filter((node) => documentNodeIds.has(node.id)).map((node) => ({ ...node, kind: 'document', layer: 'file' }));
@@ -2967,6 +3020,12 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
         .map((node) => ({ node, score: graphDegree(node.id) }))
         .sort((a, b) => b.score - a.score || (a.node.path || '').localeCompare(b.node.path || ''));
       return (scored.find((item) => item.score > 0)?.node || scored[0]?.node || nodes[0] || {}).id || '';
+    }
+    function pickInitialFocusNodeId() {
+      const targetPath = normalizeGraphPath(initialFocusPath).toLowerCase();
+      if (!targetPath) return '';
+      const match = documentNodes.find((node) => normalizeGraphPath(node.path).toLowerCase() === targetPath);
+      return match?.id || '';
     }
     function graphDegree(id) {
       return visualGraph().degreeByNode.get(id) || 0;
@@ -3865,6 +3924,12 @@ function renderSourceGraphHtml(db: SourceGraphDb, webview: vscode.Webview): stri
     function startProgressiveRender() {
       setLoadingStage('Rendering Markdown files...', 'Showing file nodes and resolved Markdown-to-Markdown edges first.');
       rebuildGraphState();
+      const initialFocusNodeId = pickInitialFocusNodeId();
+      if (initialFocusNodeId) {
+        selectedId = initialFocusNodeId;
+        focusSelectedNode();
+        return;
+      }
       if (!selectedId && !isLargeGraphPreview()) {
         selectedId = pickInitialNodeId();
         highlightNeighborhood(selectedId, false);
