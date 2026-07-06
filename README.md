@@ -6,10 +6,12 @@ Turn a local Markdown folder into an AI-readable document graph.
 
 Agent Docs for Markdown is a VS Code extension for people who keep knowledge in Markdown and want AI agents to use it with evidence. It indexes local Markdown into a Source Graph, helps clean noisy folders before agent work, installs bundled agent skills, and exports polished HTML when the writing is done.
 
+![Agent Docs for Markdown turns local Markdown files into a Source Graph and AI-ready context](assets/images/agent-docs-hero.png)
+
 한국어 가이드는 [README.ko.md](README.ko.md)를 참고하세요.  
 Extension-specific Marketplace copy lives in [vscode-extension/README.md](vscode-extension/README.md).
 
-Current repository extension version: `0.1.58`.
+Current repository extension version: `0.1.59`.
 
 ## What It Does
 

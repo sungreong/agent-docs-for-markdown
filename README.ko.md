@@ -6,10 +6,12 @@
 
 Agent Docs for Markdown은 Markdown으로 지식베이스, 리서치 노트, 위키, 보고서를 관리하는 사람을 위한 VS Code 확장입니다. 로컬 문서를 Source Graph로 인덱싱하고, 정리해야 할 노이즈를 찾고, 에이전트용 스킬을 설치하고, 마지막에는 HTML로 내보냅니다.
 
+![Agent Docs for Markdown은 로컬 Markdown 파일을 Source Graph와 AI-ready context로 바꿉니다](assets/images/agent-docs-hero.png)
+
 English guide: [README.md](README.md)  
 VS Code Marketplace용 문서: [vscode-extension/README.md](vscode-extension/README.md)
 
-현재 저장소 확장 버전: `0.1.58`
+현재 저장소 확장 버전: `0.1.59`
 
 ## 한 문장으로
 

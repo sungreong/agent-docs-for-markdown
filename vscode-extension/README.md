@@ -6,6 +6,8 @@ Turn a Markdown workspace into an AI-readable source graph.
 
 Agent Docs for Markdown is a VS Code extension for local Markdown knowledge bases. It gives you a document browser, styled preview/export, Source Graph navigation, Workspace Cleanup Audit, and bundled AI-agent skills that help Claude, Codex, Agents, Gemini, or Cursor work from grounded Markdown evidence.
 
+![Agent Docs for Markdown turns local Markdown files into a Source Graph and AI-ready context](agent-docs-hero.png)
+
 ## Source Graph Focus And Hop
 
 ![Source Graph multi-hop focus view](source-graph-multi-hop.png)
@@ -212,7 +214,7 @@ npm run package:vsix
 Install the local package:
 
 ```bash
-code --install-extension .\markdown-agent-docs-0.1.58.vsix
+code --install-extension .\markdown-agent-docs-0.1.59.vsix
 ```
 
 For full operations and troubleshooting, see [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md).
