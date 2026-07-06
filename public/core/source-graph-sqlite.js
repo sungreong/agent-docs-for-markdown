@@ -21,18 +21,19 @@ export async function loadSqlRuntime() {
 }
 
 export async function writeSourceGraphSqlite(dbPath, graphDb) {
-  const SQL = await loadSqlRuntime();
-  const sqlite = new SQL.Database();
-  try {
-    configureWritePragmas(sqlite);
-    createSchema(sqlite, { indexes: false });
-    replaceGraphDb(sqlite, graphDb);
-    createIndexes(sqlite);
-    await fs.mkdir(path.dirname(dbPath), { recursive: true });
-    await fs.writeFile(dbPath, Buffer.from(sqlite.export()));
-  } finally {
-    sqlite.close();
-  }
+  await withSqliteWriteLock(dbPath, async () => {
+    const SQL = await loadSqlRuntime();
+    const sqlite = new SQL.Database();
+    try {
+      configureWritePragmas(sqlite);
+      createSchema(sqlite, { indexes: false });
+      replaceGraphDb(sqlite, graphDb);
+      createIndexes(sqlite);
+      await writeSqliteDatabaseAtomic(dbPath, sqlite);
+    } finally {
+      sqlite.close();
+    }
+  });
 }
 
 export async function patchSourceGraphSqlite(dbPath, graphDb, changedDocumentIds = []) {
@@ -41,17 +42,19 @@ export async function patchSourceGraphSqlite(dbPath, graphDb, changedDocumentIds
     await writeSourceGraphSqlite(dbPath, graphDb);
     return;
   }
-  const SQL = await loadSqlRuntime();
-  const bytes = await fs.readFile(dbPath);
-  const sqlite = new SQL.Database(bytes);
-  try {
-    configureWritePragmas(sqlite);
-    createSchema(sqlite);
-    patchGraphDb(sqlite, graphDb, ids);
-    await fs.writeFile(dbPath, Buffer.from(sqlite.export()));
-  } finally {
-    sqlite.close();
-  }
+  await withSqliteWriteLock(dbPath, async () => {
+    const SQL = await loadSqlRuntime();
+    const bytes = await fs.readFile(dbPath);
+    const sqlite = new SQL.Database(bytes);
+    try {
+      configureWritePragmas(sqlite);
+      createSchema(sqlite);
+      patchGraphDb(sqlite, graphDb, ids);
+      await writeSqliteDatabaseAtomic(dbPath, sqlite);
+    } finally {
+      sqlite.close();
+    }
+  });
 }
 
 export async function readSourceGraphSqlite(dbPath) {
@@ -161,6 +164,51 @@ function configureWritePragmas(sqlite) {
     PRAGMA synchronous = OFF;
     PRAGMA temp_store = MEMORY;
   `);
+}
+
+async function withSqliteWriteLock(dbPath, worker) {
+  await fs.mkdir(path.dirname(dbPath), { recursive: true });
+  const lockPath = `${dbPath}.lock`;
+  const startedAt = Date.now();
+  let handle;
+  while (!handle) {
+    try {
+      handle = await fs.open(lockPath, 'wx');
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      if (Date.now() - startedAt > 120_000) {
+        throw new Error(`Timed out waiting for Source Graph SQLite write lock: ${lockPath}`);
+      }
+      await delay(150);
+    }
+  }
+  try {
+    await handle.writeFile(`${process.pid}\n${new Date().toISOString()}\n`, 'utf8');
+    return await worker();
+  } finally {
+    await handle.close().catch(() => {});
+    await fs.unlink(lockPath).catch(() => {});
+  }
+}
+
+async function writeSqliteDatabaseAtomic(dbPath, sqlite) {
+  await fs.mkdir(path.dirname(dbPath), { recursive: true });
+  const tempPath = `${dbPath}.${process.pid}.${Date.now()}.tmp`;
+  await fs.writeFile(tempPath, Buffer.from(sqlite.export()));
+  try {
+    await fs.rename(tempPath, dbPath);
+  } catch (error) {
+    if (process.platform !== 'win32' || !['EEXIST', 'EPERM', 'EACCES'].includes(error?.code)) {
+      await fs.unlink(tempPath).catch(() => {});
+      throw error;
+    }
+    await fs.unlink(dbPath).catch(() => {});
+    await fs.rename(tempPath, dbPath);
+  }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function createSchema(sqlite, options = {}) {

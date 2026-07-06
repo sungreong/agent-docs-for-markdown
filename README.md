@@ -9,7 +9,7 @@ Agent Docs for Markdown is a VS Code extension for people who keep knowledge in 
 한국어 가이드는 [README.ko.md](README.ko.md)를 참고하세요.  
 Extension-specific Marketplace copy lives in [vscode-extension/README.md](vscode-extension/README.md).
 
-Current repository extension version: `0.1.55`.
+Current repository extension version: `0.1.58`.
 
 ## What It Does
 
@@ -18,7 +18,7 @@ Current repository extension version: `0.1.55`.
 - Build a local `.mps/source-graph.sqlite` index from documents, links, URLs, images, broken links, and related notes.
 - Use Source Graph Focus and Hop controls to explore a document neighborhood without losing the larger structure.
 - Run Workspace Cleanup Audit before asking an AI agent to search, rewrite, or reorganize a large Markdown corpus.
-- Install the bundled `markdown-manager` router skill into `.claude/skills`, `.agents/skills`, `.codex/skills`, `.gemini/skills`, or `.cursor/skills`.
+- Install the bundled `markdown-manager` and `markdown-writer` skills into `.claude/skills`, `.agents/skills`, `.codex/skills`, `.gemini/skills`, or `.cursor/skills`.
 
 ## Why It Exists
 
@@ -77,7 +77,7 @@ Recommended first run:
 3. Run `Open Graph` or `Agent Docs: Open Source Graph`.
 4. Run `Run Workspace Audit` and review cleanup suggestions.
 5. Run `Agent Docs: Install or Export Skills`.
-6. Ask your agent to use `markdown-manager` with the examples below.
+6. Ask your agent to use `markdown-manager` for graph/search work or `markdown-writer` for writing/rendering work.
 
 ## Built-In Skill Router And What To Ask
 
@@ -87,15 +87,27 @@ Install skills with:
 Agent Docs: Install or Export Skills
 ```
 
-Choose `Install recommended Markdown Manager skill`, then select the target agent folders you use. Missing folders are created automatically. This installs the single recommended slash command, `markdown-manager`, so the agent can route your request internally instead of making you choose among many small skills.
+Choose `Install recommended Manager + Writer skills`, then select the target agent folders you use. Missing folders are created automatically. This installs two recommended slash commands: `markdown-manager` for graph/search/cleanup work and `markdown-writer` for reports, decks, polished Markdown, and render checks.
 
 Advanced users can still install individual low-level skills from `Advanced: choose source and target`.
 
-### How To Use The Skill In Chat
+### How To Use The Skills In Chat
 
-After installation, use `markdown-manager` as the first instruction in your AI agent chat. In slash-command UIs, type `/markdown-manager`. In plain chat UIs, write `Use markdown-manager` or `markdown-manager를 사용해줘`.
+After installation, start your AI agent chat with the skill that matches the job:
 
-You do not need to choose the low-level skill yourself. Describe the document task in normal language, and `markdown-manager` decides whether the request needs search, graph triage, ignore advice, context packaging, update planning, canonicalization, link repair, presentation composition, export QA, or setup diagnostics.
+- Use `/markdown-manager` for workspace search, Source Graph, links, update impact, canonical docs, or `.mpsignore`.
+- Use `/markdown-writer` for writing, rewriting, reports, blog-ready Markdown, deck-ready Markdown, visual structure, and HTML render checks.
+
+In plain chat UIs, write `Use markdown-manager` or `Use markdown-writer`.
+
+If you are unsure how to start, ask the agent for guidance first:
+
+```text
+Use markdown-manager.
+
+I am new to Agent Docs. Explain how to use Source Graph and the bundled skills in this workspace.
+Tell me when to use markdown-manager, when to use markdown-writer, and give me copy-paste prompts.
+```
 
 Good starting prompts:
 
@@ -110,18 +122,19 @@ Find broken links, orphan docs, duplicate generated content, and .mpsignore cand
 ```
 
 ```text
-/markdown-manager 이 주제에 대해 글을 쓰기 전에 에이전트가 먼저 읽어야 할 최소 문서 묶음을 만들어줘.
+/markdown-writer 이 리서치 노트를 8페이지 임원 보고서 형태의 Markdown으로 재구성하고 렌더 체크까지 해줘.
 ```
 
 ```text
-Use markdown-manager to turn @brief.md into a polished Agent Docs report. Keep evidence, improve structure, and include an export-readiness checklist.
+Use markdown-writer to turn @brief.md into a polished Agent Docs report. Keep evidence, improve structure, and include an export-readiness checklist.
 ```
 
 ### Start Here
 
 | Skill | Ask this when you want... | Example prompt |
 | --- | --- | --- |
-| `markdown-manager` | one natural-language entry point for Markdown search, graph cleanup, links, update planning, reports, decks, and export checks | `Use markdown-manager to inspect this workspace and decide the right Agent Docs workflow. I want to update wiki/concepts/agentic-ai.md without missing related docs or broken links.` |
+| `markdown-manager` | Markdown search, Source Graph cleanup, links, update impact, context packaging, canonical docs | `Use markdown-manager to inspect this workspace. I want to update wiki/concepts/agentic-ai.md without missing related docs or broken links.` |
+| `markdown-writer` | reports, briefs, tutorials, presentation-style Markdown, deck-ready Markdown, export/render checks | `Use markdown-writer to turn @brief.md into a polished Agent Docs report with evidence, better structure, and render QA.` |
 
 ### Internal Routes Used By `markdown-manager`
 
@@ -134,9 +147,7 @@ Use markdown-manager to turn @brief.md into a polished Agent Docs report. Keep e
 | `markdown-update-planner` | an impact plan before editing | `Use markdown-update-planner before updating wiki/concepts/agentic-ai.md. Tell me which linked or related docs should be reviewed together.` |
 | `markdown-canonicalizer` | canonical source decisions | `Use markdown-canonicalizer to choose the canonical Markdown page for "MCP tooling". Identify merge, archive, redirect, or keep-separate candidates.` |
 | `markdown-link-repair` | broken links and weak backlinks | `Use markdown-link-repair to find broken internal links and stale URL references. Prioritize the fixes that most affect Source Graph quality.` |
-| `md-presentation-composer` | turning Markdown into a report, pitch, tutorial, or presentation-style doc | `Use md-presentation-composer to turn this research note into an 8-page executive report. Keep the evidence, improve the structure, and use Agent Docs Markdown classes.` |
-| `md-to-deck-designer` | turning Markdown pages into slides or PPTX-ready structure | `Use md-to-deck-designer to convert this Markdown into a slide deck. Preserve page intent and propose a clean visual system before editing.` |
-| `document-production-advisor` | export readiness and document QA | `Use document-production-advisor to check whether this Markdown will render well as standalone HTML, blog embed HTML, and DOCX handoff.` |
+| `markdown-writer` | writing, presentation-style Markdown, deck-ready structure, export readiness, render QA | `Use markdown-writer to convert this research note into an executive report and verify the rendered HTML output.` |
 | `install-diagnostics` | missing local tools or setup issues | `Use install-diagnostics to check whether this workspace has the Node, npm, CLI, and environment setup needed for Agent Docs workflows.` |
 
 ### A Good Agent Prompt Pattern
@@ -157,7 +168,7 @@ Do not edit until the plan is clear.
 ### A Good Writing Prompt Pattern
 
 ```text
-Use markdown-manager.
+Use markdown-writer.
 
 Turn @brief.md into a polished Agent Docs for Markdown report.
 Audience: technical leadership

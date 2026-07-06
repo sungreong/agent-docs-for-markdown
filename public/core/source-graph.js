@@ -50,11 +50,6 @@ export function updateSourceGraphDocuments(db, documents = [], options = {}) {
   next.updatedAt = options.updatedAt || new Date().toISOString();
   if (options.root) next.root = options.root;
 
-  const existingIds = new Set((next.tables.documents || []).map((doc) => doc.id));
-  if (normalizedDocuments.some((doc) => !existingIds.has(doc.id))) {
-    throw new Error('incremental source graph update requires existing document paths');
-  }
-
   const changedIds = new Set(normalizedDocuments.map((doc) => doc.id));
   next.tables.documents = (next.tables.documents || []).filter((doc) => !changedIds.has(doc.id));
   next.tables.headings = (next.tables.headings || []).filter((heading) => !changedIds.has(heading.documentId));

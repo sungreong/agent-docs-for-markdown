@@ -272,8 +272,8 @@ assert(
       command.title === 'Agent Docs: Install or Export Skills',
   ) &&
     exportSkillFolderSource.includes('async function pickSkillWorkflow') &&
-    exportSkillFolderSource.includes("label: 'Install recommended Markdown Manager skill'") &&
-    exportSkillFolderSource.includes("const recommendedBundledSkillIds = new Set(['markdown-manager'])") &&
+    exportSkillFolderSource.includes("label: 'Install recommended Manager + Writer skills'") &&
+    exportSkillFolderSource.includes("const recommendedBundledSkillIds = new Set(['markdown-manager', 'markdown-writer'])") &&
     exportSkillFolderSource.includes('function selectRecommendedBundledSkills') &&
     exportSkillFolderSource.includes('async function pickBundledInstallPlans') &&
     exportSkillFolderSource.includes('canPickMany: true') &&
@@ -288,9 +288,13 @@ assert(
     exportSkillFolderSource.includes("channel.appendLine('Failed')") &&
     exportSkillFolderSource.includes("channel.appendLine('Next')") &&
     exportSkillFolderSource.includes('Choose a skill root folder such as .claude/skills') &&
-    extensionReadme.includes('Install recommended Markdown Manager skill') &&
-    extensionGuide.includes('Install recommended Markdown Manager skill'),
-  'Skill install/export UX should lead with the recommended markdown-manager install and guard against selecting individual skill folders',
+    extensionReadme.includes('Install recommended Manager + Writer skills') &&
+    extensionGuide.includes('Install recommended Manager + Writer skills') &&
+    extensionReadme.includes('markdown-writer') &&
+    extensionGuide.includes('markdown-writer') &&
+    extensionReadme.includes('I am new to Agent Docs') &&
+    extensionGuide.includes('usage-helper'),
+  'Skill install/export UX should lead with the recommended manager + writer install and guard against selecting individual skill folders',
 );
 assert(
   extensionSource.includes('isSessionAlive(session)') &&
@@ -394,13 +398,16 @@ for (const doc of [extensionGuide, extensionReadme]) {
   );
   assert(
     doc.includes('Agent Docs: Install or Export Skills') &&
-      doc.includes('Install recommended Markdown Manager skill') &&
-      doc.includes('node scripts/source-graph.mjs search'),
-    'User docs should explain bundled Markdown Manager setup and CLI search',
+      doc.includes('Install recommended Manager + Writer skills') &&
+      doc.includes('node .codex/skills/markdown-manager/scripts/source-graph.mjs search'),
+    'User docs should explain bundled Manager + Writer setup and installed manager CLI search',
   );
   assert(
-    doc.includes('markdown-manager') && doc.includes('markdown-workspace-search'),
-    'User docs should mention the bundled Markdown Manager and its workspace search route',
+    doc.includes('markdown-manager') &&
+      doc.includes('markdown-workspace-search') &&
+      doc.includes('markdown-writer') &&
+      doc.includes('I am new to Agent Docs'),
+    'User docs should mention the bundled Markdown Manager, Writer, workspace search route, and usage-helper prompt',
   );
   assert(
     doc.includes('--include-headings'),

@@ -55,18 +55,27 @@ Agent Docs: Install or Export Skills
 Choose:
 
 ```text
-Install recommended Markdown Manager skill
+Install recommended Manager + Writer skills
 ```
 
 Then select the agent folders you want to update. The extension can update `.claude/skills`, `.agents/skills`, `.codex/skills`, `.gemini/skills`, and `.cursor/skills`. Missing folders are created automatically.
 
-This normal setup installs `markdown-manager`, a single slash command that routes Markdown search, Source Graph cleanup, link repair, context packaging, update planning, reports, decks, export checks, and setup diagnostics. Use `Advanced: choose source and target` only when you want individual low-level skills installed as separate slash commands.
+This normal setup installs two focused slash commands: `markdown-manager` for Markdown search, Source Graph cleanup, link repair, context packaging, and update planning; `markdown-writer` for reports, decks, polished Markdown, and render/export checks. Use `Advanced: choose source and target` only when you want individual low-level skills installed as separate slash commands.
 
 ## How To Use The Skill In Your Agent
 
-After installation, start the agent request with `markdown-manager`. If your agent UI supports slash commands, type `/markdown-manager`. If it does not, write `Use markdown-manager` in the prompt.
+After installation, start the agent request with the matching skill. Use `/markdown-manager` for graph/search/cleanup work and `/markdown-writer` for writing/rendering work. If your agent UI does not support slash commands, write `Use markdown-manager` or `Use markdown-writer` in the prompt.
 
-You can describe the task naturally. The router chooses the internal workflow for search, graph triage, ignore advice, context packaging, update planning, canonicalization, link repair, presentation composition, export QA, or setup diagnostics.
+You can describe the task naturally. The manager handles corpus intelligence; the writer handles reader-facing documents.
+
+If you are not sure what to ask, ask the manager to teach the workflow first:
+
+```text
+Use markdown-manager.
+
+I am new to Agent Docs. Explain how to use Source Graph and the bundled skills in this workspace.
+Tell me when to use markdown-manager, when to use markdown-writer, and give me copy-paste prompts.
+```
 
 ```text
 /markdown-manager 이 문서와 연결된 관련 문서까지 찾아서 업데이트 범위를 알려줘.
@@ -79,18 +88,19 @@ Before editing this Markdown workspace, find broken links, orphan docs, duplicat
 ```
 
 ```text
-/markdown-manager 이 주제에 대해 에이전트가 먼저 읽어야 할 최소 문서 묶음을 만들어줘.
+/markdown-writer 이 리서치 노트를 8페이지 임원 보고서 형태의 Markdown으로 재구성하고 렌더 체크까지 해줘.
 ```
 
 ```text
-Use markdown-manager to turn @brief.md into a polished Agent Docs report with evidence, better structure, and an export-readiness checklist.
+Use markdown-writer to turn @brief.md into a polished Agent Docs report with evidence, better structure, and an export-readiness checklist.
 ```
 
 ## Built-In Skill Router And Example Questions
 
 | Skill | Use it for | Ask your agent |
 | --- | --- | --- |
-| `markdown-manager` | one entry point for Markdown search, graph cleanup, links, updates, reports, decks, and export checks | `Use markdown-manager to understand this Markdown request, choose the right Agent Docs workflow, gather Source Graph evidence, and return the next action.` |
+| `markdown-manager` | Markdown search, graph cleanup, links, update impact, canonical docs, context packages | `Use markdown-manager to gather Source Graph evidence and return the next action.` |
+| `markdown-writer` | reports, briefs, tutorials, deck-ready Markdown, visual structure, render/export checks | `Use markdown-writer to turn @brief.md into a polished Agent Docs report and verify the rendered output.` |
 
 ### Internal Routes Used By `markdown-manager`
 
@@ -103,9 +113,7 @@ Use markdown-manager to turn @brief.md into a polished Agent Docs report with ev
 | `markdown-update-planner` | impact planning before edits | `Use markdown-update-planner before editing wiki/concepts/agentic-ai.md. Which linked or related docs should be reviewed together?` |
 | `markdown-canonicalizer` | choosing the primary source | `Use markdown-canonicalizer to choose the canonical Markdown page for MCP tooling. Identify merge, archive, redirect, or keep-separate candidates.` |
 | `markdown-link-repair` | broken links and weak backlinks | `Use markdown-link-repair to find broken internal links, stale URLs, and backlink gaps. Prioritize fixes by Source Graph impact.` |
-| `md-presentation-composer` | reports, pitches, tutorials, presentation-style Markdown | `Use md-presentation-composer to turn this research note into an executive report. Keep evidence, improve structure, and use Agent Docs Markdown classes.` |
-| `md-to-deck-designer` | slide/deck conversion | `Use md-to-deck-designer to convert this Markdown into a slide deck. Preserve page intent and propose the visual system before editing.` |
-| `document-production-advisor` | export-readiness QA | `Use document-production-advisor to check whether this Markdown will render well as standalone HTML, blog embed HTML, and DOCX handoff.` |
+| `markdown-writer` | writing, presentation-style Markdown, deck-ready structure, export readiness, render QA | `Use markdown-writer to convert this research note into an executive report and verify the rendered HTML output.` |
 | `install-diagnostics` | missing local setup | `Use install-diagnostics to check Node, npm, CLI, PATH, and environment setup for Agent Docs workflows.` |
 
 ### Strong Prompt For Graph-Grounded Work
@@ -126,7 +134,7 @@ Do not edit until the plan is clear.
 ### Strong Prompt For Writing
 
 ```text
-Use markdown-manager.
+Use markdown-writer.
 
 Turn @brief.md into a polished Agent Docs for Markdown report.
 Audience: technical leadership
@@ -204,7 +212,7 @@ npm run package:vsix
 Install the local package:
 
 ```bash
-code --install-extension .\markdown-agent-docs-0.1.55.vsix
+code --install-extension .\markdown-agent-docs-0.1.58.vsix
 ```
 
 For full operations and troubleshooting, see [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md).

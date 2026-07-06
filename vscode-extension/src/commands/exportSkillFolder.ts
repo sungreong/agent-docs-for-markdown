@@ -82,7 +82,7 @@ const bundledSourceIdPrefix = 'bundled-';
 const bundledSharedSourceId = 'bundled-shared';
 const workspaceTargetIdPrefix = 'workspace-';
 const configuredTargetId = 'workspace-configured';
-const recommendedBundledSkillIds = new Set(['markdown-manager']);
+const recommendedBundledSkillIds = new Set(['markdown-manager', 'markdown-writer']);
 
 const skillAgentProfiles = [
   {
@@ -451,9 +451,9 @@ async function pickSkillWorkflow(
   const items: WorkflowPick[] = [];
   if (hasBundledSources) {
     items.push({
-      label: 'Install recommended Markdown Manager skill',
+      label: 'Install recommended Manager + Writer skills',
       description: workspaceFolder ? 'Choose Claude, Agents, Codex, Gemini, Cursor targets' : 'Open a workspace first',
-      detail: 'Recommended: installs the shared markdown-manager router so agent slash commands stay focused. Use Advanced for individual low-level skills.',
+      detail: 'Recommended: installs markdown-manager for graph/search work and markdown-writer for reports, decks, and render checks. Use Advanced for low-level skills.',
       action: 'install-bundled-matching',
     });
   }

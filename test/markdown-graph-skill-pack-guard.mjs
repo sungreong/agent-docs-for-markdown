@@ -19,6 +19,7 @@ const skillNames = [
 
 const routerSkillNames = [
   'markdown-manager',
+  'markdown-writer',
 ];
 
 const roots = [
@@ -31,7 +32,18 @@ for (const root of roots) {
     const skillPath = path.join(repoRoot, root, skill, 'SKILL.md');
     await assertExists(skillPath, `${root}/${skill}/SKILL.md`);
     await assertExists(path.join(repoRoot, root, skill, 'agents', 'openai.yaml'), `${root}/${skill}/agents/openai.yaml`);
-    await assertExists(path.join(repoRoot, root, skill, 'scripts', 'source-graph.mjs'), `${root}/${skill}/scripts/source-graph.mjs`);
+    if (skill === 'markdown-manager') {
+      await assertExists(path.join(repoRoot, root, skill, 'scripts', 'source-graph.mjs'), `${root}/${skill}/scripts/source-graph.mjs`);
+      await assertExists(path.join(repoRoot, root, skill, 'references', 'usage-helper.md'), `${root}/${skill}/references/usage-helper.md`);
+    }
+    if (skill === 'markdown-writer') {
+      await assertExists(path.join(repoRoot, root, skill, 'package.json'), `${root}/${skill}/package.json`);
+      await assertExists(path.join(repoRoot, root, skill, 'scripts', 'md-to-html.mjs'), `${root}/${skill}/scripts/md-to-html.mjs`);
+      await assertExists(path.join(repoRoot, root, skill, 'public', 'document.css'), `${root}/${skill}/public/document.css`);
+      await assertExists(path.join(repoRoot, root, skill, 'public', 'core', 'engine.js'), `${root}/${skill}/public/core/engine.js`);
+      await assertExists(path.join(repoRoot, root, skill, 'public', 'core', 'export-standalone.js'), `${root}/${skill}/public/core/export-standalone.js`);
+      await assertExists(path.join(repoRoot, root, skill, 'public', 'core', 'brand-designs.js'), `${root}/${skill}/public/core/brand-designs.js`);
+    }
   }
   for (const skill of skillNames) {
     const skillPath = path.join(repoRoot, root, skill, 'SKILL.md');
@@ -47,6 +59,11 @@ for (const root of roots) {
 
 const searchSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-workspace-search', 'SKILL.md'), 'utf8');
 const managerSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-manager', 'SKILL.md'), 'utf8');
+const managerUsageHelper = await fs.readFile(
+  path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-manager', 'references', 'usage-helper.md'),
+  'utf8',
+);
+const writerSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-writer', 'SKILL.md'), 'utf8');
 const triageSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-graph-triage', 'SKILL.md'), 'utf8');
 const ignoreSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-ignore-advisor', 'SKILL.md'), 'utf8');
 const updatePlannerSkill = await fs.readFile(path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-update-planner', 'SKILL.md'), 'utf8');
@@ -60,12 +77,22 @@ const skillMap = await fs.readFile(
 );
 
 assert(managerSkill.includes('## Routing'), 'markdown-manager should route Markdown requests to internal workflows');
+assert(managerSkill.includes('usage-helper'), 'markdown-manager should route onboarding and usage questions');
+assert(managerSkill.includes('references/usage-helper.md'), 'markdown-manager should point usage questions to its helper reference');
 assert(managerSkill.includes('markdown-workspace-search'), 'markdown-manager should route search requests');
 assert(managerSkill.includes('markdown-link-repair'), 'markdown-manager should route link repair requests');
-assert(managerSkill.includes('md-presentation-composer'), 'markdown-manager should route writing requests');
-assert(managerSkill.includes('document-production-advisor'), 'markdown-manager should route export QA requests');
+assert(managerSkill.includes('route to `markdown-writer`'), 'markdown-manager should hand writing requests to markdown-writer');
 assert(managerSkill.includes('.codex/skills/markdown-manager/scripts/source-graph.mjs'), 'markdown-manager should prefer its bundled script');
 assert(managerSkill.includes('Do not assume the user'), 'markdown-manager should not assume workspace scripts exist');
+assert(managerUsageHelper.includes('First-Time Setup'), 'markdown-manager usage helper should include first-time setup');
+assert(managerUsageHelper.includes('Which Skill To Use'), 'markdown-manager usage helper should explain manager vs writer');
+assert(managerUsageHelper.includes('Copy-Paste Prompts'), 'markdown-manager usage helper should include copy-paste prompts');
+assert(managerUsageHelper.includes('Check whether this workspace has Source Graph initialized'), 'markdown-manager usage helper should include verification prompts');
+assert(writerSkill.includes('## Bundled Renderer'), 'markdown-writer should document its bundled renderer');
+assert(writerSkill.includes('.codex/skills/markdown-writer/scripts/md-to-html.mjs'), 'markdown-writer should prefer its bundled renderer script');
+assert(writerSkill.includes('presentation-style Markdown'), 'markdown-writer should handle presentation-style Markdown');
+assert(writerSkill.includes('deck-ready'), 'markdown-writer should handle deck-ready Markdown');
+assert(writerSkill.includes('Production QA Checklist'), 'markdown-writer should include export QA guidance');
 assert(searchSkill.includes('references/markdown-graph-skill-map.md'), 'markdown-workspace-search should route to companion graph skills');
 assert(searchSkill.includes('OS-Aware Execution'), 'markdown-workspace-search should document OS-aware commands');
 assert(searchSkill.includes('Large Output Rule'), 'markdown-workspace-search should document persisted-output handling');
@@ -210,6 +237,48 @@ assert(
 const managerPortableResults = JSON.parse(managerPortableSearch.stdout);
 assert(managerPortableResults.some((doc) => doc.path === 'docs/guide.md'), 'markdown-manager portable fallback should find Markdown body matches');
 await fs.rm(managerPortableRoot, { recursive: true, force: true });
+
+const writerPortableRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'mps-writer-skill-portable-'));
+await fs.mkdir(path.join(writerPortableRoot, '.codex', 'skills'), { recursive: true });
+await fs.cp(
+  path.join(repoRoot, 'ai_skills', 'shared', 'skills', 'markdown-writer'),
+  path.join(writerPortableRoot, '.codex', 'skills', 'markdown-writer'),
+  { recursive: true },
+);
+await fs.writeFile(
+  path.join(writerPortableRoot, 'brief.md'),
+  [
+    '---',
+    'title: Writer Portable Test',
+    'theme: report',
+    'intent: reference',
+    '---',
+    '',
+    '# Writer Portable Test',
+    '',
+    'This verifies the bundled markdown-writer renderer.',
+    '',
+  ].join('\n'),
+  'utf8',
+);
+const writerPortableRender = spawnSync(
+  process.execPath,
+  [
+    '.codex/skills/markdown-writer/scripts/md-to-html.mjs',
+    'brief.md',
+    '--out',
+    '.mps/writer-preview.html',
+    '--standalone',
+  ],
+  { cwd: writerPortableRoot, encoding: 'utf8' },
+);
+assert(
+  writerPortableRender.status === 0,
+  `markdown-writer bundled renderer should work without workspace scripts/md-to-html.mjs:\n${writerPortableRender.stderr || writerPortableRender.stdout}`,
+);
+const writerHtml = await fs.readFile(path.join(writerPortableRoot, '.mps', 'writer-preview.html'), 'utf8');
+assert(writerHtml.includes('Writer Portable Test'), 'markdown-writer portable renderer should create HTML output');
+await fs.rm(writerPortableRoot, { recursive: true, force: true });
 
 console.log('markdown graph skill pack guard passed');
 

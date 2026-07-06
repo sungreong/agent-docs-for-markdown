@@ -1,0 +1,10 @@
+name: markdown-writer
+description: Agent Docs writing skill for reports, briefs, tutorials, presentation-style Markdown, deck-ready Markdown, and export QA.
+triggers:
+  - markdown writer
+  - write markdown report
+  - turn notes into report
+  - markdown presentation
+  - deck-ready markdown
+  - export-ready markdown
+default_prompt: "Use $markdown-writer to turn this request into a polished, render-checked Agent Docs Markdown artifact."

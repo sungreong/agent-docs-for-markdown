@@ -315,11 +315,6 @@ async function updateGraphFiles(args = {}) {
   const requestedPaths = normalizeRequestedPaths(args);
   if (!requestedPaths.length) return updateGraph(args);
   if (requestedPaths.some((relPath) => ignore.isIgnored(relPath))) return updateGraph(args);
-  const indexedPaths = new Set((db?.tables?.documents || []).map((doc) => String(doc.path || '').toLowerCase()));
-  if (requestedPaths.some((relPath) => !indexedPaths.has(relPath.toLowerCase()))) {
-    return updateGraph(args);
-  }
-
   const documents = [];
   for (const relPath of requestedPaths) {
     const fullPath = path.join(root, relPath);
